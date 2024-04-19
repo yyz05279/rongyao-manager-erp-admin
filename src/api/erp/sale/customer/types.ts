@@ -42,7 +42,7 @@ export interface CustomerVO {
   /**
    * 开启状态
    */
-  status: number|string;
+  status: string;
 
   /**
    * 排序
@@ -119,7 +119,7 @@ export interface CustomerForm extends BaseEntity {
   /**
    * 开启状态
    */
-  status?: number;
+  status?: string;
 
   /**
    * 排序
@@ -175,7 +175,7 @@ export interface CustomerQuery extends PageQuery {
   /**
    * 开启状态
    */
-  status?: number;
+  status?: string;
 
   /**
    * 日期范围参数

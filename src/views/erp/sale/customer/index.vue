@@ -109,7 +109,7 @@
         </el-row>
         <el-row>
           <el-col :span="12">
-            <el-form-item label="状态" prop="bankName">
+            <el-form-item label="状态" prop="status">
               <el-radio-group v-model="form.status">
                 <el-radio v-for="dict in sys_normal_disable" :key="dict.value" :label="dict.value">{{
                     dict.label }}</el-radio>
@@ -208,14 +208,14 @@ const initFormData: CustomerForm = {
   telephone: undefined,
   email: undefined,
   fax: undefined,
-  remark: undefined,
-  status: undefined,
+  remark: '',
+  status: "0",
   sort: undefined,
   taxNo: undefined,
   taxPercent: undefined,
   bankName: undefined,
   bankAccount: undefined,
-  bankAddress: undefined,
+  bankAddress: undefined
 }
 const data = reactive<PageData<CustomerForm, CustomerQuery>>({
   form: {...initFormData},
@@ -267,7 +267,6 @@ const { queryParams, form, rules } = toRefs(data);
 const getList = async () => {
   loading.value = true;
   const res = await listCustomer(queryParams.value);
-  console.log("客户信息:",res.status);
   customerList.value = res.rows;
   total.value = res.total;
   loading.value = false;
@@ -314,9 +313,9 @@ const handleAdd = () => {
 /** 修改按钮操作 */
 const handleUpdate = async (row?: CustomerVO) => {
   reset();
-  console.log("修改请求参数：",row?.name)
   const _id = row?.id || ids.value[0]
   const res = await getCustomer(_id);
+  console.log(res.data.status);
   Object.assign(form.value, res.data);
   dialog.visible = true;
   dialog.title = "修改客户信息";
