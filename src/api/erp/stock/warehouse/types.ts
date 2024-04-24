@@ -105,6 +105,10 @@ export interface WarehouseForm extends BaseEntity {
 }
 
 export interface WarehouseQuery extends PageQuery {
+  /**
+   * 客户编码
+   */
+  id?: string;
 
   /**
    * 仓库名称
