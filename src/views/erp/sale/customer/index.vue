@@ -117,7 +117,7 @@
           </el-col>
           <el-col :span="12">
             <el-form-item label="排序" prop="sort">
-              <el-input-number v-model="form.sort" controls-position="right" :min="0" :precision="0" />
+              <el-input-number v-model="form.sort" controls-position="right" :min="1" :precision="0" />
             </el-form-item>
           </el-col>
         </el-row>
@@ -197,7 +197,7 @@ const columns = ref<FieldOption[]>([
   { key: 5, label: `电子邮箱`, visible: true,children: [] },
   { key: 6, label: `排序`, visible: true,children: [] },
   { key: 7, label: `状态`, visible: true,children: [] }
-])
+]);
 
 const initFormData: CustomerForm = {
   id: undefined,

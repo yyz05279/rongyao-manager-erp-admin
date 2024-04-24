@@ -40,8 +40,8 @@
         <el-table-column type="selection" width="55" align="center" />
         <el-table-column label="仓库名称" align="center" prop="name" />
         <el-table-column label="仓库地址" align="center" prop="address" />
-        <el-table-column label="仓储费" align="center" prop="address" />
-        <el-table-column label="搬运费" align="center" prop="address" />
+        <el-table-column label="仓储费" align="center" prop="warehousePrice" />
+        <el-table-column label="搬运费" align="center" prop="truckagePrice" />
         <el-table-column label="负责人" align="center" prop="principal" />
         <el-table-column label="排序" align="center" prop="sort" />
         <el-table-column label="开启状态" align="center" prop="status">
@@ -51,9 +51,21 @@
         </el-table-column>
         <el-table-column label="是否默认" align="center" prop="defaultStatus">
           <template #default="scope">
-            <dict-tag :options="sys_yes_no" :value="scope.row.defaultStatus"/>
+            <el-switch
+              v-model="scope.row.defaultStatus"
+              :active-value="0"
+              :inactive-value="1"
+              @click="handleChangeDefaultStatus(scope.row)"
+            />
           </template>
         </el-table-column>
+<!--        <el-table-column-->
+<!--          label="创建时间"-->
+<!--          align="center"-->
+<!--          prop="createTime"-->
+<!--          :formatter="dateFormatter"-->
+<!--          width="180px"-->
+<!--        />-->
         <el-table-column label="操作" align="center" class-name="small-padding fixed-width">
           <template #default="scope">
             <el-tooltip content="修改" placement="top">
@@ -105,31 +117,20 @@
           <el-input v-model="form.address" placeholder="请输入仓库地址" />
         </el-form-item>
         <el-row>
-          <el-col :span="8">
-            <el-form-item label="开启状态" prop="status">
+          <el-col :span="12">
+            <el-form-item label="状态" prop="status">
               <el-radio-group v-model="form.status">
                 <el-radio
                   v-for="dict in sys_normal_disable"
                   :key="dict.value"
-                  :label="parseInt(dict.value)"
+                  :label="dict.value"
                 >{{dict.label}}</el-radio>
               </el-radio-group>
             </el-form-item>
           </el-col>
-          <el-col :span="8">
-            <el-form-item label="是否默认" prop="defaultStatus">
-              <el-radio-group v-model="form.defaultStatus">
-                <el-radio
-                  v-for="dict in sys_yes_no"
-                  :key="dict.value"
-                  :label="parseInt(dict.value)"
-                >{{dict.label}}</el-radio>
-              </el-radio-group>
-            </el-form-item>
-          </el-col>
-          <el-col :span="8">
+          <el-col :span="12">
             <el-form-item label="排序" prop="sort">
-              <el-input v-model="form.sort" placeholder="请输入排序" />
+              <el-input-number v-model="form.sort" controls-position="right" :min="1" :precision="0" />
             </el-form-item>
           </el-col>
         </el-row>
@@ -148,11 +149,11 @@
 </template>
 
 <script setup name="Warehouse" lang="ts">
-import { listWarehouse, getWarehouse, delWarehouse, addWarehouse, updateWarehouse } from '@/api/erp/stock/warehouse';
+import { listWarehouse, getWarehouse, delWarehouse, addWarehouse, updateWarehouse, changeDefaultStatus } from '@/api/erp/stock/warehouse';
 import { WarehouseVO, WarehouseQuery, WarehouseForm } from '@/api/erp/stock/warehouse/types';
 
 const { proxy } = getCurrentInstance() as ComponentInternalInstance;
-const { sys_yes_no, sys_normal_disable } = toRefs<any>(proxy?.useDict('sys_yes_no', 'sys_normal_disable'));
+const { sys_normal_disable } = toRefs<any>(proxy?.useDict( 'sys_normal_disable'));
 
 const warehouseList = ref<WarehouseVO[]>([]);
 const buttonLoading = ref(false);
@@ -171,17 +172,29 @@ const dialog = reactive<DialogOption>({
   title: ''
 });
 
+// 列显隐信息
+const columns = ref<FieldOption[]>([
+  { key: 0, label: `仓库名称`, visible: false,children: [] },
+  { key: 1, label: `仓库地址`, visible: true,children: [] },
+  { key: 2, label: `仓储费`, visible: true,children: [] },
+  { key: 3, label: `搬运费`, visible: true,children: [] },
+  { key: 4, label: `负责人`, visible: true,children: [] },
+  { key: 5, label: `排序`, visible: true,children: [] },
+  { key: 6, label: `开启状态`, visible: true,children: [] },
+  { key: 7, label: `是否默认`, visible: true,children: [] }
+]);
+
 const initFormData: WarehouseForm = {
   id: undefined,
   name: undefined,
   address: undefined,
   sort: undefined,
-  remark: undefined,
+  remark: '',
   principal: undefined,
   warehousePrice: undefined,
   truckagePrice: undefined,
-  status: undefined,
-  defaultStatus: undefined,
+  status:  "0",
+  defaultStatus:  "0",
 }
 const data = reactive<PageData<WarehouseForm, WarehouseQuery>>({
   form: {...initFormData},
@@ -209,9 +222,6 @@ const data = reactive<PageData<WarehouseForm, WarehouseQuery>>({
     ],
     status: [
       { required: true, message: "开启状态不能为空", trigger: "change" }
-    ],
-    defaultStatus: [
-      { required: true, message: "是否默认不能为空", trigger: "change" }
     ],
   }
 });
@@ -306,6 +316,18 @@ const handleExport = () => {
   proxy?.download('system/warehouse/export', {
     ...queryParams.value
   }, `warehouse_${new Date().getTime()}.xlsx`)
+}
+
+/** 修改默认状态  */
+const handleChangeDefaultStatus = async (row: WarehouseVO) => {
+  let text = row.defaultStatus === "0" ? "设置" : "取消"
+  try {
+    await proxy?.$modal.confirm('确认要"' + text + '""' + row.name + '"为默认吗?');
+    await changeDefaultStatus(row.id, row.defaultStatus);
+    proxy?.$modal.msgSuccess(text + "成功");
+  } catch (err) {
+    row.defaultStatus = row.defaultStatus === "0" ? "1" : "0";
+  }
 }
 
 onMounted(() => {

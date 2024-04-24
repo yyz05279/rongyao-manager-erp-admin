@@ -61,3 +61,20 @@ export const delWarehouse = (id: string | number | Array<string | number>) => {
     method: 'delete'
   });
 };
+
+/**
+ * 仓库默认状态修改
+ * @param id 客户id
+ * @param status 仓库是否默认
+ */
+export const changeDefaultStatus = (id: string | number, defaultStatus: string | number) => {
+  const data = {
+    id,
+    defaultStatus
+  };
+  return request({
+    url: '/erp/warehouse/changeDefaultStatus',
+    method: 'put',
+    data: data
+  });
+};
