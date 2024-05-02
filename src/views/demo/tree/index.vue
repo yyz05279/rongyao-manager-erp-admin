@@ -161,6 +161,7 @@ const getList = async () => {
   loading.value = true;
   const res = await listTree(queryParams.value);
   const data = proxy?.handleTree<TreeVO>(res.data, "id", "parentId");
+  console.log("data: ", data);
   if (data) {
     treeList.value = data;
     loading.value = false;
