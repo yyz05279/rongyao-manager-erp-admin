@@ -29,6 +29,10 @@ export interface ProductCategoryVO {
    */
   status: number;
 
+    /**
+     * 子对象
+     */
+    children: ProductCategoryVO[];
 }
 
 export interface ProductCategoryForm extends BaseEntity {
@@ -64,7 +68,7 @@ export interface ProductCategoryForm extends BaseEntity {
 
 }
 
-export interface ProductCategoryQuery extends PageQuery {
+export interface ProductCategoryQuery {
 
   /**
    * 父分类编号
