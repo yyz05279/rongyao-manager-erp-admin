@@ -1,6 +1,7 @@
 import request from '@/utils/request';
 import { AxiosPromise } from 'axios';
 import { ProductCategoryVO, ProductCategoryForm, ProductCategoryQuery } from '@/api/erp/product/category/types';
+import {DeptVO} from "@/api/system/dept/types";
 
 /**
  * 查询产品分类列表
@@ -26,7 +27,15 @@ export const getProductCategory = (id: string | number): AxiosPromise<ProductCat
     method: 'get'
   });
 };
-
+/**
+ * 查询产品分类下拉树结构
+ */
+export const categoryTreeSelect = (): AxiosPromise<ProductCategoryVO[]> => {
+  return request({
+    url: '/erp/productCategory/categoryTree',
+    method: 'get'
+  });
+};
 /**
  * 新增产品分类
  * @param data

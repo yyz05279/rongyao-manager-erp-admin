@@ -1,4 +1,4 @@
-export interface ProductCategoryVO {
+export interface ProductCategoryVO extends BaseEntity {
   /**
    * 分类编号
    */
