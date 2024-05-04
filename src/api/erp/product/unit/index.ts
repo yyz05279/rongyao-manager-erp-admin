@@ -28,6 +28,16 @@ export const getProductUnit = (id: string | number): AxiosPromise<ProductUnitVO>
 };
 
 /**
+ * 查询产品单位精简列表
+ */
+export const getProductUnitSimpleList = (): AxiosPromise<ProductUnitVO[]> => {
+  return request({
+    url: '/erp/productUnit/simple-list',
+    method: 'get'
+  });
+};
+
+/**
  * 新增产品单位
  * @param data
  */
