@@ -31,7 +31,7 @@ export const getPurchaseOrder = (id: string | number): AxiosPromise<PurchaseOrde
  * 新增采购订单
  * @param data
  */
-export const addPurchaseOrder = (data: PurchaseOrderForm) => {
+export const addPurchaseOrder = (data: PurchaseOrderVO) => {
   return request({
     url: '/erp/purchaseOrder',
     method: 'post',

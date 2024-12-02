@@ -1,6 +1,7 @@
 import request from '@/utils/request';
 import { AxiosPromise } from 'axios';
 import { ProductVO, ProductForm, ProductQuery } from '@/api/erp/product/product/types';
+import {ProductUnitVO} from "@/api/erp/product/unit/types";
 
 /**
  * 查询产品信息列表
@@ -59,5 +60,16 @@ export const delProduct = (id: string | number | Array<string | number>) => {
   return request({
     url: '/erp/product/' + id,
     method: 'delete'
+  });
+};
+
+/**
+ * 查询产品精简列表
+ * @param
+ */
+export const getProductSimpleList = ():AxiosPromise<ProductVO[]> => {
+  return request({
+    url: '/erp/product/simple-list',
+    method: 'get'
   });
 };

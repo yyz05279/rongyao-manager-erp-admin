@@ -172,6 +172,60 @@ export interface PurchaseOrderForm extends BaseEntity {
    */
   returnCount?: number;
 
+  // /**
+  //  * 采购单明细
+  //  */
+  // purchaseOrderItems: PurchaseOrderItem[];
+}
+
+export interface PurchaseOrderItem{
+
+  /**
+   * 产品id
+   */
+  productId?: string | number;
+  /**
+   *库存
+   */
+  stockCount?:string | number;
+  /**
+   * 条码
+   */
+  productBarCode?:string | number;
+
+  /**
+   * 单位
+   */
+  productUnitName?:string | number;
+  /**
+   * 数量
+   */
+  count?:string | number;
+
+  /**
+   * 产品单价
+   */
+  productPrice?:string | number;
+  /**
+   * 金额
+   */
+  totalProductPrice?:string | number;
+  /**
+   * 税率
+   */
+  taxPercent?:string | number;
+  /**
+   * 税额
+   */
+  taxPrice?:string | number;
+  /**
+   * 税额合计
+   */
+  totalPrice?:string | number;
+  /**
+   * 备注
+   */
+  remark?:string | number;
 }
 
 export interface PurchaseOrderQuery extends PageQuery {
@@ -190,6 +244,13 @@ export interface PurchaseOrderQuery extends PageQuery {
    * 供应商
    */
   supplierId?: string | number;
+
+  /**
+   * 产品
+   */
+  productId?: string | number;
+  inStatus?: string | number;
+  returnStatus?: string | number;
 
   /**
    * 订单时间
