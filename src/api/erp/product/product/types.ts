@@ -29,6 +29,14 @@ export interface ProductVO {
    */
   status: number;
 
+  unitName?: string // 单位名字
+  standard: string // 产品规格
+  remark: string // 产品备注
+  expiryDay: number // 保质期天数
+  weight: number // 重量（kg）
+  purchasePrice: number // 采购价格，单位：元
+  salePrice: number // 销售价格，单位：元
+  minPrice: number // 最低价格，单位：元
 }
 
 export interface ProductForm extends BaseEntity {

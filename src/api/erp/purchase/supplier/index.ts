@@ -61,3 +61,14 @@ export const delSupplier = (id: string | number | Array<string | number>) => {
     method: 'delete'
   });
 };
+
+/**
+ * 查询供应商精简列表
+ * @param
+ */
+export const getSupplierSimpleList = ():AxiosPromise<SupplierVO[]> => {
+  return request({
+    url: '/erp/supplier/simple-list',
+    method: 'get'
+  });
+};

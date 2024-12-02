@@ -48,11 +48,22 @@
 
       <el-table v-loading="loading" :data="productList" @selection-change="handleSelectionChange">
         <el-table-column type="selection" width="55" align="center" />
-        <el-table-column label="产品编号" align="center" prop="id" v-if="true" />
-        <el-table-column label="产品名称" align="center" prop="name" />
         <el-table-column label="产品条码" align="center" prop="barCode" />
-        <el-table-column label="产品分类编号" align="center" prop="categoryId" />
-        <el-table-column label="单位编号" align="center" prop="unitId" />
+        <el-table-column label="产品名称" align="center" prop="name" />
+        <el-table-column label="规格" align="center" prop="standard" />
+        <el-table-column label="分类" align="center" prop="categoryName" />
+        <el-table-column label="单位" align="center" prop="unitName"/>
+        <el-table-column label="采购价格" align="center" prop="purchasePrice"/>
+        <el-table-column
+          label="销售价格"
+          align="center"
+          prop="salePrice"
+        />
+        <el-table-column
+          label="最低价格"
+          align="center"
+          prop="minPrice"
+        />
         <el-table-column label="产品状态" align="center" prop="status">
           <template #default="scope">
             <dict-tag :options="sys_normal_disable" :value="scope.row.status"/>
