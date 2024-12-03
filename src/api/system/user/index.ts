@@ -196,6 +196,13 @@ export const deptTreeSelect = (): AxiosPromise<DeptVO[]> => {
   });
 };
 
+export const getSimpleUserList = (): AxiosPromise<UserVO[]> => {
+  return request({
+    url: '/system/user/simple-list',
+    method: 'get'
+  });
+};
+
 export default {
   listUser,
   getUser,
@@ -211,5 +218,6 @@ export default {
   getAuthRole,
   updateAuthRole,
   deptTreeSelect,
+  getSimpleUserList,
   listUserByDeptId
 };

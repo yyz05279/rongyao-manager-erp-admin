@@ -176,14 +176,36 @@ watch(
       return
     }
     // 循环处理
+    // val.forEach((item) => {
+    //
+    //   item.totalProductPrice = erpPriceMultiply(item.productPrice, item.count)
+    //   item.taxPrice = erpPriceMultiply(item.totalProductPrice, item.taxPercent / 100.0)
+    //   if (item.totalProductPrice != null) {
+    //     item.totalPrice = item.totalProductPrice + (item.taxPrice || 0)
+    //   } else {
+    //     console.log("else watch")
+    //     item.totalPrice = 0
+    //   }
+    // })
+    //优化
     val.forEach((item) => {
-      item.totalProductPrice = erpPriceMultiply(item.productPrice, item.count)
-      item.taxPrice = erpPriceMultiply(item.totalProductPrice, item.taxPercent / 100.0)
-      if (item.totalProductPrice != null) {
-        item.totalPrice = item.totalProductPrice + (item.taxPrice || 0)
+
+      // 若产品价格或份数为空，则总产品价格为0，无需要额外计算
+      if (item.productPrice == undefined || item.count == undefined) {
+        item.totalProductPrice = 0
       } else {
-        item.totalPrice = undefined
+        item.totalProductPrice = erpPriceMultiply(item.productPrice, item.count)
       }
+
+      // 若总产品价格或税率为空，则税金价格为0，无需要额外计算
+      if (item.totalProductPrice == 0 || item.taxPercent == undefined) {
+        item.taxPrice = 0
+      } else {
+        item.taxPrice = erpPriceMultiply(item.totalProductPrice, item.taxPercent / 100.0)
+      }
+
+      // 计算总价格，税金价格已确保不为空
+      item.totalPrice = item.totalProductPrice + item.taxPrice
     })
   },
   { deep: true }
