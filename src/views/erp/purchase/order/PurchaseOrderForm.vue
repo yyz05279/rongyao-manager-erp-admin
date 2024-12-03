@@ -141,6 +141,7 @@ import {addPurchaseOrder, updatePurchaseOrder} from "@/api/erp/purchase/order";
 import {PurchaseOrderVO} from "@/api/erp/purchase/order/types";
 import {UserVO} from "@/api/system/user/types";
 import {useI18n} from "vue-i18n";
+import {getSimpleUserList} from "@/api/system/user";
 
 /** ERP 销售订单表单 */
 defineOptions({ name: 'PurchaseOrderForm' })
@@ -198,6 +199,12 @@ const getSupplierList = async () => {
   const res = await getSupplierSimpleList();
   supplierList.value = res.data;
 }
+
+/** 查询供应商精简列表 */
+const getUserList = async () => {
+  const res = await getSimpleUserList();
+  userList.value = res.data;
+}
 /** 打开弹窗 */
 const open =  async (type: string, id?: number) => {
   dialog.visible = true;
@@ -215,16 +222,16 @@ const open =  async (type: string, id?: number) => {
       formLoading.value = false
     }
   }
-  // // 加载供应商列表
+  // 加载供应商列表
   getSupplierList();
-  // // 加载用户列表
-  // userList.value = await UserApi.getSimpleUserList()
-  // // 加载账户列表
-  // accountList.value = await AccountApi.getAccountSimpleList()
-  // const defaultAccount = accountList.value.find((item) => item.defaultStatus)
-  // if (defaultAccount) {
-  //   formData.value.accountId = defaultAccount.id
-  // }
+  // 加载用户列表
+  getUserList();
+  // 加载账户列表
+  accountList.value = await AccountApi.getAccountSimpleList()
+  const defaultAccount = accountList.value.find((item) => item.defaultStatus)
+  if (defaultAccount) {
+    formData.value.accountId = defaultAccount.id
+  }
 }
 
 defineExpose({ open }) // 提供 open 方法，用于打开弹窗
