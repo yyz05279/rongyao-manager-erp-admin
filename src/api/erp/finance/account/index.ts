@@ -75,3 +75,12 @@ export const delAccount = (id: string | number | Array<string | number>) => {
     method: 'delete'
   });
 };
+/**
+ * 查询结算账户精简列表
+ */
+export const getAccountSimpleList = (): AxiosPromise<AccountVO[]> => {
+  return request({
+    url: '/erp/account/simple-list',
+    method: 'get'
+  });
+};

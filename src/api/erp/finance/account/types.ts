@@ -124,10 +124,10 @@ export interface AccountQuery extends PageQuery {
    */
   defaultStatus?: number;
 
-    /**
-     * 日期范围参数
-     */
-    params?: any;
+  /**
+   * 日期范围参数
+   */
+  params?: any;
 }
 
 

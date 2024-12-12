@@ -5,7 +5,7 @@
       <el-row :gutter="20">
         <el-col :span="8">
           <el-form-item label="采购单编号" prop="no">
-            <el-input disabled v-model="formData.no" placeholder="保存时自动生成" />
+            <el-input disabled v-model="formData.orderNo" placeholder="保存时自动生成" />
           </el-form-item>
         </el-col>
         <el-col :span="8">
@@ -138,10 +138,11 @@ import {getSupplierSimpleList} from "@/api/erp/purchase/supplier";
 import PurchaseOrderItemForm from './components/PurchaseOrderItemForm.vue'
 import {erpPriceInputFormatter, erpPriceMultiply} from "@/utils";
 import {addPurchaseOrder, updatePurchaseOrder} from "@/api/erp/purchase/order";
-import {PurchaseOrderVO} from "@/api/erp/purchase/order/types";
+import {PurchaseOrderForm, PurchaseOrderVO} from "@/api/erp/purchase/order/types";
 import {UserVO} from "@/api/system/user/types";
-import {useI18n} from "vue-i18n";
 import {getSimpleUserList} from "@/api/system/user";
+import {getAccountSimpleList} from "@/api/erp/finance/account";
+import {AccountVO} from "@/api/erp/finance/account/types";
 
 /** ERP 销售订单表单 */
 defineOptions({ name: 'PurchaseOrderForm' })
@@ -158,7 +159,7 @@ const formData =  ref({
   totalPrice: 0,
   depositPrice: 0,
   items: [],
-  no: undefined, // 订单单号，后端返回
+  orderNo: undefined, // 订单单号，后端返回
 });
 const formType = ref('') // 表单的类型：create - 新增；update - 修改；detail - 详情
 
@@ -176,8 +177,8 @@ const formLoading = ref(false) // 表单的加载中：1）修改时的数据加
 const formRef = ref() // 表单 Ref
 const productList = ref<ProductVO[]>([]) // 产品列表
 const supplierList = ref<SupplierVO[]>([]) // 供应商列表
-const accountList = ref<any>([]);
-const userList = ref<UserVO[]>([]);
+const accountList = ref<AccountVO[]>([]); //收款账户
+const userList = ref<UserVO[]>([]); //用户列表
 
 /** 子表的表单 */
 const subTabsName = ref('item')
@@ -200,10 +201,16 @@ const getSupplierList = async () => {
   supplierList.value = res.data;
 }
 
-/** 查询供应商精简列表 */
+/** 查询用户精简列表 */
 const getUserList = async () => {
   const res = await getSimpleUserList();
   userList.value = res.data;
+}
+
+/** 查询供应商精简列表 */
+const getAccountList = async () => {
+  const res = await getAccountSimpleList();
+  accountList.value = res.data;
 }
 /** 打开弹窗 */
 const open =  async (type: string, id?: number) => {
@@ -227,8 +234,8 @@ const open =  async (type: string, id?: number) => {
   // 加载用户列表
   getUserList();
   // 加载账户列表
-  accountList.value = await AccountApi.getAccountSimpleList()
-  const defaultAccount = accountList.value.find((item) => item.defaultStatus)
+  getAccountList()
+  const defaultAccount = accountList.value.find((item) => item.defaultStatus === 0)
   if (defaultAccount) {
     formData.value.accountId = defaultAccount.id
   }
@@ -243,12 +250,13 @@ const emit = defineEmits(['success']) // 定义 success 事件，用于操作成
 const submitForm = async () => {
   console.log("submitForm ===== start");
   // 校验表单
-  // await formRef.value.validate()
-  // await itemFormRef.value.validate()
+  await formRef.value.validate()
+  await itemFormRef.value.validate()
   // 提交请求
   formLoading.value = true
   try {
-    const data = formData.value as unknown as PurchaseOrderVO;
+    const data = formData.value as unknown as PurchaseOrderForm;
+    console.log("req data:",data)
     if (formType.value === 'create') {
       await addPurchaseOrder(data)
       proxy?.$modal.msgSuccess("新增成功");
@@ -276,7 +284,7 @@ const reset = () => {
   formData.value = {
     id: undefined,
     supplierId: undefined,
-    accountId: undefined,
+    accountId: 0,
     orderTime: undefined,
     remark: undefined,
     fileUrl: '',
