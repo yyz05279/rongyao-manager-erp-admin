@@ -26,26 +26,38 @@
               <el-option v-for="item in productList" :key="item.id" :label="item.name" :value="item.id" />
             </el-select>
           </el-form-item>
-          <el-form-item label="订单时间" prop="orderTime">
+          <el-form-item label="订单时间" style="width: 308px">
             <el-date-picker
-              v-model="queryParams.orderTime"
+              v-model="dateRange"
               value-format="YYYY-MM-DD HH:mm:ss"
               type="daterange"
+              range-separator="-"
               start-placeholder="开始日期"
               end-placeholder="结束日期"
-              :default-time="[new Date('1 00:00:00'), new Date('1 23:59:59')]"
-              class="!w-220px"
-            />
+              :default-time="[new Date(2000, 1, 1, 0, 0, 0), new Date(2000, 1, 1, 23, 59, 59)]"
+            ></el-date-picker>
           </el-form-item>
-          <el-form-item label="创建人" prop="no">
-            <el-input v-model="queryParams.no" placeholder="请输入创建人" clearable style="width: 240px" @keyup.enter="handleQuery" />
+          <el-form-item label="创建人" prop="createBy">
+            <el-select
+              v-model="queryParams.createBy"
+              clearable
+              filterable
+              placeholder="请选择创建人"
+              class="!w-240px"
+            >
+              <el-option
+                v-for="item in userList"
+                :key="item.userId"
+                :label="item.nickName"
+                :value="item.userId"
+              />
+            </el-select>
           </el-form-item>
           <el-form-item label="入库数量" prop="inStatus">
             <el-select
               v-model="queryParams.inStatus"
               placeholder="请选择入库数量"
               clearable
-              class="!w-240px"
             >
               <el-option label="未入库" value="0" />
               <el-option label="部分入库" value="1" />
@@ -57,7 +69,6 @@
               v-model="queryParams.returnStatus"
               placeholder="请选择退货数量"
               clearable
-              class="!w-240px"
             >
               <el-option label="未退货" value="0" />
               <el-option label="部分退货" value="1" />
@@ -97,35 +108,41 @@
       <el-table v-loading="loading" :data="purchaseOrderList" @selection-change="handleSelectionChange">
         <el-table-column type="selection" width="55" align="center" />
         <el-table-column label="采购单号" align="center" prop="no" />
-        <el-table-column label="产品信息" align="center" prop="supplierId" />
-        <el-table-column label="供应商" align="center" prop="supplierId" />
-        <el-table-column label="结算账户" align="center" prop="accountId" />
-        <el-table-column label="订单时间" align="center" prop="orderTime" width="180">
+<!--        <el-table-column label="产品信息" align="center" prop="productNames" />-->
+        <el-table-column label="供应商" align="center" prop="supplierName"/>
+        <el-table-column label="订单时间" align="center" prop="orderTime">
           <template #default="scope">
             <span>{{ parseTime(scope.row.orderTime, '{y}-{m}-{d}') }}</span>
           </template>
         </el-table-column>
-        <el-table-column label="创建人" align="center" prop="totalCount" />
+        <el-table-column label="创建人" align="center" prop="createBy" />
         <el-table-column label="总数量" align="center" prop="totalCount" />
         <el-table-column label="入库数量" align="center" prop="inCount" />
         <el-table-column label="退货数量" align="center" prop="returnCount" />
         <el-table-column label="合计金额" align="center" prop="totalPrice" />
         <el-table-column label="合计金额" align="center" prop="totalTaxPrice" />
         <el-table-column label="支付金额" align="center" prop="depositPrice" />
-        <el-table-column label="采购状态" align="center" prop="status" />
-        <el-table-column label="操作" align="center" class-name="small-padding fixed-width" fixed="right" width="220">
+        <el-table-column label="状态" align="center" prop="status">
+          <template #default="scope">
+            <dict-tag :options="erp_audit_status" :value="scope.row.status"/>
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" align="center" class-name="small-padding fixed-width" fixed="right" width="300">
           <template #default="scope">
             <el-tooltip content="详情" placement="top">
-              <el-button link type="primary" icon="Detil" @click="handleDelete(scope.row)" v-hasPermi="['erp:purchaseOrder:remove']"></el-button>
+              <el-button link type="primary" icon="View" @click="handleDelete(scope.row)" v-hasPermi="['erp:purchaseOrder:remove']"></el-button>
             </el-tooltip>
-            <el-tooltip content="修改" placement="top">
+            <el-tooltip content="编辑" placement="top">
               <el-button link type="primary" icon="Edit" @click="openForm('update', scope.row.id)" v-hasPermi="['erp:purchaseOrder:edit']"></el-button>
             </el-tooltip>
             <el-tooltip content="审批" placement="top">
-              <el-button link type="primary" icon="Plus" @click="handleDelete(scope.row)" v-hasPermi="['erp:purchaseOrder:remove']"></el-button>
+                <el-button link type="primary" icon="Check" @click="handleDelete(scope.row)" v-hasPermi="['erp:purchaseOrder:remove']"></el-button>
+            </el-tooltip>
+            <el-tooltip content="反审批" placement="top">
+              <el-button link type="danger" icon="Close" @click="handleDelete(scope.row)" v-hasPermi="['erp:purchaseOrder:remove']"></el-button>
             </el-tooltip>
             <el-tooltip content="删除" placement="top">
-              <el-button link type="primary" icon="Delete" @click="handleDelete(scope.row)" v-hasPermi="['erp:purchaseOrder:remove']"></el-button>
+              <el-button link type="danger" icon="Delete" @click="handleDelete(scope.row)" v-hasPermi="['erp:purchaseOrder:remove']"></el-button>
             </el-tooltip>
           </template>
         </el-table-column>
@@ -143,7 +160,6 @@
 </template>
 
 <script setup name="PurchaseOrder" lang="ts">
-
 import { listPurchaseOrder, delPurchaseOrder,} from '@/api/erp/purchase/order';
 import { PurchaseOrderVO, PurchaseOrderQuery, PurchaseOrderForm } from '@/api/erp/purchase/order/types';
 import PurchaseOrderForms from "@/views/erp/purchase/order/PurchaseOrderForm.vue";
@@ -151,12 +167,15 @@ import {ProductVO} from "@/api/erp/product/product/types";
 import {SupplierVO} from "@/api/erp/purchase/supplier/types";
 import {getProductSimpleList} from "@/api/erp/product/product";
 import {getSupplierSimpleList} from "@/api/erp/purchase/supplier";
+import {getSimpleUserList} from "@/api/system/user";
+import {UserVO} from "@/api/system/user/types";
 
 const { proxy } = getCurrentInstance() as ComponentInternalInstance;
 const { erp_audit_status } = toRefs<any>(proxy?.useDict('erp_audit_status'));
 
 const purchaseOrderList = ref<PurchaseOrderVO[]>([]);// 列表的数据
 const total = ref(0);// 列表的总页数
+const dateRange = ref<[DateModelType, DateModelType]>(['', '']);
 
 const buttonLoading = ref(false);
 const loading = ref(true);// 列表的加载中
@@ -170,6 +189,7 @@ const multiple = ref(true);
 
 const productList = ref<ProductVO[]>([]) // 产品列表
 const supplierList = ref<SupplierVO[]>([]) // 供应商列表
+const userList = ref<UserVO[]>([]) // 用户列表
 
 const queryFormRef = ref<ElFormInstance>();
 const purchaseOrderFormRef = ref<ElFormInstance>();
@@ -197,21 +217,24 @@ const initFormData: PurchaseOrderForm = {
   remark: undefined,
   inCount: undefined,
   returnCount: undefined,
+  purchaseOrderItems:[]
 }
 const data = reactive<PageData<PurchaseOrderForm, PurchaseOrderQuery>>({
   form: {...initFormData},
   queryParams: {
-    pageNum: 1,
-    pageSize: 10,
     no: undefined,
-    status: undefined,
     supplierId: undefined,
     productId: undefined,
-    orderTime: undefined,
-    inStatus: 2,
-    returnStatus: 1,
+    // queryOrderTime: [],
+    status: undefined,
+    remark: undefined,
+    createBy: undefined,
+    inStatus: undefined,
+    returnStatus: undefined,
     params: {
-    }
+    },
+    pageNum: 1,
+    pageSize: 10,
   },
   rules: {}
 });
@@ -221,7 +244,7 @@ const { queryParams, form, rules } = toRefs(data);
 /** 查询采购订单列表 */
 const getList = async () => {
   loading.value = true;
-  const res = await listPurchaseOrder(queryParams.value);
+  const res = await listPurchaseOrder(proxy?.addDateRange(queryParams.value, dateRange.value,"OrderTime"));
   purchaseOrderList.value = res.rows;
   total.value = res.total;
   loading.value = false;
@@ -239,6 +262,12 @@ const getSupplierList = async () => {
   supplierList.value = res.data;
 }
 
+/** 查询用户精简列表 */
+const getUserList = async () => {
+  const res = await getSimpleUserList();
+  userList.value = res.data;
+}
+
 /** 搜索按钮操作 */
 const handleQuery = () => {
   queryParams.value.pageNum = 1;
@@ -247,6 +276,7 @@ const handleQuery = () => {
 
 /** 重置按钮操作 */
 const resetQuery = () => {
+  dateRange.value = ['', ''];
   queryFormRef.value?.resetFields();
   handleQuery();
 }
@@ -286,8 +316,8 @@ onMounted(() => {
   getProductList();
   //查询条件：供应商
   getSupplierList();
-  //TODO 查询条件：用户
-  // getCreaterList();
+  //查询条件：用户
+  getUserList();
 });
 // TODO hhhbx：可优化功能：列表界面，支持导入
 // TODO hhhbx：可优化功能：详情界面，支持打印

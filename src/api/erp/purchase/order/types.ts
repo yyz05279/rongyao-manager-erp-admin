@@ -172,10 +172,10 @@ export interface PurchaseOrderForm extends BaseEntity {
    */
   returnCount?: number;
 
-  // /**
-  //  * 采购单明细
-  //  */
-  // purchaseOrderItems: PurchaseOrderItem[];
+  /**
+   * 采购单明细
+   */
+  purchaseOrderItems: PurchaseOrderItem[];
 }
 
 export interface PurchaseOrderItem{
@@ -255,12 +255,14 @@ export interface PurchaseOrderQuery extends PageQuery {
   /**
    * 订单时间
    */
-  orderTime?: string;
+  queryOrderTime?: string[];
+  createBy?: string;
+  remark?: string;
 
-    /**
-     * 日期范围参数
-     */
-    params?: any;
+  /**
+   * 日期范围参数
+   */
+  params?: any;
 }
 
 

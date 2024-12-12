@@ -196,6 +196,9 @@ export const deptTreeSelect = (): AxiosPromise<DeptVO[]> => {
   });
 };
 
+/**
+ * 查询用户精简列表
+ */
 export const getSimpleUserList = (): AxiosPromise<UserVO[]> => {
   return request({
     url: '/system/user/simple-list',
