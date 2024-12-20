@@ -5,7 +5,7 @@
       <el-row :gutter="20">
         <el-col :span="8">
           <el-form-item label="采购单编号" prop="no">
-            <el-input disabled v-model="formData.orderNo" placeholder="保存时自动生成" />
+            <el-input disabled v-model="formData.no" placeholder="保存时自动生成" />
           </el-form-item>
         </el-col>
         <el-col :span="8">
@@ -137,8 +137,8 @@ import {getProductSimpleList} from "@/api/erp/product/product";
 import {getSupplierSimpleList} from "@/api/erp/purchase/supplier";
 import PurchaseOrderItemForm from './components/PurchaseOrderItemForm.vue'
 import {erpPriceInputFormatter, erpPriceMultiply} from "@/utils";
-import {addPurchaseOrder, updatePurchaseOrder} from "@/api/erp/purchase/order";
-import {PurchaseOrderForm, PurchaseOrderVO} from "@/api/erp/purchase/order/types";
+import {addPurchaseOrder, getPurchaseOrder, updatePurchaseOrder} from "@/api/erp/purchase/order";
+import {PurchaseOrderForm, PurchaseOrderItem, PurchaseOrderVO} from "@/api/erp/purchase/order/types";
 import {UserVO} from "@/api/system/user/types";
 import {getSimpleUserList} from "@/api/system/user";
 import {getAccountSimpleList} from "@/api/erp/finance/account";
@@ -159,7 +159,7 @@ const formData =  ref({
   totalPrice: 0,
   depositPrice: 0,
   items: [],
-  orderNo: undefined, // 订单单号，后端返回
+  no: undefined // 订单单号，后端返回
 });
 const formType = ref('') // 表单的类型：create - 新增；update - 修改；detail - 详情
 
@@ -184,7 +184,7 @@ const userList = ref<UserVO[]>([]); //用户列表
 const subTabsName = ref('item')
 const itemFormRef = ref();
 
-//弹窗和标题
+/** 弹窗和标题 */
 const dialog = reactive<DialogOption>({
   visible: false,
   title: ''
@@ -213,18 +213,19 @@ const getAccountList = async () => {
   accountList.value = res.data;
 }
 /** 打开弹窗 */
-const open =  async (type: string, id?: number) => {
+const open =  async (type: string, id?: string) => {
   dialog.visible = true;
   dialog.title = type == 'create'? "新增采购订单":"修改采购订单"
-
   formType.value = type
   reset();
   // 修改时，设置数据
   if (id) {
-    console.log("修改采购订单：",id)
     formLoading.value = true
     try {
-      // formData.value = await PurchaseOrderApi.getPurchaseOrder(id)
+      const res = await getPurchaseOrder(id)
+      formData.value = res.data;
+      console.log("res data",res.data)
+      console.log("formData value",formData.value)
     } finally {
       formLoading.value = false
     }
@@ -256,7 +257,6 @@ const submitForm = async () => {
   formLoading.value = true
   try {
     const data = formData.value as unknown as PurchaseOrderForm;
-    console.log("req data:",data)
     if (formType.value === 'create') {
       await addPurchaseOrder(data)
       proxy?.$modal.msgSuccess("新增成功");
@@ -284,7 +284,7 @@ const reset = () => {
   formData.value = {
     id: undefined,
     supplierId: undefined,
-    accountId: 0,
+    accountId: undefined,
     orderTime: undefined,
     remark: undefined,
     fileUrl: '',
@@ -301,7 +301,7 @@ const reset = () => {
 watch(
   () => formData.value,
   (val) => {
-    if (!val) {
+    if (!val|| !Array.isArray(val.items)) {
       return
     }
     const totalPrice = val.items.reduce((prev, curr) => prev + curr.totalPrice, 0)

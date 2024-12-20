@@ -40,7 +40,7 @@
       <el-table-column label="条码" min-width="150">
         <template #default="{ row }">
           <el-form-item class="mb-0px!">
-            <el-input disabled v-model="row.productBarCode" />
+            <el-input disabled v-model="row.barCode" />
           </el-form-item>
         </template>
       </el-table-column>
@@ -162,6 +162,7 @@ const productList = ref<ProductVO[]>([]) // 产品列表
 /** 初始化设置入库项 */
 watch(
   () => props.items,
+
   async (val) => {
     formData.value = val
   },
@@ -175,19 +176,6 @@ watch(
     if (!val || val.length === 0) {
       return
     }
-    // 循环处理
-    // val.forEach((item) => {
-    //
-    //   item.totalProductPrice = erpPriceMultiply(item.productPrice, item.count)
-    //   item.taxPrice = erpPriceMultiply(item.totalProductPrice, item.taxPercent / 100.0)
-    //   if (item.totalProductPrice != null) {
-    //     item.totalPrice = item.totalProductPrice + (item.taxPrice || 0)
-    //   } else {
-    //     console.log("else watch")
-    //     item.totalPrice = 0
-    //   }
-    // })
-    //优化
     val.forEach((item) => {
 
       // 若产品价格或份数为空，则总产品价格为0，无需要额外计算
@@ -258,12 +246,12 @@ const handleDelete = (index: number) => {
 
 /** 处理产品变更 */
 const onChangeProduct = (productId, row) => {
-  const product = productList.value.find((item) => item.id === productId)
+  const product = productList.value.find((item) => item.id === productId);
   if (product) {
     console.log("product:",product)
-    row.productUnitName = product.unitId
-    row.productBarCode = product.barCode
-    row.productPrice = product.purchasePrice
+    row.productUnitName = product.unitName;
+    row.barCode = product.barCode;
+    row.productPrice = product.purchasePrice;
   }
   //TODO  加载库存
   // setStockCount(row)
