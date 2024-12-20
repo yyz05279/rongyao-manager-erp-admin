@@ -20,9 +20,9 @@ export const listPurchaseOrder = (query?: PurchaseOrderQuery): AxiosPromise<Purc
  * 查询采购订单详细
  * @param id
  */
-export const getPurchaseOrder = (id: string | number): AxiosPromise<PurchaseOrderVO> => {
+export const getPurchaseOrder = (no: string | number): AxiosPromise<PurchaseOrderForm> => {
   return request({
-    url: '/erp/purchaseOrder/' + id,
+    url: '/erp/purchaseOrder/' + no,
     method: 'get'
   });
 };
