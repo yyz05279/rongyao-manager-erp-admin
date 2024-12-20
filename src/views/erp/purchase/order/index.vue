@@ -107,33 +107,33 @@
 
       <el-table v-loading="loading" :data="purchaseOrderList" @selection-change="handleSelectionChange">
         <el-table-column type="selection" width="55" align="center" />
-        <el-table-column label="采购单号" align="center" prop="no" />
-<!--        <el-table-column label="产品信息" align="center" prop="productNames" />-->
-        <el-table-column label="供应商" align="center" prop="supplierName"/>
-        <el-table-column label="订单时间" align="center" prop="orderTime">
-          <template #default="scope">
-            <span>{{ parseTime(scope.row.orderTime, '{y}-{m}-{d}') }}</span>
-          </template>
-        </el-table-column>
-        <el-table-column label="创建人" align="center" prop="createBy" />
-        <el-table-column label="总数量" align="center" prop="totalCount" />
-        <el-table-column label="入库数量" align="center" prop="inCount" />
-        <el-table-column label="退货数量" align="center" prop="returnCount" />
-        <el-table-column label="合计金额" align="center" prop="totalPrice" />
-        <el-table-column label="合计金额" align="center" prop="totalTaxPrice" />
-        <el-table-column label="支付金额" align="center" prop="depositPrice" />
-        <el-table-column label="状态" align="center" prop="status">
+        <el-table-column label="采购单号" min-width="180" align="center" prop="no" />
+        <el-table-column label="状态"  min-width="100" align="center" prop="status">
           <template #default="scope">
             <dict-tag :options="erp_audit_status" :value="scope.row.status"/>
           </template>
         </el-table-column>
+        <el-table-column label="产品信息" min-width="180" align="center" prop="productNames" />
+        <el-table-column label="供应商" min-width="180" align="center" prop="supplierName"/>
+        <el-table-column label="订单时间" min-width="100" align="center" prop="orderTime">
+          <template #default="scope">
+            <span>{{ parseTime(scope.row.orderTime, '{y}-{m}-{d}') }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="总数量" min-width="100" align="center" prop="totalCount" />
+        <el-table-column label="入库数量" min-width="100" align="center" prop="inCount" />
+        <el-table-column label="退货数量" min-width="100" align="center" prop="returnCount" />
+        <el-table-column label="合计金额"  min-width="100" align="center" prop="totalPrice" />
+        <el-table-column label="合计金额"  min-width="100" align="center" prop="totalTaxPrice" />
+        <el-table-column label="支付金额" min-width="100" align="center" prop="depositPrice" />
+        <el-table-column label="创建人" min-width="100" align="center" prop="createBy" />
         <el-table-column label="操作" align="center" class-name="small-padding fixed-width" fixed="right" width="300">
           <template #default="scope">
             <el-tooltip content="详情" placement="top">
-              <el-button link type="primary" icon="View" @click="handleDelete(scope.row)" v-hasPermi="['erp:purchaseOrder:remove']"></el-button>
+              <el-button link type="primary" icon="View" @click="openForm('detail', scope.row)" v-hasPermi="['erp:purchaseOrder:remove']"></el-button>
             </el-tooltip>
             <el-tooltip content="编辑" placement="top">
-              <el-button link type="primary" icon="Edit" @click="openForm('update', scope.row.id)" v-hasPermi="['erp:purchaseOrder:edit']"></el-button>
+              <el-button link type="primary" icon="Edit" @click="openForm('update', scope.row)" v-hasPermi="['erp:purchaseOrder:edit']"></el-button>
             </el-tooltip>
             <el-tooltip content="审批" placement="top">
                 <el-button link type="primary" icon="Check" @click="handleDelete(scope.row)" v-hasPermi="['erp:purchaseOrder:remove']"></el-button>
@@ -183,6 +183,7 @@ const loading = ref(true);// 列表的加载中
 const showSearch = ref(true);
 
 const ids = ref<Array<string | number>>([]);
+const nos = ref<Array<string>>([]);
 const single = ref(true);
 const multiple = ref(true);
 
@@ -284,14 +285,20 @@ const resetQuery = () => {
 /** 多选框选中数据 */
 const handleSelectionChange = (selection: PurchaseOrderVO[]) => {
   ids.value = selection.map(item => item.id);
+  nos.value = selection.map(item => item.no);
   single.value = selection.length != 1;
   multiple.value = !selection.length;
 }
 
 /** 添加/修改操作 */
 const formRef = ref()
-const openForm = (type: string, id?: number) => {
-  formRef.value.open(type, id)
+const openForm = (type: string, row?: PurchaseOrderVO) => {
+  const _id = row?.id || ids.value[0]
+  const _no = row?.no || nos.value[0]
+  console.log("id：",_id)
+  console.log("no：",_no)
+  console.log("type：",type)
+  formRef.value.open(type, _id)
 }
 
 /** 删除按钮操作 */
