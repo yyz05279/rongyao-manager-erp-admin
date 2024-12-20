@@ -61,3 +61,18 @@ export const delPurchaseOrder = (id: string | number | Array<string | number>) =
     method: 'delete'
   });
 };
+
+/**
+ * 更新采购订单的状态
+ * @param id
+ */
+export const updatePurchaseOrderStatus = (id: string | number | Array<string | number>, status: number) => {
+  return request({
+    url: `/erp/purchaseOrder/update-status`,
+    method: 'put',
+    params: {
+      id,
+      status
+    }
+  })
+}
