@@ -133,16 +133,16 @@
               <el-button link type="primary" icon="View" @click="openForm('detail', scope.row)" v-hasPermi="['erp:purchaseOrder:remove']"></el-button>
             </el-tooltip>
             <el-tooltip content="编辑" placement="top">
-              <el-button link type="primary" icon="Edit" @click="openForm('update', scope.row)" v-hasPermi="['erp:purchaseOrder:edit']"></el-button>
+              <el-button link type="primary" icon="Edit" @click="openForm('update', scope.row)" v-hasPermi="['erp:purchaseOrder:edit']" v-if="scope.row.status === 10"></el-button>
             </el-tooltip>
             <el-tooltip content="审批" placement="top">
-                <el-button link type="primary" icon="Check" @click="handleDelete(scope.row)" v-hasPermi="['erp:purchaseOrder:remove']"></el-button>
+                <el-button link type="primary" icon="Check" @click="handleUpdateStatus(scope.row.id, 20)" v-hasPermi="['erp:purchaseOrder:remove']"   v-if="scope.row.status === 10" ></el-button>
             </el-tooltip>
             <el-tooltip content="反审批" placement="top">
-              <el-button link type="danger" icon="Close" @click="handleDelete(scope.row)" v-hasPermi="['erp:purchaseOrder:remove']"></el-button>
+              <el-button link type="danger" icon="Close" @click="handleUpdateStatus(scope.row.id, 10)" v-hasPermi="['erp:purchaseOrder:remove']" v-if="scope.row.status === 20"  ></el-button>
             </el-tooltip>
             <el-tooltip content="删除" placement="top">
-              <el-button link type="danger" icon="Delete" @click="handleDelete(scope.row)" v-hasPermi="['erp:purchaseOrder:remove']"></el-button>
+              <el-button link type="danger" icon="Delete" @click="handleDelete(scope.row)" v-hasPermi="['erp:purchaseOrder:remove']" v-if="scope.row.status === 10"></el-button>
             </el-tooltip>
           </template>
         </el-table-column>
@@ -160,7 +160,7 @@
 </template>
 
 <script setup name="PurchaseOrder" lang="ts">
-import { listPurchaseOrder, delPurchaseOrder,} from '@/api/erp/purchase/order';
+import {listPurchaseOrder, delPurchaseOrder, updatePurchaseOrderStatus,} from '@/api/erp/purchase/order';
 import { PurchaseOrderVO, PurchaseOrderQuery, PurchaseOrderForm } from '@/api/erp/purchase/order/types';
 import PurchaseOrderForms from "@/views/erp/purchase/order/PurchaseOrderForm.vue";
 import {ProductVO} from "@/api/erp/product/product/types";
@@ -304,12 +304,24 @@ const openForm = (type: string, row?: PurchaseOrderVO) => {
 /** 删除按钮操作 */
 const handleDelete = async (row?: PurchaseOrderVO) => {
   const _ids = row?.id || ids.value;
-  await proxy?.$modal.confirm('是否确认删除采购订单编号为"' + _ids + '"的数据项？').finally(() => loading.value = false);
+  const _nos = row?.no || nos.value;
+  await proxy?.$modal.confirm('是否确认删除采购订单编号为"' + _nos + '"的数据项？').finally(() => loading.value = false);
   await delPurchaseOrder(_ids);
   proxy?.$modal.msgSuccess("删除成功");
   await getList();
 }
-
+/** 审批/反审批操作 */
+const handleUpdateStatus = async (id: number, status: number) => {
+  try {
+    // 审批的二次确认
+    await proxy?.$modal.confirm(`确定${status === 20 ? '审批' : '反审批'}该订单吗？`)
+    // 发起审批
+    await updatePurchaseOrderStatus(id, status)
+    proxy?.$modal.msgSuccess(`${status === 20 ? '审批' : '反审批'}成功`)
+    // 刷新列表
+    await getList()
+  } catch {}
+}
 /** 导出按钮操作 */
 const handleExport = () => {
   proxy?.download('erp/purchaseOrder/export', {
