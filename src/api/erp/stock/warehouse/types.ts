@@ -47,7 +47,7 @@ export interface WarehouseVO {
   /**
    * 是否默认
    */
-  defaultStatus: string;
+  defaultStatus: number;
 
 }
 
@@ -100,7 +100,7 @@ export interface WarehouseForm extends BaseEntity {
   /**
    * 是否默认
    */
-  defaultStatus?: string;
+  defaultStatus?: number;
 
 }
 
@@ -138,7 +138,7 @@ export interface WarehouseQuery extends PageQuery {
   /**
    * 是否默认
    */
-  defaultStatus?: string;
+  defaultStatus?: number;
 
     /**
      * 日期范围参数

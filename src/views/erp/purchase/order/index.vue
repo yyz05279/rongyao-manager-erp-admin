@@ -130,16 +130,16 @@
         <el-table-column label="操作" align="center" class-name="small-padding fixed-width" fixed="right" width="300">
           <template #default="scope">
             <el-tooltip content="详情" placement="top">
-              <el-button link type="primary" icon="View" @click="openForm('detail', scope.row)" v-hasPermi="['erp:purchaseOrder:remove']"></el-button>
+              <el-button link type="primary" icon="View" @click="openForm('detail', scope.row)" v-hasPermi="['erp:purchaseorder:query']"></el-button>
             </el-tooltip>
             <el-tooltip content="编辑" placement="top">
               <el-button link type="primary" icon="Edit" @click="openForm('update', scope.row)" v-hasPermi="['erp:purchaseOrder:edit']" v-if="scope.row.status === 10"></el-button>
             </el-tooltip>
             <el-tooltip content="审批" placement="top">
-                <el-button link type="primary" icon="Check" @click="handleUpdateStatus(scope.row.id, 20)" v-hasPermi="['erp:purchaseOrder:remove']"   v-if="scope.row.status === 10" ></el-button>
+                <el-button link type="primary" icon="Check" @click="handleUpdateStatus(scope.row.id, 20)" v-hasPermi="['erp:purchaseorder:check']"   v-if="scope.row.status === 10" ></el-button>
             </el-tooltip>
             <el-tooltip content="反审批" placement="top">
-              <el-button link type="danger" icon="Close" @click="handleUpdateStatus(scope.row.id, 10)" v-hasPermi="['erp:purchaseOrder:remove']" v-if="scope.row.status === 20"  ></el-button>
+              <el-button link type="danger" icon="Close" @click="handleUpdateStatus(scope.row.id, 10)" v-hasPermi="['erp:purchaseorder:check']" v-if="scope.row.status === 20"  ></el-button>
             </el-tooltip>
             <el-tooltip content="删除" placement="top">
               <el-button link type="danger" icon="Delete" @click="handleDelete(scope.row)" v-hasPermi="['erp:purchaseOrder:remove']" v-if="scope.row.status === 10"></el-button>
