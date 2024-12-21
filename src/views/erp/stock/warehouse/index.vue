@@ -59,13 +59,13 @@
             />
           </template>
         </el-table-column>
-        <el-table-column
-          label="创建时间"
-          align="center"
-          prop="createTime"
-          :formatter="dateFormatter"
-          width="180px"
-        />
+        <el-table-column label="备注" align="center" prop="remark" />
+        <el-table-column label="创建时间" align="center" prop="createTime" width="180">
+        </el-table-column>
+        <el-table-column label="创建人" align="center" prop="createBy" />
+        <el-table-column label="更新时间" align="center" prop="updateTime" width="180">
+        </el-table-column>
+        <el-table-column label="更新人" align="center" prop="updateBy" />
         <el-table-column label="操作" align="center" class-name="small-padding fixed-width">
           <template #default="scope">
             <el-tooltip content="修改" placement="top">
@@ -135,7 +135,7 @@
           </el-col>
         </el-row>
         <el-form-item label="备注" prop="remark">
-            <el-input v-model="form.remark" type="textarea" placeholder="请输入内容" />
+            <el-input v-model="form.remark" type="textarea" placeholder="请输入备注" />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -193,8 +193,8 @@ const initFormData: WarehouseForm = {
   principal: undefined,
   warehousePrice: undefined,
   truckagePrice: undefined,
-  status:  "0",
-  defaultStatus:  "0",
+  status: undefined,
+  defaultStatus: undefined
 }
 const data = reactive<PageData<WarehouseForm, WarehouseQuery>>({
   form: {...initFormData},
@@ -232,6 +232,7 @@ const { queryParams, form, rules } = toRefs(data);
 const getList = async () => {
   loading.value = true;
   const res = await listWarehouse(queryParams.value);
+  console.log("res:",res)
   warehouseList.value = res.rows;
   total.value = res.total;
   loading.value = false;
@@ -320,13 +321,18 @@ const handleExport = () => {
 
 /** 修改默认状态  */
 const handleChangeDefaultStatus = async (row: WarehouseVO) => {
-  let text = row.defaultStatus === "0" ? "设置" : "取消"
   try {
-    await proxy?.$modal.confirm('确认要"' + text + '""' + row.name + '"为默认吗?');
+    // 修改状态的二次确认
+    const text = row.defaultStatus === 0 ? "设置" : "取消"
+    await proxy?.$modal.confirm('确认要"' + text + '""' + row.name + '"为默认吗?').finally(() => loading.value = false);
+    // 发起修改状态
     await changeDefaultStatus(row.id, row.defaultStatus);
     proxy?.$modal.msgSuccess(text + "成功");
+    // 刷新列表
+    await getList()
   } catch (err) {
-    row.defaultStatus = row.defaultStatus === "0" ? "1" : "0";
+    // 取消后，进行恢复按钮
+    row.defaultStatus = row.defaultStatus === 0 ? 1 : 0;
   }
 }
 
