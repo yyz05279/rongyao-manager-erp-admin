@@ -78,3 +78,14 @@ export const changeDefaultStatus = (id: string | number, defaultStatus: string |
     data: data
   });
 };
+
+/**
+ * 查询仓库精简列表
+ * @param
+ */
+export const getWareHouseSimpleList = ():AxiosPromise<WarehouseVO[]> => {
+  return request({
+    url: '/erp/warehouse/simple-list',
+    method: 'get'
+  });
+};
