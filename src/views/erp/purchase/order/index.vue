@@ -226,7 +226,6 @@ const data = reactive<PageData<PurchaseOrderForm, PurchaseOrderQuery>>({
     no: undefined,
     supplierId: undefined,
     productId: undefined,
-    // queryOrderTime: [],
     status: undefined,
     remark: undefined,
     createBy: undefined,
