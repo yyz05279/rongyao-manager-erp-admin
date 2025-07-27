@@ -124,7 +124,7 @@
         <el-table-column label="入库数量" min-width="100" align="center" prop="inCount" />
         <el-table-column label="退货数量" min-width="100" align="center" prop="returnCount" />
         <el-table-column label="合计金额"  min-width="100" align="center" prop="totalPrice" />
-        <el-table-column label="合计金额"  min-width="100" align="center" prop="totalTaxPrice" />
+        <el-table-column label="合计税额"  min-width="100" align="center" prop="totalTaxPrice" />
         <el-table-column label="支付金额" min-width="100" align="center" prop="depositPrice" />
         <el-table-column label="创建人" min-width="100" align="center" prop="createBy" />
         <el-table-column label="操作" align="center" class-name="small-padding fixed-width" fixed="right" width="300">
@@ -193,7 +193,6 @@ const supplierList = ref<SupplierVO[]>([]) // 供应商列表
 const userList = ref<UserVO[]>([]) // 用户列表
 
 const queryFormRef = ref<ElFormInstance>();
-const purchaseOrderFormRef = ref<ElFormInstance>();
 
 const dialog = reactive<DialogOption>({
   visible: false,

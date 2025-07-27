@@ -1,6 +1,6 @@
 <!-- 可入库的订单列表 -->
 <template>
-  <Dialog
+  <el-dialog
     title="选择采购订单（仅展示可入库）"
     v-model="dialogVisible"
     :appendToBody="true"
@@ -31,7 +31,7 @@
             clearable
             filterable
             placeholder="请选择产品"
-            class="!w-160px"
+            class="!w-130px"
           >
             <el-option
               v-for="item in productList"
@@ -43,13 +43,13 @@
         </el-form-item>
         <el-form-item label="订单时间" prop="orderTime">
           <el-date-picker
-            v-model="queryParams.orderTime"
+            v-model="dateRange"
             value-format="YYYY-MM-DD HH:mm:ss"
             type="daterange"
             start-placeholder="开始日期"
             end-placeholder="结束日期"
             :default-time="[new Date('1 00:00:00'), new Date('1 23:59:59')]"
-            class="!w-160px"
+            class="!w-220px"
           />
         </el-form-item>
         <el-form-item>
@@ -73,7 +73,7 @@
           </template>
         </el-table-column>
         <el-table-column min-width="180" label="订单单号" align="center" prop="no" />
-        <el-table-column label="供应商" align="center" prop="supplierName" />
+        <el-table-column min-width="180" label="供应商" align="center" prop="supplierName" />
         <el-table-column label="产品信息" align="center" prop="productNames" min-width="200" />
         <el-table-column
           label="订单时间"
@@ -82,7 +82,6 @@
           :formatter="dateFormatter2"
           width="120px"
         />
-        <el-table-column label="创建人" align="center" prop="creatorName" />
         <el-table-column
           label="总数量"
           align="center"
@@ -98,13 +97,13 @@
         <el-table-column
           label="金额合计"
           align="center"
-          prop="totalProductPrice"
+          prop="totalPrice"
           :formatter="erpPriceTableColumnFormatter"
         />
         <el-table-column
           label="含税金额"
           align="center"
-          prop="totalPrice"
+          prop="totalTaxPrice"
           :formatter="erpPriceTableColumnFormatter"
         />
       </el-table>
@@ -120,16 +119,19 @@
       <el-button :disabled="!currentRow" type="primary" @click="submitForm">确 定</el-button>
       <el-button @click="dialogVisible = false">取 消</el-button>
     </template>
-  </Dialog>
+  </el-dialog>
 </template>
 <script lang="ts" setup>
 import { ElTable } from 'element-plus'
-import { PurchaseOrderApi, PurchaseOrderVO } from '@/api/erp/purchase/order'
-import { dateFormatter2 } from '@/utils/formatTime'
 import { erpCountTableColumnFormatter, erpPriceTableColumnFormatter } from '@/utils'
-import { ProductApi, ProductVO } from '@/api/erp/product/product'
+import {ProductVO} from "@/api/erp/product/product/types";
+import {PurchaseOrderVO} from "@/api/erp/purchase/order/types";
+import {getProductSimpleList} from "@/api/erp/product/product";
+import {listPurchaseOrder} from "@/api/erp/purchase/order";
+import {dateFormatter2} from "@/utils/formatTime";
 
 defineOptions({ name: 'ErpPurchaseOrderOutEnableList' })
+const { proxy } = getCurrentInstance() as ComponentInternalInstance;
 
 const list = ref<PurchaseOrderVO[]>([]) // 列表的数据
 const total = ref(0) // 列表的总页数
@@ -140,19 +142,46 @@ const queryParams = reactive({
   pageSize: 10,
   no: undefined,
   productId: undefined,
-  orderTime: [],
+  params: {
+  },
   inEnable: true
 })
 const queryFormRef = ref() // 搜索的表单
 const productList = ref<ProductVO[]>([]) // 产品列表
+const dateRange = ref<[DateModelType, DateModelType]>(['', '']);
 
 /** 选中行 */
 const currentRowValue = ref(undefined) // 选中行的 value
 const currentRow = ref(undefined) // 选中行
-const handleCurrentChange = (row) => {
+const handleCurrentChange = (row:any) => {
   currentRow.value = row
 }
-
+/** 加载列表  */
+const getList = async () => {
+  loading.value = true;
+  const res = await listPurchaseOrder(proxy?.addDateRange(queryParams, dateRange.value,"OrderTime"));
+  list.value = res.rows;
+  total.value = res.total;
+  loading.value = false;
+}
+/** 提交选择 */
+const emits = defineEmits<{
+  (e: 'success', value: PurchaseOrderVO): void
+}>()
+const submitForm = () => {
+  try {
+    console.log('currentRow.value', currentRow.value)
+    emits('success', currentRow.value)
+  } finally {
+    // 关闭弹窗
+    dialogVisible.value = false
+  }
+}
+/** 查询产品精简列表 */
+const getProductList = async () => {
+  const res = await getProductSimpleList();
+  productList.value = res.data;
+}
 /** 打开弹窗 */
 const open = async () => {
   dialogVisible.value = true
@@ -160,35 +189,9 @@ const open = async () => {
   // 加载可入库的订单列表
   await resetQuery()
   // 加载产品列表
-  productList.value = await ProductApi.getProductSimpleList()
+  getProductList();
 }
 defineExpose({ open }) // 提供 open 方法，用于打开弹窗
-
-/** 提交选择 */
-const emits = defineEmits<{
-  (e: 'success', value: PurchaseOrderVO): void
-}>()
-const submitForm = () => {
-  try {
-    emits('success', currentRow.value)
-  } finally {
-    // 关闭弹窗
-    dialogVisible.value = false
-  }
-}
-
-/** 加载列表  */
-const getList = async () => {
-  loading.value = true
-  try {
-    const data = await PurchaseOrderApi.getPurchaseOrderPage(queryParams)
-    list.value = data.list
-    total.value = data.total
-  } finally {
-    loading.value = false
-  }
-}
-
 /** 重置按钮操作 */
 const resetQuery = () => {
   queryFormRef.value.resetFields()
