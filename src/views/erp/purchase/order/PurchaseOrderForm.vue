@@ -4,7 +4,7 @@
     <el-form ref="formRef" :model="formData"  label-width="100px" :rules="formRules" v-loading="formLoading" :disabled="disabled">
       <el-row :gutter="20">
         <el-col :span="8">
-          <el-form-item label="采购单编号" prop="no">
+          <el-form-item label="采购单号" prop="no">
             <el-input disabled v-model="formData.no" placeholder="保存时自动生成" />
           </el-form-item>
         </el-col>
@@ -138,7 +138,7 @@ import {getSupplierSimpleList} from "@/api/erp/purchase/supplier";
 import PurchaseOrderItemForm from './components/PurchaseOrderItemForm.vue'
 import {erpPriceInputFormatter, erpPriceMultiply} from "@/utils";
 import {addPurchaseOrder, getPurchaseOrder, updatePurchaseOrder} from "@/api/erp/purchase/order";
-import {PurchaseOrderForm, PurchaseOrderItem, PurchaseOrderVO} from "@/api/erp/purchase/order/types";
+import {PurchaseOrderForm} from "@/api/erp/purchase/order/types";
 import {UserVO} from "@/api/system/user/types";
 import {getSimpleUserList} from "@/api/system/user";
 import {getAccountSimpleList} from "@/api/erp/finance/account";
@@ -207,13 +207,13 @@ const getUserList = async () => {
   userList.value = res.data;
 }
 
-/** 查询供应商精简列表 */
+/** 查询账户列表 */
 const getAccountList = async () => {
   const res = await getAccountSimpleList();
   accountList.value = res.data;
 }
 /** 打开弹窗 */
-const open =  async (type: string, id?: string) => {
+const open =  async (type: string, id?: number) => {
   dialog.visible = true;
   dialog.title = type == 'create'? "新增采购订单":"修改采购订单"
   formType.value = type
@@ -224,8 +224,6 @@ const open =  async (type: string, id?: string) => {
     try {
       const res = await getPurchaseOrder(id)
       formData.value = res.data;
-      console.log("res data",res.data)
-      console.log("formData value",formData.value)
     } finally {
       formLoading.value = false
     }
@@ -278,7 +276,6 @@ const cancel = () => {
   dialog.visible = false;
 }
 
-/** 表单重置 */
 /** 重置表单 */
 const reset = () => {
   formData.value = {
