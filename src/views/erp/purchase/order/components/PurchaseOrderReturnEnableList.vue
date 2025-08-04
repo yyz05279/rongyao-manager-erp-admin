@@ -117,7 +117,7 @@
       <!-- 分页 -->
       <Pagination
         v-model:limit="queryParams.pageSize"
-        v-model:page="queryParams.pageNo"
+        v-model:page="queryParams.pageNum"
         :total="total"
         @pagination="getList"
       />
@@ -131,10 +131,13 @@
 
 <script lang="ts" setup>
 import { ElTable } from 'element-plus'
-import { PurchaseOrderApi, PurchaseOrderVO } from '@/api/erp/purchase/order'
+import { listPurchaseOrder } from '@/api/erp/purchase/order'
+import { PurchaseOrderVO } from '@/api/erp/purchase/order/types'
 import { dateFormatter2 } from '@/utils/formatTime'
 import { erpCountTableColumnFormatter, erpPriceTableColumnFormatter } from '@/utils'
-import { ProductApi, ProductVO } from '@/api/erp/product/product'
+import { getProductSimpleList } from '@/api/erp/product/product'
+import { ProductVO } from '@/api/erp/product/product/types'
+import { nextTick } from 'vue'
 
 defineOptions({ name: 'PurchaseOrderReturnEnableList' })
 
@@ -143,7 +146,7 @@ const total = ref(0) // 列表的总页数
 const loading = ref(false) // 列表的加载中
 const dialogVisible = ref(false) // 弹窗的是否展示
 const queryParams = reactive({
-  pageNo: 1,
+  pageNum: 1,
   pageSize: 10,
   no: undefined,
   productId: undefined,
@@ -167,7 +170,8 @@ const open = async () => {
   // 加载可退货的订单列表
   await resetQuery()
   // 加载产品列表
-  productList.value = await ProductApi.getProductSimpleList()
+  const productResponse = await getProductSimpleList()
+  productList.value = productResponse.data
 }
 defineExpose({ open }) // 提供 open 方法，用于打开弹窗
 
@@ -188,7 +192,8 @@ const submitForm = () => {
 const getList = async () => {
   loading.value = true
   try {
-    const data = await PurchaseOrderApi.getPurchaseOrderPage(queryParams)
+    const response = await listPurchaseOrder(queryParams)
+    const data = { list: response.data, total: response.data.length }
     list.value = data.list
     total.value = data.total
   } finally {
@@ -204,7 +209,7 @@ const resetQuery = () => {
 
 /** 搜索按钮操作 */
 const handleQuery = () => {
-  queryParams.pageNo = 1
+  queryParams.pageNum = 1
   currentRowValue.value = undefined
   currentRow.value = undefined
   getList()

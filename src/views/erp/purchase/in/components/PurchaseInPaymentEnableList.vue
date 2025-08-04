@@ -120,8 +120,8 @@
 import { ElTable } from 'element-plus'
 import { dateFormatter2 } from '@/utils/formatTime'
 import { erpPriceInputFormatter, erpPriceTableColumnFormatter } from '@/utils'
-import { ProductApi, ProductVO } from '@/api/erp/product/product'
-import { PurchaseInApi, PurchaseInVO } from '@/api/erp/purchase/in'
+import { getProductSimpleList, ProductVO } from '@/api/erp/product/product'
+import { listPurchaseIn, PurchaseInVO } from '@/api/erp/purchase/in'
 
 defineOptions({ name: 'PurchaseInPaymentEnableList' })
 
@@ -130,11 +130,11 @@ const total = ref(0) // 列表的总页数
 const loading = ref(false) // 列表的加载中
 const dialogVisible = ref(false) // 弹窗的是否展示
 const queryParams = reactive({
-  pageNo: 1,
+  pageNum: 1,
   pageSize: 10,
   no: undefined,
   productId: undefined,
-  inTime: [],
+  inTime: undefined,
   paymentEnable: true,
   supplierId: undefined
 })
@@ -155,7 +155,8 @@ const open = async (supplierId: number) => {
   queryParams.supplierId = supplierId
   await resetQuery()
   // 加载产品列表
-  productList.value = await ProductApi.getProductSimpleList()
+  const productResponse = await getProductSimpleList()
+  productList.value = productResponse.data
 }
 defineExpose({ open }) // 提供 open 方法，用于打开弹窗
 
@@ -176,7 +177,8 @@ const submitForm = () => {
 const getList = async () => {
   loading.value = true
   try {
-    const data = await PurchaseInApi.getPurchaseInPage(queryParams)
+    const response = await listPurchaseIn(queryParams)
+    const data = { list: response.data, total: response.data.length }
     list.value = data.list
     total.value = data.total
   } finally {
@@ -192,7 +194,7 @@ const resetQuery = () => {
 
 /** 搜索按钮操作 */
 const handleQuery = () => {
-  queryParams.pageNo = 1
+  queryParams.pageNum = 1
   selectionList.value = []
   getList()
 }
