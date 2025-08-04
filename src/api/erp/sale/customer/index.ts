@@ -62,6 +62,16 @@ export const delCustomer = (id: string | number | Array<string | number>) => {
   });
 };
 /**
+ * 查询客户精简列表
+ */
+export const getCustomerSimpleList = (): AxiosPromise<CustomerVO[]> => {
+  return request({
+    url: '/erp/customer/simple-list',
+    method: 'get'
+  });
+};
+
+/**
  * 客户状态修改
  * @param id 客户id
  * @param status 客户状态
