@@ -9,7 +9,7 @@ import { PaymentVO, PaymentForm, PaymentQuery } from '@/api/erp/finance/payment/
  */
 export const listPayment = (query?: PaymentQuery): AxiosPromise<PaymentVO[]> => {
   return request({
-    url: '/erp/payment/list',
+    url: '//erp/finance/payment/list',
     method: 'get',
     params: query
   });
@@ -21,7 +21,7 @@ export const listPayment = (query?: PaymentQuery): AxiosPromise<PaymentVO[]> => 
  */
 export const getPayment = (id: string | number): AxiosPromise<PaymentVO> => {
   return request({
-    url: '/erp/payment/' + id,
+    url: '//erp/finance/payment/' + id,
     method: 'get'
   });
 };
@@ -32,7 +32,7 @@ export const getPayment = (id: string | number): AxiosPromise<PaymentVO> => {
  */
 export const addPayment = (data: PaymentForm) => {
   return request({
-    url: '/erp/payment',
+    url: '//erp/finance/payment',
     method: 'post',
     data: data
   });
@@ -44,7 +44,7 @@ export const addPayment = (data: PaymentForm) => {
  */
 export const updatePayment = (data: PaymentForm) => {
   return request({
-    url: '/erp/payment',
+    url: '//erp/finance/payment',
     method: 'put',
     data: data
   });
@@ -56,7 +56,7 @@ export const updatePayment = (data: PaymentForm) => {
  */
 export const delPayment = (id: string | number | Array<string | number>) => {
   return request({
-    url: '/erp/payment/' + id,
+    url: '//erp/finance/payment/' + id,
     method: 'delete'
   });
 };
@@ -68,7 +68,7 @@ export const delPayment = (id: string | number | Array<string | number>) => {
  */
 export const updatePaymentStatus = (id: string | number, status: number) => {
   return request({
-    url: '/erp/payment/update-status',
+    url: '//erp/finance/payment/update-status',
     method: 'put',
     params: {
       id,
