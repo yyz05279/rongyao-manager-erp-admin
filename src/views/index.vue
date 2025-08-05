@@ -243,7 +243,7 @@ const moduleList = ref([
 const versionHistory = ref([
   {
     version: 'v1.0.0',
-    date: '2024-01-15',
+    date: '2024-12-15',
     status: '已发布',
     tagType: 'success',
     type: 'released',
@@ -258,7 +258,7 @@ const versionHistory = ref([
   },
   {
     version: 'v1.1.0',
-    date: '2024-03-01',
+    date: '2025-02-20',
     status: '开发中',
     tagType: 'warning',
     type: 'developing',
@@ -273,7 +273,7 @@ const versionHistory = ref([
   },
   {
     version: 'v1.2.0',
-    date: '2024-05-01',
+    date: '2025-05-10',
     status: '计划中',
     tagType: 'info',
     type: 'planned',
@@ -288,7 +288,7 @@ const versionHistory = ref([
   },
   {
     version: 'v1.3.0',
-    date: '2024-07-01',
+    date: '2025-09-15',
     status: '规划中',
     tagType: 'info',
     type: 'planned',
