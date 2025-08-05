@@ -7,8 +7,25 @@ yarn-debug.log*
 yarn-error.log*
 **/*.log
 
+# 测试相关文件
+tests/
+!tests/README.md
+!tests/config/
+!tests/support/
+!tests/unit/
+!tests/integration/
+!tests/e2e/
+!tests/fixtures/
+!tests/package.json
+
+# 测试生成的文件
 tests/**/coverage/
-tests/e2e/reports
+tests/**/node_modules/
+tests/**/dist/
+tests/**/screenshots/
+tests/**/videos/
+tests/**/downloads/
+tests/e2e/reports/
 selenium-debug.log
 
 # Editor directories and files

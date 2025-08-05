@@ -15,3 +15,6 @@ dist
 prettier.config.js
 src/assets
 tailwind.config.js
+
+# 测试文件夹
+tests/
