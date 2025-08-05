@@ -1,8 +1,8 @@
 {
-  "name": "ruoyi-vue-plus",
-  "version": "5.1.2",
-  "description": "RuoYi-Vue-Plus多租户管理系统",
-  "author": "LionLi",
+  "name": "haitang-web-admin",
+  "version": "1.0.0",
+  "description": "海棠企业管理系统",
+  "author": "HaiTang Team",
   "license": "MIT",
   "scripts": {
     "dev": "vite serve --mode development",
@@ -14,7 +14,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://gitee.com/JavaLionLi/plus-ui.git"
+    "url": "https://github.com/haitang-team/haitang-web-admin.git"
   },
   "dependencies": {
     "@element-plus/icons-vue": "2.1.0",
