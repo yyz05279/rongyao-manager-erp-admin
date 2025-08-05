@@ -1,7 +1,7 @@
 <template>
   <div class="login">
     <el-form ref="loginRef" :model="loginForm" :rules="loginRules" class="login-form">
-      <h3 class="title">RuoYi-Vue-Plus多租户管理系统</h3>
+      <h3 class="title">海棠erp企业管理系统</h3>
       <el-form-item prop="tenantId" v-if="tenantEnabled">
         <el-select v-model="loginForm.tenantId" filterable placeholder="请选择/输入公司名称" style="width: 100%">
           <el-option v-for="item in tenantList" :key="item.tenantId" :label="item.companyName" :value="item.tenantId"></el-option>
@@ -27,7 +27,8 @@
         </div>
       </el-form-item>
       <el-checkbox v-model="loginForm.rememberMe" style="margin:0px 0px 25px 0px;">记住密码</el-checkbox>
-      <el-form-item style="float: right;">
+      <!-- 隐藏第三方平台登录 -->
+      <el-form-item style="float: right;" v-show="false">
         <el-button circle title="微信登录" @click="doSocialLogin('wechat')">
           <svg-icon icon-class="wechat" />
         </el-button>
