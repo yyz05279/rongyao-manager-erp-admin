@@ -9,7 +9,7 @@ import { ReceiptVO, ReceiptForm, ReceiptQuery } from '@/api/erp/finance/receipt/
  */
 export const listReceipt = (query?: ReceiptQuery): AxiosPromise<ReceiptVO[]> => {
   return request({
-    url: '/erp/receipt/list',
+    url: '/erp/finance/receipt/list',
     method: 'get',
     params: query
   });
@@ -21,7 +21,7 @@ export const listReceipt = (query?: ReceiptQuery): AxiosPromise<ReceiptVO[]> => 
  */
 export const getReceipt = (id: string | number): AxiosPromise<ReceiptVO> => {
   return request({
-    url: '/erp/receipt/' + id,
+    url: '/erp/finance/receipt/' + id,
     method: 'get'
   });
 };
@@ -56,7 +56,7 @@ export const updateReceipt = (data: ReceiptForm) => {
  */
 export const delReceipt = (id: string | number | Array<string | number>) => {
   return request({
-    url: '/erp/receipt/' + id,
+    url: '/erp/finance/receipt/' + id,
     method: 'delete'
   });
 };
@@ -68,7 +68,7 @@ export const delReceipt = (id: string | number | Array<string | number>) => {
  */
 export const updateReceiptStatus = (id: string | number, status: number) => {
   return request({
-    url: '/erp/receipt/update-status',
+    url: '/erp/finance/receipt/update-status',
     method: 'put',
     params: {
       id,
