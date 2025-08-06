@@ -198,22 +198,22 @@ const moduleList = ref([
     progress: 75,
     progressColor: '#e6a23c',
     completedFunctions: [
-      { name: '付款管理', version: 'v1.0.0' },
-      { name: '收款管理', version: 'v1.0.0' },
       { name: '结算账户', version: 'v1.0.0' },
       { name: '产品管理', version: 'v1.0.0' },
       { name: '产品分类', version: 'v1.0.0' },
       { name: '采购订单', version: 'v1.0.0' },
       { name: '采购入库', version: 'v1.0.0' },
-      { name: '供应商管理', version: 'v1.0.0' },
-      { name: '客户管理', version: 'v1.0.0' }
+      { name: '供应商管理', version: 'v1.0.0' }
     ],
     plannedFunctions: [
       { name: '销售订单', version: 'v1.1.0' },
       { name: '销售出库', version: 'v1.1.0' },
       { name: '库存盘点', version: 'v1.2.0' },
       { name: '财务报表', version: 'v1.2.0' },
-      { name: '成本核算', version: 'v1.3.0' }
+      { name: '成本核算', version: 'v1.3.0' },
+      { name: '客户管理', version: 'v1.0.0' },
+      { name: '付款管理', version: 'v1.0.0' },
+      { name: '收款管理', version: 'v1.0.0' },
     ]
   },
   {
