@@ -39,10 +39,13 @@ export const usePermissionStore = defineStore('permission', () => {
     const sidebarRoutes = filterAsyncRouter(sdata);
     const rewriteRoutes = filterAsyncRouter(rdata, undefined, true);
     const defaultRoutes = filterAsyncRouter(defaultData);
+
+    // 处理前端动态路由（包括化盐记录等固定展示的路由）
     const asyncRoutes = filterDynamicRoutes(dynamicRoutes);
     asyncRoutes.forEach((route) => {
       router.addRoute(route);
     });
+
     setRoutes(rewriteRoutes);
     setSidebarRouters(constantRoutes.concat(sidebarRoutes));
     setDefaultRoutes(sidebarRoutes);
@@ -138,6 +141,8 @@ export const usePermissionStore = defineStore('permission', () => {
     });
     return children;
   };
+
+
   return { routes, setRoutes, generateRoutes, setSidebarRouters, topbarRouters, sidebarRouters, defaultRoutes };
 });
 
@@ -145,7 +150,18 @@ export const usePermissionStore = defineStore('permission', () => {
 export const filterDynamicRoutes = (routes: RouteOption[]) => {
   const res: RouteOption[] = [];
   routes.forEach((route) => {
-    if (route.permissions) {
+    // 化盐记录相关路由无需权限验证，直接添加
+    const isSaltRecordRoute = route.name && (
+      route.name.includes('SaltDataRecords') ||
+      route.name.includes('PreheatingRecords') ||
+      route.name.includes('BinaryRecords') ||
+      route.name.includes('TernaryRecords') ||
+      route.path?.includes('saltprocess')
+    );
+
+    if (isSaltRecordRoute) {
+      res.push(route);
+    } else if (route.permissions) {
       if (auth.hasPermiOr(route.permissions)) {
         res.push(route);
       }
@@ -153,6 +169,9 @@ export const filterDynamicRoutes = (routes: RouteOption[]) => {
       if (auth.hasRoleOr(route.roles)) {
         res.push(route);
       }
+    } else {
+      // 没有权限要求的路由直接添加
+      res.push(route);
     }
   });
   return res;

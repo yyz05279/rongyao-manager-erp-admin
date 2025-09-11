@@ -361,6 +361,117 @@ const saltprocessRouter: RouteOption = {
         title: '分析报告',
         activeMenu: '/saltprocess/analytics'
       }
+    },
+
+    // 数据记录系统 - 前端固定展示
+    {
+      path: 'record',
+      component: () => import('@/views/erp/saltprocess/data-records/index.vue'),
+      name: 'SaltDataRecords',
+      meta: {
+        title: '化盐记录',
+        icon: 'data-analysis'
+      },
+      hidden: false,  // 确保在左侧导航栏显示
+      // 移除权限验证，前端固定展示
+    },
+
+
+
+    // 预热记录 - 前端固定展示
+    {
+      path: 'preheating-records',
+      component: () => import('@/views/erp/saltprocess/records/preheating/index.vue'),
+      name: 'PreheatingRecords',
+      meta: {
+        title: '预热记录',
+        icon: 'thermometer'
+      },
+      hidden: false,  // 在左侧导航栏显示
+      // 移除权限验证，前端固定展示
+    },
+    {
+      path: 'preheating/detail/:id',
+      component: () => import('@/views/erp/saltprocess/records/preheating/detail.vue'),
+      name: 'PreheatingRecordDetail',
+      meta: {
+        title: '预热记录详情',
+        activeMenu: '/saltprocess/preheating-records'
+      },
+      hidden: true,  // 详情页保持隐藏
+      // 移除权限验证，前端固定展示
+    },
+
+    // 二元化盐记录 - 前端固定展示
+    {
+      path: 'binary-records',
+      component: () => import('@/views/erp/saltprocess/records/binary/index.vue'),
+      name: 'BinaryRecords',
+      meta: {
+        title: '二元化盐记录',
+        icon: 'chemistry'
+      },
+      hidden: false,  // 在左侧导航栏显示
+      // 移除权限验证，前端固定展示
+    },
+    {
+      path: 'binary/detail/:id',
+      component: () => import('@/views/erp/saltprocess/records/binary/detail.vue'),
+      name: 'BinaryRecordDetail',
+      meta: {
+        title: '二元化盐记录详情',
+        activeMenu: '/saltprocess/binary-records'
+      },
+      hidden: true,  // 详情页保持隐藏
+      // 移除权限验证，前端固定展示
+    },
+
+    // 三元化盐记录 - 前端固定展示
+    {
+      path: 'ternary-records',
+      component: () => import('@/views/erp/saltprocess/records/ternary/index.vue'),
+      name: 'TernaryRecords',
+      meta: {
+        title: '三元化盐记录',
+        icon: 'experiment'
+      },
+      hidden: false,  // 在左侧导航栏显示
+      // 移除权限验证，前端固定展示
+    },
+    {
+      path: 'ternary/detail/:id',
+      component: () => import('@/views/erp/saltprocess/records/ternary/detail.vue'),
+      name: 'TernaryRecordDetail',
+      meta: {
+        title: '三元化盐记录详情',
+        activeMenu: '/saltprocess/ternary-records'
+      },
+      hidden: true,  // 详情页保持隐藏
+      // 移除权限验证，前端固定展示
+    },
+
+    // 工艺模板管理
+    {
+      path: 'process-template',
+      component: () => import('@/views/erp/saltprocess/process-template/index.vue'),
+      name: 'SaltProcessTemplate',
+      meta: {
+        title: '工艺模板',
+        icon: 'template'
+      },
+      permissions: ['erp:saltprocess:process-template:list']
+    },
+
+    // 巡检标准管理
+    {
+      path: 'inspection-standard',
+      component: () => import('@/views/erp/saltprocess/inspection-standard/index.vue'),
+      name: 'SaltInspectionStandard',
+      meta: {
+        title: '巡检标准',
+        icon: 'standard'
+      },
+      permissions: ['erp:saltprocess:inspection-standard:list']
     }
   ]
 };

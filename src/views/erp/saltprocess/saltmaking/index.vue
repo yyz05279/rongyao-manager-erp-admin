@@ -1,5 +1,11 @@
 <template>
   <div class="saltmaking-management">
+    <!-- 调试信息 -->
+    <div v-if="taskList.length === 0 && !loading" style="padding: 20px; text-align: center; color: #999;">
+      <p>任务列表为空，数据加载中...</p>
+      <p>总数: {{ total }}</p>
+    </div>
+
     <!-- 搜索筛选区域 -->
     <el-card class="search-card" shadow="never">
       <el-form :model="queryParams" ref="queryFormRef" :inline="true" label-width="80px">
@@ -31,13 +37,13 @@
             <el-option label="已取消" value="CANCELLED" />
           </el-select>
         </el-form-item>
-        <el-form-item label="反应罐" prop="tankId">
-          <el-select v-model="queryParams.tankId" placeholder="请选择反应罐" clearable style="width: 150px">
+        <el-form-item label="反应罐" prop="reactorId">
+          <el-select v-model="queryParams.reactorId" placeholder="请选择反应罐" clearable style="width: 150px">
             <el-option
-              v-for="tank in tankList"
-              :key="tank.id"
-              :label="tank.name"
-              :value="tank.id"
+              v-for="reactor in reactorList"
+              :key="reactor.id"
+              :label="reactor.name"
+              :value="reactor.id"
             />
           </el-select>
         </el-form-item>
@@ -137,7 +143,7 @@
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="反应罐" prop="tankName" width="100" align="center" />
+        <el-table-column label="反应罐" prop="reactorName" width="100" align="center" />
         <el-table-column label="目标温度" prop="targetTemperature" width="100" align="center">
           <template #default="scope">
             {{ scope.row.targetTemperature }}°C
@@ -155,9 +161,11 @@
             {{ scope.row.stirringSpeed }} rpm
           </template>
         </el-table-column>
-        <el-table-column label="反应时间" prop="reactionTime" width="100" align="center">
+        <el-table-column label="当前阶段" prop="currentPhase" width="100" align="center">
           <template #default="scope">
-            {{ scope.row.reactionTime }} min
+            <el-tag :type="getPhaseTag(scope.row.currentPhase)" size="small">
+              {{ getPhaseText(scope.row.currentPhase) }}
+            </el-tag>
           </template>
         </el-table-column>
         <el-table-column label="任务状态" prop="status" width="100" align="center">
@@ -275,19 +283,7 @@
 import { ref, reactive, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import {
-  Search,
-  Refresh,
-  Plus,
-  VideoPlay,
-  VideoPause,
-  Delete,
-  Download,
-  View,
-  Monitor,
-  SetUp,
-  Edit
-} from '@element-plus/icons-vue';
+// 图标通过Element Plus自动导入
 import {
   listSaltmakingTask,
   deleteSaltmakingTask,
@@ -295,10 +291,17 @@ import {
   pauseSaltmakingTask,
   exportSaltmakingTaskList
 } from '@/api/erp/saltprocess/saltmaking';
-import type { SaltmakingTaskQuery, SaltmakingTaskVO } from '@/api/erp/saltprocess/saltmaking/types';
+import type {
+  SaltmakingTaskQuery,
+  SaltmakingTaskVO
+} from '@/api/erp/saltprocess/saltmaking/types';
+import {
+  SaltmakingTaskStatus,
+  SaltmakingPhase
+} from '@/api/erp/saltprocess/saltmaking/types';
+import { SaltType } from '@/api/erp/saltprocess/types';
 import { parseTime } from '@/utils/ruoyi';
-import SaltmakingTaskForm from './components/SaltmakingTaskForm.vue';
-import RatioManagement from './components/RatioManagement.vue';
+// 组件通过全局注册或自动导入使用
 
 const router = useRouter();
 
@@ -311,7 +314,7 @@ const multiple = ref(true);
 const total = ref(0);
 const taskList = ref<SaltmakingTaskVO[]>([]);
 const projectList = ref<any[]>([]);
-const tankList = ref<any[]>([]);
+const reactorList = ref<any[]>([]);
 
 // 查询参数
 const queryParams = reactive<SaltmakingTaskQuery>({
@@ -319,9 +322,9 @@ const queryParams = reactive<SaltmakingTaskQuery>({
   pageSize: 10,
   taskCode: '',
   projectId: '',
-  status: '',
-  tankId: '',
-  saltType: ''
+  status: undefined,
+  reactorId: '',
+  saltType: undefined
 });
 
 // 对话框
@@ -342,6 +345,7 @@ const taskFormRef = ref();
 
 // 生命周期
 onMounted(() => {
+  console.log('化盐任务页面已挂载');
   getList();
   loadSelectOptions();
 });
@@ -349,14 +353,132 @@ onMounted(() => {
 // 方法
 const getList = async () => {
   loading.value = true;
+  console.log('开始加载化盐任务列表...');
+
   try {
-    const { data } = await listSaltmakingTask(queryParams);
-    taskList.value = data.rows;
-    total.value = data.total;
-  } catch (error) {
-    console.error('获取化盐任务列表失败:', error);
+    // 首先尝试调用真实API
+    console.log('=== 开始API调用 ===');
+    console.log('API接口URL:', '/erp/saltprocess/saltmaking/task/list');
+    console.log('完整URL:', import.meta.env.VITE_APP_BASE_API + '/erp/saltprocess/saltmaking/task/list');
+    console.log('请求参数:', queryParams);
+    console.log('请求方法:', 'GET');
+
+    const response = await listSaltmakingTask(queryParams);
+    console.log('API响应:', response);
+
+    taskList.value = response.data.rows;
+    total.value = response.data.total;
+    console.log('化盐任务数据加载成功，任务数量:', taskList.value.length);
+
+  } catch (error: any) {
+    console.error('=== API调用失败 ===');
+    console.error('错误详情:', error);
+    console.error('错误类型:', error?.constructor?.name);
+    if (error?.response) {
+      console.error('响应状态:', error.response.status);
+      console.error('响应数据:', error.response.data);
+    }
+    if (error?.request) {
+      console.error('请求配置:', error.request);
+    }
+    ElMessage.warning('API接口暂不可用，显示模拟数据');
+
+    // API调用失败时使用模拟数据
+    console.log('设置模拟数据...');
+    taskList.value = [
+      {
+        id: '1',
+        taskCode: 'SM20241201001',
+        projectId: '1',
+        projectName: '项目A - 二元化盐生产',
+        reactorId: '1',
+        reactorName: '反应罐1号',
+        saltType: SaltType.BINARY,
+        targetOutput: 2000,
+        currentOutput: 1850,
+        status: SaltmakingTaskStatus.IN_PROGRESS,
+        currentPhase: SaltmakingPhase.REACTION,
+        progress: 85,
+        operatorId: '1',
+        operatorName: '张三',
+        plannedStartTime: '2024-12-01 08:00:00',
+        plannedEndTime: '2024-12-01 16:00:00',
+        actualStartTime: '2024-12-01 08:15:00',
+        actualEndTime: undefined,
+        targetTemperature: 250,
+        currentTemperature: 248,
+        targetPressure: 0.2,
+        currentPressure: 0.19,
+        stirringSpeed: 120,
+        ratioConfig: [],
+        remarks: '正常运行中',
+        createTime: '2024-12-01 07:30:00',
+        updateTime: '2024-12-01 14:30:00'
+      },
+      {
+        id: '2',
+        taskCode: 'SM20241201002',
+        projectId: '2',
+        projectName: '项目B - 三元化盐生产',
+        reactorId: '2',
+        reactorName: '反应罐2号',
+        saltType: SaltType.TERNARY,
+        targetOutput: 1500,
+        currentOutput: 0,
+        status: SaltmakingTaskStatus.PENDING,
+        currentPhase: SaltmakingPhase.PREPARATION,
+        progress: 0,
+        operatorId: '2',
+        operatorName: '李四',
+        plannedStartTime: '2024-12-01 16:00:00',
+        plannedEndTime: '2024-12-02 00:00:00',
+        actualStartTime: undefined,
+        actualEndTime: undefined,
+        targetTemperature: 220,
+        currentTemperature: undefined,
+        targetPressure: 0.15,
+        currentPressure: undefined,
+        stirringSpeed: 100,
+        ratioConfig: [],
+        remarks: '待启动',
+        createTime: '2024-12-01 10:00:00',
+        updateTime: '2024-12-01 10:00:00'
+      },
+      {
+        id: '3',
+        taskCode: 'SM20241130003',
+        projectId: '1',
+        projectName: '项目A - 二元化盐生产',
+        reactorId: '3',
+        reactorName: '反应罐3号',
+        saltType: SaltType.BINARY,
+        targetOutput: 1800,
+        currentOutput: 1800,
+        status: SaltmakingTaskStatus.COMPLETED,
+        currentPhase: SaltmakingPhase.COMPLETION,
+        progress: 100,
+        operatorId: '3',
+        operatorName: '王五',
+        plannedStartTime: '2024-11-30 08:00:00',
+        plannedEndTime: '2024-11-30 16:00:00',
+        actualStartTime: '2024-11-30 08:10:00',
+        actualEndTime: '2024-11-30 15:45:00',
+        targetTemperature: 250,
+        currentTemperature: 25,
+        targetPressure: 0.2,
+        currentPressure: 0.0,
+        stirringSpeed: 0,
+        ratioConfig: [],
+        remarks: '任务完成，产品质量合格',
+        createTime: '2024-11-30 07:30:00',
+        updateTime: '2024-11-30 15:45:00'
+      }
+    ];
+    total.value = 3;
+    console.log('模拟数据设置完成，任务数量:', taskList.value.length);
   } finally {
     loading.value = false;
+    console.log('加载完成，loading状态:', loading.value);
   }
 };
 
@@ -366,7 +488,7 @@ const loadSelectOptions = async () => {
     { id: '1', projectName: '项目A' },
     { id: '2', projectName: '项目B' }
   ];
-  tankList.value = [
+  reactorList.value = [
     { id: '1', name: '反应罐1号' },
     { id: '2', name: '反应罐2号' }
   ];
@@ -515,16 +637,16 @@ const handleFormSuccess = () => {
 // 工具方法
 const getSaltTypeText = (type: string): string => {
   const typeMap = {
-    'BINARY_SALT': '二元化盐',
-    'TERNARY_SALT': '三元化盐'
+    'BINARY': '二元化盐',
+    'TERNARY': '三元化盐'
   };
   return typeMap[type as keyof typeof typeMap] || type;
 };
 
 const getSaltTypeTag = (type: string): string => {
   const tagMap = {
-    'BINARY_SALT': 'primary',
-    'TERNARY_SALT': 'success'
+    'BINARY': 'primary',
+    'TERNARY': 'success'
   };
   return tagMap[type as keyof typeof tagMap] || '';
 };
@@ -563,6 +685,28 @@ const getTemperatureClass = (current: number, target: number): string => {
   if (diff <= 2) return 'text-success';
   if (diff <= 5) return 'text-warning';
   return 'text-danger';
+};
+
+const getPhaseText = (phase: string): string => {
+  const phaseMap = {
+    'PREPARATION': '准备',
+    'FEEDING': '投料',
+    'REACTION': '反应',
+    'STABILIZATION': '稳定',
+    'COMPLETION': '完成'
+  };
+  return phaseMap[phase as keyof typeof phaseMap] || phase;
+};
+
+const getPhaseTag = (phase: string): string => {
+  const tagMap = {
+    'PREPARATION': 'info',
+    'FEEDING': 'warning',
+    'REACTION': 'primary',
+    'STABILIZATION': 'success',
+    'COMPLETION': 'success'
+  };
+  return tagMap[phase as keyof typeof tagMap] || '';
 };
 </script>
 
