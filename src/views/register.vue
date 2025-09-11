@@ -1,13 +1,14 @@
 <template>
   <div class="register">
     <el-form ref="registerRef" :model="registerForm" :rules="registerRules" class="register-form">
-      <h3 class="title">RuoYi-Vue-Plus多租户管理系统</h3>
-      <el-form-item prop="tenantId" v-if="tenantEnabled">
+      <h3 class="title">海棠企业管理系统</h3>
+      <!-- 租户选择功能已隐藏 - 如需重新启用请将下面的注释取消 -->
+      <!-- <el-form-item prop="tenantId" v-if="tenantEnabled">
         <el-select v-model="registerForm.tenantId" filterable placeholder="请选择/输入公司名称" style="width: 100%">
           <el-option v-for="item in tenantList" :key="item.tenantId" :label="item.companyName" :value="item.tenantId"> </el-option>
           <template #prefix><svg-icon icon-class="company" class="el-input__icon input-icon" /></template>
         </el-select>
-      </el-form-item>
+      </el-form-item> -->
       <el-form-item prop="username">
         <el-input v-model="registerForm.username" type="text" size="large" auto-complete="off" placeholder="账号">
           <template #prefix><svg-icon icon-class="user" class="el-input__icon input-icon" /></template>
@@ -63,7 +64,7 @@ import { to } from 'await-to-js';
 const router = useRouter();
 
 const registerForm = ref<RegisterForm>({
-  tenantId: "",
+  tenantId: "000000", // 使用默认租户ID
   username: "",
   password: "",
   confirmPassword: "",
@@ -72,8 +73,8 @@ const registerForm = ref<RegisterForm>({
   userType: "sys_user"
 });
 
-// 租户开关
-const tenantEnabled = ref(true);
+// 租户开关 - 已禁用租户功能
+const tenantEnabled = ref(false);
 
 
 const equalToPassword = (rule: any, value: string, callback: any) => {
@@ -85,9 +86,10 @@ const equalToPassword = (rule: any, value: string, callback: any) => {
 };
 
 const registerRules: ElFormRules = {
-  tenantId: [
-    { required: true, trigger: "blur", message: "请输入您的租户编号" }
-  ],
+  // 租户验证规则已隐藏 - 如需重新启用请取消下面的注释
+  // tenantId: [
+  //   { required: true, trigger: "blur", message: "请输入您的租户编号" }
+  // ],
   username: [
     { required: true, trigger: "blur", message: "请输入您的账号" },
     { min: 2, max: 20, message: "用户账号长度必须介于 2 和 20 之间", trigger: "blur" }
@@ -141,20 +143,21 @@ const getCode = async () => {
   }
 };
 
-const initTenantList = async () => {
-  const { data } = await getTenantList();
-  tenantEnabled.value = data.tenantEnabled === undefined ? true : data.tenantEnabled;
-  if (tenantEnabled.value) {
-    tenantList.value = data.voList;
-    if (tenantList.value != null && tenantList.value.length !== 0) {
-      registerForm.value.tenantId = tenantList.value[0].tenantId;
-    }
-  }
-}
+// 租户列表初始化函数已禁用
+// const initTenantList = async () => {
+//   const { data } = await getTenantList();
+//   tenantEnabled.value = data.tenantEnabled === undefined ? true : data.tenantEnabled;
+//   if (tenantEnabled.value) {
+//     tenantList.value = data.voList;
+//     if (tenantList.value != null && tenantList.value.length !== 0) {
+//       registerForm.value.tenantId = tenantList.value[0].tenantId;
+//     }
+//   }
+// }
 
 onMounted(() => {
   getCode();
-  initTenantList();
+  // initTenantList(); // 租户功能已隐藏
 })
 </script>
 

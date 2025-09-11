@@ -156,7 +156,7 @@ import { initWebSocket } from '@/utils/websocket';
 const overviewData = ref({
   completedFeatures: 25,
   developingFeatures: 8,
-  plannedFeatures: 12,
+  plannedFeatures: 11, // 减少1个（移除租户管理）
   totalModules: 3
 });
 
@@ -183,8 +183,8 @@ const moduleList = ref([
       { name: 'OSS管理', version: 'v1.0.0' }
     ],
     plannedFunctions: [
-      { name: '岗位管理', version: 'v1.1.0' },
-      { name: '租户管理', version: 'v1.2.0' }
+      { name: '岗位管理', version: 'v1.1.0' }
+      // { name: '租户管理', version: 'v1.2.0' } // 租户管理功能已隐藏
     ]
   },
   {

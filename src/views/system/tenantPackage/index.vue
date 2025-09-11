@@ -1,5 +1,15 @@
 <template>
-  <div class="p-2">
+  <!-- 租户套餐管理功能已隐藏 - 如需重新启用请将 tenantPackageFeatureDisabled 设置为 false -->
+  <div v-if="tenantPackageFeatureDisabled" class="p-2" style="text-align: center; padding: 100px;">
+    <el-result icon="warning" title="功能暂时不可用" sub-title="租户套餐管理功能已被隐藏，如需使用请联系系统管理员">
+      <template #extra>
+        <el-button type="primary" @click="$router.push('/')">返回首页</el-button>
+      </template>
+    </el-result>
+  </div>
+
+  <!-- 原租户套餐管理页面内容 -->
+  <div v-else class="p-2">
     <transition :enter-active-class="proxy?.animate.searchAnimate.enter" :leave-active-class="proxy?.animate.searchAnimate.leave">
       <div class="mb-[10px]" v-show="showSearch">
         <el-card shadow="hover">
@@ -114,6 +124,9 @@ import { MenuTreeOption } from "@/api/system/menu/types";
 import to from "await-to-js";
 
 const { proxy } = getCurrentInstance() as ComponentInternalInstance;
+
+// 租户套餐功能禁用标志 - 如需重新启用请设置为 false
+const tenantPackageFeatureDisabled = ref(true);
 
 const tenantPackageList = ref<TenantPkgVO[]>([]);
 const buttonLoading = ref(false);
