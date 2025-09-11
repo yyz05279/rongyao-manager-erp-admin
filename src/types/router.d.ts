@@ -11,7 +11,12 @@ declare module 'vue-router' {
     parentPath?: string;
     meta?: {
       title: string;
-      icon: string;
+      icon?: string;
+      activeMenu?: string;
+      noCache?: boolean;
+      breadcrumb?: boolean;
+      affix?: boolean;
+      link?: string;
     };
     query?: string;
   } & RouteRecordRaw;
