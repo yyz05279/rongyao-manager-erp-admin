@@ -58,6 +58,15 @@ export const usePermissionStore = defineStore('permission', () => {
    */
   const filterAsyncRouter = (asyncRouterMap: RouteOption[], lastRouter?: RouteOption, type = false): RouteOption[] => {
     return asyncRouterMap.filter((route) => {
+      // 过滤租户管理相关路由 - 如需重新启用请注释掉下面的过滤逻辑
+      if (route.path === '/system/tenant' ||
+          route.path === '/system/tenantPackage' ||
+          route.path === 'tenant' ||
+          route.path === 'tenantPackage' ||
+          (route.meta && (route.meta.title === '租户管理' || route.meta.title === '租户套餐管理'))) {
+        return false;
+      }
+
       if (type && route.children) {
         route.children = filterChildren(route.children, undefined);
       }
@@ -75,6 +84,10 @@ export const usePermissionStore = defineStore('permission', () => {
       }
       if (route.children != null && route.children && route.children.length) {
         route.children = filterAsyncRouter(route.children, route, type);
+        // 如果所有子路由都被过滤掉了，也过滤掉父路由
+        if (route.children.length === 0) {
+          return false;
+        }
       } else {
         delete route.children;
         delete route.redirect;
@@ -85,9 +98,25 @@ export const usePermissionStore = defineStore('permission', () => {
   const filterChildren = (childrenMap: RouteOption[], lastRouter?: RouteOption): RouteOption[] => {
     let children: RouteOption[] = [];
     childrenMap.forEach((el) => {
+      // 过滤租户管理相关路由 - 如需重新启用请注释掉下面的过滤逻辑
+      if (el.path === '/system/tenant' ||
+          el.path === '/system/tenantPackage' ||
+          el.path === 'tenant' ||
+          el.path === 'tenantPackage' ||
+          (el.meta && (el.meta.title === '租户管理' || el.meta.title === '租户套餐管理'))) {
+        return; // 跳过租户相关路由
+      }
+
       if (el.children && el.children.length) {
         if (el.component === 'ParentView' && !lastRouter) {
           el.children.forEach((c) => {
+            // 过滤租户管理相关路由
+            if (c.path === 'tenant' ||
+                c.path === 'tenantPackage' ||
+                (c.meta && (c.meta.title === '租户管理' || c.meta.title === '租户套餐管理'))) {
+              return; // 跳过租户相关路由
+            }
+
             c.path = el.path + '/' + c.path;
             if (c.children && c.children.length) {
               children = children.concat(filterChildren(c.children, c));

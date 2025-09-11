@@ -2,12 +2,13 @@
   <div class="login">
     <el-form ref="loginRef" :model="loginForm" :rules="loginRules" class="login-form">
       <h3 class="title">海棠erp企业管理系统</h3>
-      <el-form-item prop="tenantId" v-if="tenantEnabled">
+      <!-- 租户选择功能已隐藏 - 如需重新启用请将下面的注释取消 -->
+      <!-- <el-form-item prop="tenantId" v-if="tenantEnabled">
         <el-select v-model="loginForm.tenantId" filterable placeholder="请选择/输入公司名称" style="width: 100%">
           <el-option v-for="item in tenantList" :key="item.tenantId" :label="item.companyName" :value="item.tenantId"></el-option>
           <template #prefix><svg-icon icon-class="company" class="el-input__icon input-icon" /></template>
         </el-select>
-      </el-form-item>
+      </el-form-item> -->
       <el-form-item prop="username">
         <el-input v-model="loginForm.username" type="text" size="large" auto-complete="off" placeholder="账号">
           <template #prefix><svg-icon icon-class="user" class="el-input__icon input-icon" /></template>
@@ -80,7 +81,8 @@ const loginForm = ref<LoginData>({
 } as LoginData);
 
 const loginRules: ElFormRules = {
-  tenantId: [{ required: true, trigger: "blur", message: "请输入您的租户编号" }],
+  // 租户验证规则已隐藏 - 如需重新启用请取消下面的注释
+  // tenantId: [{ required: true, trigger: "blur", message: "请输入您的租户编号" }],
   username: [{ required: true, trigger: 'blur', message: '请输入您的账号' }],
   password: [{ required: true, trigger: 'blur', message: '请输入您的密码' }],
   code: [{ required: true, trigger: 'change', message: '请输入验证码' }]
@@ -90,8 +92,8 @@ const codeUrl = ref('');
 const loading = ref(false);
 // 验证码开关
 const captchaEnabled = ref(true);
-// 租户开关
-const tenantEnabled = ref(true);
+// 租户开关 - 已禁用租户功能
+const tenantEnabled = ref(false);
 
 
 // 注册开关
@@ -111,13 +113,13 @@ const handleLogin = () => {
       loading.value = true;
       // 勾选了需要记住密码设置在 localStorage 中设置记住用户名和密码
       if (loginForm.value.rememberMe) {
-        localStorage.setItem("tenantId", String(loginForm.value.tenantId));
+        // localStorage.setItem("tenantId", String(loginForm.value.tenantId)); // 租户功能已隐藏
         localStorage.setItem('username', String(loginForm.value.username));
         localStorage.setItem('password', String(loginForm.value.password));
         localStorage.setItem('rememberMe', String(loginForm.value.rememberMe));
       } else {
         // 否则移除
-        localStorage.removeItem("tenantId");
+        // localStorage.removeItem("tenantId"); // 租户功能已隐藏
         localStorage.removeItem('username');
         localStorage.removeItem('password');
         localStorage.removeItem('rememberMe');
@@ -154,12 +156,12 @@ const getCode = async () => {
 };
 
 const getLoginData = () => {
-  const tenantId = localStorage.getItem("tenantId");
+  // const tenantId = localStorage.getItem("tenantId"); // 租户功能已隐藏
   const username = localStorage.getItem('username');
   const password = localStorage.getItem('password');
   const rememberMe = localStorage.getItem('rememberMe');
   loginForm.value = {
-    tenantId: tenantId === null ? String(loginForm.value.tenantId) : tenantId,
+    tenantId: '000000', // 使用默认租户ID
     username: username === null ? String(loginForm.value.username) : username,
     password: password === null ? String(loginForm.value.password) : String(password),
     rememberMe: rememberMe === null ? false : Boolean(rememberMe)
@@ -168,23 +170,23 @@ const getLoginData = () => {
 
 
 /**
- * 获取租户列表
+ * 获取租户列表 - 已禁用租户功能
  */
-const initTenantList = async () => {
-  const { data } = await getTenantList();
-  tenantEnabled.value = data.tenantEnabled === undefined ? true : data.tenantEnabled;
-  if (tenantEnabled.value) {
-    tenantList.value = data.voList;
-    if (tenantList.value != null && tenantList.value.length !== 0) {
-      loginForm.value.tenantId = tenantList.value[0].tenantId;
-    }
-  }
-}
+// const initTenantList = async () => {
+//   const { data } = await getTenantList();
+//   tenantEnabled.value = data.tenantEnabled === undefined ? true : data.tenantEnabled;
+//   if (tenantEnabled.value) {
+//     tenantList.value = data.voList;
+//     if (tenantList.value != null && tenantList.value.length !== 0) {
+//       loginForm.value.tenantId = tenantList.value[0].tenantId;
+//     }
+//   }
+// }
 
-//检测租户选择框的变化
-watch(() => loginForm.value.tenantId, () => {
-  localStorage.setItem("tenantId", String(loginForm.value.tenantId))
-});
+//检测租户选择框的变化 - 已禁用租户功能
+// watch(() => loginForm.value.tenantId, () => {
+//   localStorage.setItem("tenantId", String(loginForm.value.tenantId))
+// });
 
 /**
  * 第三方登录
@@ -205,7 +207,7 @@ const doSocialLogin = (type: string) => {
 
 onMounted(() => {
   getCode();
-  initTenantList();
+  // initTenantList(); // 租户功能已隐藏
   getLoginData();
 });
 </script>
