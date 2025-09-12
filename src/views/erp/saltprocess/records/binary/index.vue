@@ -312,7 +312,7 @@ const handleUpdate = (row?: any) => {
 };
 
 const handleView = (row: any) => {
-  router.push(`/saltprocess/records/binary/detail/${row.id}`);
+  router.push(`/saltprocess/binary/detail/${row.id}`);
 };
 
 const handleDelete = async (row?: any) => {
