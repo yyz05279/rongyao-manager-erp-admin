@@ -450,6 +450,57 @@ const saltprocessRouter: RouteOption = {
       // 移除权限验证，前端固定展示
     },
 
+    // Excel数据导入 - 前端固定展示
+    {
+      path: 'excel-import',
+      component: () => import('@/views/erp/saltprocess/records/excel-import/index.vue'),
+      name: 'ExcelImport',
+      meta: {
+        title: 'Excel数据导入',
+        icon: 'upload'
+      },
+      hidden: false,  // 在左侧导航栏显示
+      // 移除权限验证，前端固定展示
+    },
+
+    // Excel导入调试页面
+    {
+      path: 'excel-debug',
+      component: () => import('@/views/erp/saltprocess/records/excel-import/debug-test.vue'),
+      name: 'ExcelDebug',
+      meta: {
+        title: 'Excel导入调试',
+        icon: 'bug'
+      },
+      hidden: false,
+    },
+
+    // Excel数据读取测试页面
+    {
+      path: 'data-reading-test',
+      component: () => import('@/views/erp/saltprocess/records/excel-import/data-reading-test.vue'),
+      name: 'DataReadingTest',
+      meta: {
+        title: '数据读取测试',
+        icon: 'document'
+      },
+      hidden: false,
+    },
+
+    // 日期转换和列名映射修复测试页面
+    {
+      path: 'date-mapping-fix-test',
+      component: () => import('@/views/erp/saltprocess/records/excel-import/date-mapping-fix-test.vue'),
+      name: 'DateMappingFixTest',
+      meta: {
+        title: '日期映射修复测试',
+        icon: 'calendar'
+      },
+      hidden: false,
+    },
+
+
+
     // 工艺模板管理
     {
       path: 'process-template',

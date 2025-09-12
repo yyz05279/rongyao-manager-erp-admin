@@ -62,12 +62,12 @@
       </div>
     </div>
 
-    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px;">
+    <!-- <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px;">
       <button style="padding: 15px; background: #3b82f6; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 500;">➕ 新增预热记录</button>
       <button style="padding: 15px; background: #10b981; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 500;">➕ 新增二元记录</button>
       <button style="padding: 15px; background: #f59e0b; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 500;">➕ 新增三元记录</button>
       <button style="padding: 15px; background: #6b7280; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 500;">📊 数据导出</button>
-    </div>
+    </div> -->
   </div>
 </template>
 
