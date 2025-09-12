@@ -161,16 +161,19 @@
       />
     </el-card>
 
-    <!-- 记录表单对话框 -->
-    <el-dialog :title="dialog.title" v-model="dialog.visible" width="1000px" append-to-body>
-      <ternary-record-form
-        v-if="dialog.visible"
-        ref="recordFormRef"
-        :record-id="dialog.recordId"
-        @success="handleFormSuccess"
-        @cancel="dialog.visible = false"
-      />
-    </el-dialog>
+    <!-- 编辑表单对话框 -->
+    <EditForm
+      v-model:visible="editDialog.visible"
+      :title="editDialog.title"
+      :record-id="editDialog.recordId"
+      @success="handleFormSuccess"
+    />
+
+    <!-- 导入对话框 -->
+    <ImportDialog
+      v-model:visible="importDialog.visible"
+      @success="handleImportSuccess"
+    />
 
     <!-- 稳定性分析对话框 -->
     <el-dialog title="三元化盐稳定性分析" v-model="stabilityDialog.visible" width="1200px" append-to-body>
@@ -186,6 +189,8 @@
 import { ref, reactive, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { parseTime } from '@/utils/ruoyi';
+import EditForm from './components/EditForm.vue';
+import ImportDialog from './components/ImportDialog.vue';
 
 const router = useRouter();
 
@@ -199,10 +204,14 @@ const single = ref(true);
 const multiple = ref(true);
 
 // 对话框
-const dialog = reactive({
+const editDialog = reactive({
   visible: false,
   title: '',
   recordId: null
+});
+
+const importDialog = reactive({
+  visible: false
 });
 
 const stabilityDialog = reactive({
@@ -298,20 +307,18 @@ const handleRowClick = (row: any) => {
 };
 
 const handleAdd = () => {
-  dialog.title = '新增三元化盐记录';
-  dialog.recordId = null;
-  dialog.visible = true;
+  importDialog.visible = true;
 };
 
 const handleUpdate = (row?: any) => {
   const recordId = row?.id || ids.value[0];
-  dialog.title = '修改三元化盐记录';
-  dialog.recordId = recordId;
-  dialog.visible = true;
+  editDialog.title = '修改三元化盐记录';
+  editDialog.recordId = recordId;
+  editDialog.visible = true;
 };
 
 const handleView = (row: any) => {
-  router.push(`/saltprocess/records/ternary/detail/${row.id}`);
+  router.push(`/saltprocess/ternary/detail/${row.id}`);
 };
 
 const handleDelete = async (row?: any) => {
@@ -343,7 +350,12 @@ const handleStabilityAnalysis = () => {
 };
 
 const handleFormSuccess = () => {
-  dialog.visible = false;
+  editDialog.visible = false;
+  getList();
+};
+
+const handleImportSuccess = () => {
+  importDialog.visible = false;
   getList();
 };
 
