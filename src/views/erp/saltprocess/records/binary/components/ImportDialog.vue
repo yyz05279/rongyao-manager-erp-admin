@@ -8,16 +8,6 @@
     destroy-on-close
   >
     <div class="import-container">
-      <!-- 导入方式选择 -->
-      <el-card class="method-card" shadow="never">
-        <template #header>
-          <span class="card-title">📥 选择导入方式</span>
-        </template>
-        <el-radio-group v-model="importMethod" @change="handleMethodChange">
-          <el-radio value="excel">Excel文件导入</el-radio>
-          <el-radio value="manual">手动录入</el-radio>
-        </el-radio-group>
-      </el-card>
 
       <!-- Excel导入 -->
       <div v-if="importMethod === 'excel'" class="excel-import">
@@ -162,21 +152,25 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, reactive } from 'vue';
-import { ElMessage, ElMessageBox } from 'element-plus';
+import { ref, computed } from 'vue';
+import { ElMessage } from 'element-plus';
 import { UploadFilled } from '@element-plus/icons-vue';
 import type { UploadInstance, UploadRawFile } from 'element-plus';
 import * as XLSX from 'xlsx';
 import EditForm from './EditForm.vue';
-import { importBinaryRecords } from '@/api/erp/saltprocess/records/binary';
 import type { BinaryRecordForm } from '@/api/erp/saltprocess/records/binary/types';
+import { ExcelParser } from '@/utils/excel-parser';
+import type {
+  ExcelFileInfo,
+  ExcelImportError
+} from '@/api/erp/saltprocess/records/excel-import/types';
 
 // Props
 interface Props {
   visible: boolean;
 }
 
-const props = defineProps<Props>();
+defineProps<Props>();
 
 // Emits
 const emit = defineEmits<{
@@ -198,6 +192,11 @@ const importResult = ref<{
   description: string;
 } | null>(null);
 
+// Excel解析相关
+const fileInfo = ref<ExcelFileInfo | null>(null);
+const importErrors = ref<ExcelImportError[]>([]);
+const excelParser = new ExcelParser();
+
 // 手动录入相关
 const manualRecords = ref<BinaryRecordForm[]>([]);
 const editFormVisible = ref(false);
@@ -212,14 +211,7 @@ const canImport = computed(() => {
   }
 });
 
-// 切换导入方式
-const handleMethodChange = () => {
-  // 清空数据
-  previewData.value = [];
-  manualRecords.value = [];
-  importResult.value = null;
-  uploadRef.value?.clearFiles();
-};
+
 
 // 下载模板
 const downloadTemplate = () => {
@@ -279,57 +271,112 @@ const beforeUpload = (file: UploadRawFile) => {
 };
 
 // 文件变化处理
-const handleFileChange = (file: any) => {
+const handleFileChange = async (file: any) => {
   if (file.raw) {
-    parseExcelFile(file.raw);
+    await parseExcelFile(file.raw);
   }
 };
 
-// 解析Excel文件
-const parseExcelFile = (file: File) => {
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    try {
-      const data = new Uint8Array(e.target?.result as ArrayBuffer);
-      const workbook = XLSX.read(data, { type: 'array' });
-      const sheetName = workbook.SheetNames[0];
-      const worksheet = workbook.Sheets[sheetName];
-      const jsonData = XLSX.utils.sheet_to_json(worksheet);
+// 解析Excel文件 - 使用新的ExcelParser
+const parseExcelFile = async (file: File) => {
+  try {
+    // 1. 解析文件并识别类型
+    fileInfo.value = await excelParser.parseFile(file);
 
-      // 转换数据格式
-      const records = jsonData.map((row: any) => ({
-        recordCode: row['记录编码'] || '',
-        batchNumber: row['批次号'] || '',
-        projectId: row['项目ID'] || '',
-        recordDate: row['记录日期'] || '',
-        shift: parseInt(row['班次']) || 1,
-        duration: parseInt(row['持续时间']) || 0,
-        nano3TargetRatio: parseFloat(row['NaNO3目标配比']) || 0,
-        nano3ActualRatio: parseFloat(row['NaNO3实际配比']) || 0,
-        nano3TargetWeight: parseFloat(row['NaNO3目标用量']) || 0,
-        nano3ActualWeight: parseFloat(row['NaNO3实际用量']) || 0,
-        kno3TargetRatio: parseFloat(row['KNO3目标配比']) || 0,
-        kno3ActualRatio: parseFloat(row['KNO3实际配比']) || 0,
-        kno3TargetWeight: parseFloat(row['KNO3目标用量']) || 0,
-        kno3ActualWeight: parseFloat(row['KNO3实际用量']) || 0,
-        reactionTemperature: parseFloat(row['反应温度']) || 0,
-        reactionPressure: parseFloat(row['反应压力']) || 0,
-        reactionTime: parseInt(row['反应时间']) || 0,
-        actualOutput: parseFloat(row['实际产量']) || 0,
-        yieldRate: parseFloat(row['产出率']) || 0,
-        qualityGrade: parseInt(row['质量等级']) || 1,
-        operatorName: row['操作员'] || '',
-        remark: row['备注'] || ''
-      }));
-
-      previewData.value = records;
-      ElMessage.success(`成功解析 ${records.length} 条记录`);
-    } catch (error) {
-      ElMessage.error('文件解析失败，请检查文件格式');
-      console.error('Excel解析错误:', error);
+    if (!fileInfo.value || fileInfo.value.detectedType === 'unknown') {
+      ElMessage.warning('未识别的Excel文件类型，请检查文件格式');
+      return;
     }
-  };
-  reader.readAsArrayBuffer(file);
+
+    // 2. 根据识别的类型导入数据
+    let result: any;
+
+    if (fileInfo.value.detectedType === 'molten_salt_inventory') {
+      result = await excelParser.importMoltenSaltInventory();
+    } else if (fileInfo.value.detectedType === 'salt_process') {
+      result = await excelParser.importSaltProcess();
+    } else {
+      ElMessage.warning('当前文件类型不支持二元化盐记录导入');
+      return;
+    }
+
+    // 3. 转换数据格式为二元化盐记录格式
+    const binaryRecords = convertToBinaryRecords(result.data);
+
+    previewData.value = binaryRecords;
+    importErrors.value = result.errors;
+
+    if (binaryRecords.length > 0) {
+      ElMessage.success(`成功解析 ${binaryRecords.length} 条记录`);
+    } else {
+      ElMessage.warning('未解析到任何数据，请检查Excel文件格式');
+    }
+
+    if (result.errors.length > 0) {
+      ElMessage.warning(`解析完成，但有 ${result.errors.length} 条记录存在错误`);
+    }
+  } catch (error) {
+    ElMessage.error(`文件解析失败: ${error}`);
+    console.error('Excel解析错误:', error);
+  }
+};
+
+// 将Excel解析的数据转换为二元化盐记录格式
+const convertToBinaryRecords = (data: any[]): BinaryRecordForm[] => {
+  return data.map((item: any, index: number) => {
+    // 生成当前时间作为默认值
+    const now = new Date();
+    const dateStr = item.date || now.toISOString().split('T')[0];
+    const timeStr = now.toTimeString().split(' ')[0];
+
+    return {
+      recordCode: item.recordCode || `BIN_${Date.now()}_${String(index + 1).padStart(3, '0')}`,
+      batchNumber: item.batchNumber || `BATCH_${dateStr.replace(/-/g, '')}_${String(index + 1).padStart(3, '0')}`,
+      projectId: 1, // 默认项目ID
+      recordDate: dateStr,
+      startTime: timeStr,
+      endTime: timeStr,
+      shift: 1, // 默认班次
+
+      // NaNO3配比信息
+      nano3TargetRatio: 0.6, // 默认NaNO3目标配比
+      nano3ActualRatio: 0.6, // 默认NaNO3实际配比
+      nano3TargetWeight: item.sodiumWeight || 0, // 使用钠盐重量
+      nano3ActualWeight: item.sodiumWeight || 0,
+
+      // KNO3配比信息
+      kno3TargetRatio: 0.4, // 默认KNO3目标配比
+      kno3ActualRatio: 0.4, // 默认KNO3实际配比
+      kno3TargetWeight: item.potassiumWeight || 0, // 使用钾盐重量
+      kno3ActualWeight: item.potassiumWeight || 0,
+
+      // 工艺参数
+      reactionTemperature: 850, // 默认反应温度
+      reactionTime: 120, // 默认反应时间(分钟)
+      stirringSpeed: 100, // 默认搅拌速度
+      heatingPower: 50, // 默认加热功率
+      phValue: 7.0, // 默认pH值
+      density: 2.1, // 默认密度
+
+      // 质量信息
+      moistureContent: 0.5, // 默认水分含量
+      purity: 99.0, // 默认纯度
+      qualityGrade: 1, // 默认质量等级
+      qualityCheckResult: 1, // 默认质检结果
+
+      // 产量信息
+      targetOutput: item.totalWeight || 0, // 目标产量
+      actualOutput: item.totalWeight || 0, // 实际产量
+
+      // 成本信息
+      materialCost: 0, // 默认材料成本
+      energyCost: 0, // 默认能源成本
+      laborCost: 0, // 默认人工成本
+
+      operatorId: 1, // 默认操作员ID
+      remarks: `从Excel导入 - 原始数据: 钠盐${item.sodiumBags || 0}袋, 钾盐${item.potassiumBags || 0}袋, 人数${item.staffCount || 0}人`
+    } as BinaryRecordForm;
+  });
 };
 
 // 添加手动记录
@@ -339,7 +386,7 @@ const addRecord = () => {
 };
 
 // 编辑手动记录
-const editRecord = (index: number) => {
+const editRecord = (_index: number) => {
   // TODO: 实现编辑功能
   ElMessage.info('编辑功能开发中...');
 };
@@ -429,6 +476,10 @@ const handleClose = () => {
     importProgressText.value = '';
     importResult.value = null;
     uploadRef.value?.clearFiles();
+
+    // 重置Excel解析状态
+    fileInfo.value = null;
+    importErrors.value = [];
   }, 300);
 };
 </script>
