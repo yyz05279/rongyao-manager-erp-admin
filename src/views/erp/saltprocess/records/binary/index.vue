@@ -159,13 +159,13 @@
         <el-table-column label="操作" width="210" fixed="right">
           <template #default="scope">
             <div style="display: flex; gap: 8px; justify-content: flex-start;">
-              <el-button type="primary" size="small" @click="handleView(scope.row)">
+              <el-button type="primary" size="small" @click.stop="handleView(scope.row)">
                 查看
               </el-button>
-              <el-button type="success" size="small" @click="handleUpdate(scope.row)">
+              <el-button type="success" size="small" @click.stop="handleUpdate(scope.row)">
                 修改
               </el-button>
-              <el-button type="danger" size="small" @click="handleDelete(scope.row)">
+              <el-button type="danger" size="small" @click.stop="handleDelete(scope.row)">
                 删除
               </el-button>
             </div>

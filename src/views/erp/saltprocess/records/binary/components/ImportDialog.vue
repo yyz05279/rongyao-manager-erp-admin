@@ -208,7 +208,7 @@
   </el-dialog>
 </template>
 
-<script setup lang="ts">
+<script setup name="ImportDialog" lang="ts">
 import { ref, computed } from 'vue';
 import { ElMessage } from 'element-plus';
 import { UploadFilled } from '@element-plus/icons-vue';
@@ -688,3 +688,11 @@ const handleClose = () => {
   text-align: right;
 }
 </style>
+
+<script lang="ts">
+import { defineComponent } from 'vue';
+
+export default defineComponent({
+  name: 'ImportDialog'
+});
+</script>

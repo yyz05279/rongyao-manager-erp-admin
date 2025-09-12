@@ -11,7 +11,7 @@
       ref="formRef"
       :model="formData"
       :rules="formRules"
-      label-width="120px"
+      label-width="140px"
       v-loading="loading"
     >
       <!-- 基本信息 -->
@@ -26,13 +26,11 @@
             </el-form-item>
           </el-col>
           <el-col :span="8">
-            <el-form-item label="批次号" prop="batchNumber">
-              <el-input v-model="formData.batchNumber" placeholder="请输入批次号" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="8">
             <el-form-item label="项目ID" prop="projectId">
               <el-input v-model="formData.projectId" placeholder="请输入项目ID" />
+              <div class="project-info" v-if="formData.projectId">
+                {{ getProjectName(formData.projectId) }}
+              </div>
             </el-form-item>
           </el-col>
           <el-col :span="8">
@@ -53,119 +51,64 @@
                 <el-option label="白班" :value="1" />
                 <el-option label="夜班" :value="2" />
               </el-select>
+              <div class="shift-display" v-if="formData.shift">
+                <el-tag :type="formData.shift === 1 ? 'primary' : 'warning'">
+                  {{ formData.shift === 1 ? '白班' : '夜班' }}
+                </el-tag>
+              </div>
+            </el-form-item>
+          </el-col>
+        </el-row>
+      </el-card>
+
+      <!-- 化盐重量信息 -->
+      <el-card class="form-card" shadow="never">
+        <template #header>
+          <span class="card-title">⚗️ 化盐重量信息</span>
+        </template>
+        <el-row :gutter="20">
+          <el-col :span="8">
+            <el-form-item label="硝酸钠(t)" prop="nano3ActualWeight">
+              <el-input-number
+                v-model="formData.nano3ActualWeight"
+                :precision="0"
+                :min="0"
+                style="width: 100%"
+                placeholder="单位：kg"
+              />
+              <div class="weight-display" v-if="formData.nano3ActualWeight">
+                显示：{{ formatWeight(formData.nano3ActualWeight) }}吨
+              </div>
             </el-form-item>
           </el-col>
           <el-col :span="8">
-            <el-form-item label="持续时间" prop="duration">
-              <el-input-number
-                v-model="formData.duration"
-                placeholder="持续时间(分钟)"
-                :min="1"
-                :max="1440"
-                style="width: 100%"
-              />
-            </el-form-item>
-          </el-col>
-        </el-row>
-      </el-card>
-
-      <!-- NaNO3配比信息 -->
-      <el-card class="form-card" shadow="never">
-        <template #header>
-          <span class="card-title">⚗️ NaNO3 (硝酸钠) 配比信息</span>
-        </template>
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="目标配比(%)" prop="nano3TargetRatio">
-              <el-input-number
-                v-model="formData.nano3TargetRatio"
-                :precision="2"
-                :min="0"
-                :max="100"
-                style="width: 100%"
-              />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="实际配比(%)" prop="nano3ActualRatio">
-              <el-input-number
-                v-model="formData.nano3ActualRatio"
-                :precision="2"
-                :min="0"
-                :max="100"
-                style="width: 100%"
-              />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="目标用量(kg)" prop="nano3TargetWeight">
-              <el-input-number
-                v-model="formData.nano3TargetWeight"
-                :precision="2"
-                :min="0"
-                style="width: 100%"
-              />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="实际用量(kg)" prop="nano3ActualWeight">
-              <el-input-number
-                v-model="formData.nano3ActualWeight"
-                :precision="2"
-                :min="0"
-                style="width: 100%"
-              />
-            </el-form-item>
-          </el-col>
-        </el-row>
-      </el-card>
-
-      <!-- KNO3配比信息 -->
-      <el-card class="form-card" shadow="never">
-        <template #header>
-          <span class="card-title">🧪 KNO3 (硝酸钾) 配比信息</span>
-        </template>
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="目标配比(%)" prop="kno3TargetRatio">
-              <el-input-number
-                v-model="formData.kno3TargetRatio"
-                :precision="2"
-                :min="0"
-                :max="100"
-                style="width: 100%"
-              />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="实际配比(%)" prop="kno3ActualRatio">
-              <el-input-number
-                v-model="formData.kno3ActualRatio"
-                :precision="2"
-                :min="0"
-                :max="100"
-                style="width: 100%"
-              />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="目标用量(kg)" prop="kno3TargetWeight">
-              <el-input-number
-                v-model="formData.kno3TargetWeight"
-                :precision="2"
-                :min="0"
-                style="width: 100%"
-              />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="实际用量(kg)" prop="kno3ActualWeight">
+            <el-form-item label="硝酸钾(t)" prop="kno3ActualWeight">
               <el-input-number
                 v-model="formData.kno3ActualWeight"
-                :precision="2"
+                :precision="0"
                 :min="0"
                 style="width: 100%"
+                placeholder="单位：kg"
               />
+              <div class="weight-display" v-if="formData.kno3ActualWeight">
+                显示：{{ formatWeight(formData.kno3ActualWeight) }}吨
+              </div>
+            </el-form-item>
+          </el-col>
+          <el-col :span="8">
+            <el-form-item label="硝酸钠：硝酸钾">
+              <div class="ratio-display">
+                <span :class="getRatioClass(formData)">
+                  {{ formatRatio(formData.nano3ActualWeight, formData.kno3ActualWeight) }}
+                </span>
+              </div>
+            </el-form-item>
+          </el-col>
+          <el-col :span="8">
+            <el-form-item label="总计化盐(t)">
+              <div class="total-weight-display">
+                {{ formatWeight(getTotalSaltWeight(formData)) }}吨
+              </div>
             </el-form-item>
           </el-col>
         </el-row>
@@ -178,95 +121,90 @@
         </template>
         <el-row :gutter="20">
           <el-col :span="8">
-            <el-form-item label="反应温度(°C)" prop="reactionTemperature">
+            <el-form-item label="熔盐液位(m)" prop="moltenSaltLevel">
               <el-input-number
-                v-model="formData.reactionTemperature"
+                v-model="formData.moltenSaltLevel"
                 :precision="1"
-                :min="0"
-                :max="1000"
-                style="width: 100%"
-              />
-            </el-form-item>
-          </el-col>
-          <el-col :span="8">
-            <el-form-item label="反应压力(MPa)" prop="reactionPressure">
-              <el-input-number
-                v-model="formData.reactionPressure"
-                :precision="2"
                 :min="0"
                 :max="10"
                 style="width: 100%"
+                placeholder="熔盐罐液位"
               />
             </el-form-item>
           </el-col>
           <el-col :span="8">
-            <el-form-item label="反应时间(分钟)" prop="reactionTime">
+            <el-form-item label="熔盐温度(℃)" prop="moltenSaltTemperature">
               <el-input-number
-                v-model="formData.reactionTime"
+                v-model="formData.moltenSaltTemperature"
+                :precision="0"
+                :min="0"
+                :max="1000"
+                style="width: 100%"
+                placeholder="熔盐罐温度"
+              />
+            </el-form-item>
+          </el-col>
+        </el-row>
+      </el-card>
+
+      <!-- 能耗数据 -->
+      <el-card class="form-card" shadow="never">
+        <template #header>
+          <span class="card-title">⚡ 能耗数据</span>
+        </template>
+        <el-row :gutter="20">
+          <el-col :span="8">
+            <el-form-item label="天然气耗量(Nm³)" prop="gasConsumption">
+              <el-input-number
+                v-model="formData.gasConsumption"
+                :precision="0"
+                :min="0"
+                style="width: 100%"
+                placeholder="每班天然气耗量"
+              />
+            </el-form-item>
+          </el-col>
+          <el-col :span="8">
+            <el-form-item label="用电量(KWh)" prop="powerConsumption">
+              <el-input-number
+                v-model="formData.powerConsumption"
+                :precision="0"
+                :min="0"
+                style="width: 100%"
+                placeholder="每班用电量"
+              />
+            </el-form-item>
+          </el-col>
+        </el-row>
+      </el-card>
+
+      <!-- 人员信息 -->
+      <el-card class="form-card" shadow="never">
+        <template #header>
+          <span class="card-title">👤 人员信息</span>
+        </template>
+        <el-row :gutter="20">
+          <el-col :span="8">
+            <el-form-item label="人数" prop="staffCount">
+              <el-input-number
+                v-model="formData.staffCount"
+                :precision="0"
                 :min="1"
-                :max="1440"
+                :max="50"
                 style="width: 100%"
-              />
-            </el-form-item>
-          </el-col>
-        </el-row>
-      </el-card>
-
-      <!-- 质量指标 -->
-      <el-card class="form-card" shadow="never">
-        <template #header>
-          <span class="card-title">📊 质量指标</span>
-        </template>
-        <el-row :gutter="20">
-          <el-col :span="8">
-            <el-form-item label="实际产量(kg)" prop="actualOutput">
-              <el-input-number
-                v-model="formData.actualOutput"
-                :precision="2"
-                :min="0"
-                style="width: 100%"
+                placeholder="当班人数"
               />
             </el-form-item>
           </el-col>
           <el-col :span="8">
-            <el-form-item label="产出率(%)" prop="yieldRate">
-              <el-input-number
-                v-model="formData.yieldRate"
-                :precision="2"
-                :min="0"
-                :max="100"
-                style="width: 100%"
-              />
-            </el-form-item>
-          </el-col>
-          <el-col :span="8">
-            <el-form-item label="质量等级" prop="qualityGrade">
-              <el-select v-model="formData.qualityGrade" placeholder="请选择质量等级" style="width: 100%">
-                <el-option label="优秀" :value="1" />
-                <el-option label="良好" :value="2" />
-                <el-option label="合格" :value="3" />
-                <el-option label="不合格" :value="4" />
-              </el-select>
-            </el-form-item>
-          </el-col>
-        </el-row>
-      </el-card>
-
-      <!-- 操作信息 -->
-      <el-card class="form-card" shadow="never">
-        <template #header>
-          <span class="card-title">👤 操作信息</span>
-        </template>
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="操作员" prop="operatorName">
-              <el-input v-model="formData.operatorName" placeholder="请输入操作员姓名" />
+            <el-form-item label="记录人" prop="recorderName">
+              <el-input v-model="formData.recorderName" placeholder="请输入记录人姓名" />
             </el-form-item>
           </el-col>
           <el-col :span="24">
-            <el-form-item label="备注" prop="remark">
+            <el-form-item label="备注" prop="remarks">
               <el-input
-                v-model="formData.remark"
+                v-model="formData.remarks"
                 type="textarea"
                 :rows="3"
                 placeholder="请输入备注信息"
@@ -288,11 +226,11 @@
   </el-dialog>
 </template>
 
-<script setup lang="ts">
+<script setup name="EditForm" lang="ts">
 import { ref, reactive, computed, watch } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import type { FormInstance, FormRules } from 'element-plus';
-import { getBinaryRecord, addBinaryRecord, updateBinaryRecord } from '@/api/erp/saltprocess/records/binary';
+// import { getBinaryRecord, addBinaryRecord, updateBinaryRecord } from '@/api/erp/saltprocess/records/binary';
 import type { BinaryRecordForm, BinaryRecordVO } from '@/api/erp/saltprocess/records/binary/types';
 
 // Props
@@ -323,10 +261,11 @@ const isEdit = computed(() => !!props.recordId);
 const formData = reactive<BinaryRecordForm>({
   recordCode: '',
   batchNumber: '',
-  projectId: '',
+  projectId: 101,
   recordDate: '',
+  startTime: '',
+  endTime: '',
   shift: 1,
-  duration: 0,
   nano3TargetRatio: 0,
   nano3ActualRatio: 0,
   nano3TargetWeight: 0,
@@ -336,14 +275,90 @@ const formData = reactive<BinaryRecordForm>({
   kno3TargetWeight: 0,
   kno3ActualWeight: 0,
   reactionTemperature: 0,
-  reactionPressure: 0,
   reactionTime: 0,
-  actualOutput: 0,
-  yieldRate: 0,
+  stirringSpeed: 0,
+  heatingPower: 0,
+  phValue: 0,
+  density: 0,
+  moistureContent: 0,
+  purity: 0,
   qualityGrade: 1,
-  operatorName: '',
-  remark: ''
+  qualityCheckResult: 1,
+  qualityIssues: '',
+  correctiveActions: '',
+  targetOutput: 0,
+  actualOutput: 0,
+  materialCost: 0,
+  energyCost: 0,
+  laborCost: 0,
+  moltenSaltLevel: 0,
+  moltenSaltTemperature: 0,
+  gasConsumption: 0,
+  powerConsumption: 0,
+  staffCount: 1,
+  recorderName: '',
+  cumulativeSaltAmount: 0,
+  operatorId: 1,
+  supervisorId: 1,
+  remarks: ''
 });
+
+// 项目名称映射
+const getProjectName = (projectId: number) => {
+  const projectMap: Record<number, string> = {
+    101: '阿克塞化盐服项目',
+    102: '青海盐湖项目',
+    103: '新疆化工项目',
+    104: '内蒙古盐化项目'
+  };
+  return projectMap[projectId] || `项目${projectId}`;
+};
+
+// 格式化重量显示（吨）- 复用列表页面函数
+const formatWeight = (weight: number) => {
+  if (!weight && weight !== 0) return '-';
+  return (weight / 1000).toFixed(2); // 将kg转换为吨，保留2位小数
+};
+
+// 计算总化盐重量 - 复用列表页面函数
+const getTotalSaltWeight = (row: any) => {
+  const nano3Weight = row.nano3ActualWeight || 0;
+  const kno3Weight = row.kno3ActualWeight || 0;
+  return nano3Weight + kno3Weight;
+};
+
+// 格式化配比显示 - 复用列表页面函数
+const formatRatio = (nano3Weight: number, kno3Weight: number) => {
+  if (!nano3Weight && !kno3Weight) return '-';
+  if (!nano3Weight) return `0:${(kno3Weight / 1000).toFixed(1)}`;
+  if (!kno3Weight) return `${(nano3Weight / 1000).toFixed(1)}:0`;
+
+  // 计算比例并简化
+  const total = nano3Weight + kno3Weight;
+  const nano3Ratio = (nano3Weight / total * 10).toFixed(1);
+  const kno3Ratio = (kno3Weight / total * 10).toFixed(1);
+
+  return `${nano3Ratio}:${kno3Ratio}`;
+};
+
+// 获取配比样式类 - 复用列表页面函数
+const getRatioClass = (row: any) => {
+  const nano3Weight = row.nano3ActualWeight || 0;
+  const kno3Weight = row.kno3ActualWeight || 0;
+
+  if (!nano3Weight && !kno3Weight) return '';
+
+  const total = nano3Weight + kno3Weight;
+  if (total === 0) return '';
+
+  const nano3Ratio = nano3Weight / total;
+  const targetRatio = 0.6; // 目标6:4配比中的6
+  const deviation = Math.abs(nano3Ratio - targetRatio);
+
+  if (deviation <= 0.02) return 'text-success'; // 偏差在2%以内为绿色
+  if (deviation <= 0.05) return 'text-warning'; // 偏差在5%以内为橙色
+  return 'text-danger'; // 偏差超过5%为红色
+};
 
 // 表单验证规则
 const formRules: FormRules = {
@@ -379,11 +394,30 @@ watch(() => props.visible, (newVal) => {
 // 获取记录详情
 const getRecordDetail = async () => {
   if (!props.recordId) return;
-  
+
   loading.value = true;
   try {
-    const { data } = await getBinaryRecord(props.recordId);
-    Object.assign(formData, data);
+    // TODO: 暂时注释掉接口调用，使用模拟数据
+    // const { data } = await getBinaryRecord(props.recordId);
+    // Object.assign(formData, data);
+
+    // 模拟数据填充
+    const mockData = {
+      recordCode: 'BIN_1733097600_001',
+      projectId: 101,
+      recordDate: '2024-12-01',
+      shift: 1,
+      nano3ActualWeight: 36000,
+      kno3ActualWeight: 24000,
+      moltenSaltLevel: 2.5,
+      moltenSaltTemperature: 565,
+      gasConsumption: 1200,
+      powerConsumption: 850,
+      staffCount: 8,
+      recorderName: '张三',
+      remarks: '测试数据'
+    };
+    Object.assign(formData, mockData);
   } catch (error) {
     ElMessage.error('获取记录详情失败');
     console.error('获取记录详情失败:', error);
@@ -430,12 +464,15 @@ const handleSubmit = async () => {
 
   loading.value = true;
   try {
+    // TODO: 暂时注释掉接口调用，使用模拟操作
     if (isEdit.value) {
-      await updateBinaryRecord({ ...formData, id: props.recordId });
-      ElMessage.success('更新成功');
+      // await updateBinaryRecord({ ...formData, id: props.recordId });
+      console.log('模拟更新操作:', { ...formData, id: props.recordId });
+      ElMessage.success('更新成功（模拟）');
     } else {
-      await addBinaryRecord(formData);
-      ElMessage.success('保存成功');
+      // await addBinaryRecord(formData);
+      console.log('模拟保存操作:', formData);
+      ElMessage.success('保存成功（模拟）');
     }
     emit('success');
     handleClose();
@@ -473,8 +510,79 @@ const handleClose = () => {
   text-align: right;
 }
 
+// 项目信息显示
+.project-info {
+  font-size: 12px;
+  color: #909399;
+  margin-top: 4px;
+}
+
+// 班次显示
+.shift-display {
+  margin-top: 8px;
+}
+
+// 重量显示
+.weight-display {
+  font-size: 12px;
+  color: #409eff;
+  margin-top: 4px;
+  font-weight: 500;
+}
+
+// 配比显示
+.ratio-display {
+  padding: 8px 12px;
+  background-color: #f5f7fa;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 500;
+  text-align: center;
+  min-height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+// 总重量显示
+.total-weight-display {
+  padding: 8px 12px;
+  background-color: #f0f9ff;
+  border: 1px solid #409eff;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #409eff;
+  text-align: center;
+  min-height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+// 配比颜色样式 - 与列表页面保持一致
+.text-success {
+  color: #67c23a !important;
+}
+
+.text-warning {
+  color: #e6a23c !important;
+}
+
+.text-danger {
+  color: #f56c6c !important;
+}
+
 :deep(.el-dialog__body) {
   max-height: 70vh;
   overflow-y: auto;
 }
 </style>
+
+<script lang="ts">
+import { defineComponent } from 'vue';
+
+export default defineComponent({
+  name: 'EditForm'
+});
+</script>
