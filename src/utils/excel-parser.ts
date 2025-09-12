@@ -733,6 +733,42 @@ export class ExcelParser {
       return 'staffCount';
     }
 
+    // 新增字段匹配 - 根据Excel表格结构
+    // 熔盐液位字段匹配
+    if (headerLower.includes('液位') || headerLower.includes('熔盐液位') || headerLower.includes('熔盐罐熔盐液位')) {
+      return 'moltenSaltLevel';
+    }
+
+    // 熔盐温度字段匹配
+    if (headerLower.includes('温度') || headerLower.includes('熔盐温度') || headerLower.includes('熔盐罐熔盐温度')) {
+      return 'moltenSaltTemperature';
+    }
+
+    // 天然气耗量字段匹配
+    if (headerLower.includes('天然气') || headerLower.includes('气耗') || headerLower.includes('天然气耗量')) {
+      return 'gasConsumption';
+    }
+
+    // 用电量字段匹配
+    if (headerLower.includes('用电') || headerLower.includes('电量') || headerLower.includes('用电量')) {
+      return 'powerConsumption';
+    }
+
+    // 记录人字段匹配
+    if (headerLower.includes('记录人') || headerLower.includes('记录员') || headerLower.includes('记录者')) {
+      return 'recorderName';
+    }
+
+    // 项目ID字段匹配
+    if (headerLower.includes('项目') || headerLower.includes('project') || headerLower.includes('项目id')) {
+      return 'projectId';
+    }
+
+    // 班次字段匹配
+    if (headerLower.includes('班次') || headerLower.includes('班') || headerLower.includes('shift')) {
+      return 'shift';
+    }
+
     // 4. 遍历所有映射，查找部分匹配
     for (const [key, value] of Object.entries(columnMapping)) {
       if (key.includes(header) || header.includes(key)) {
