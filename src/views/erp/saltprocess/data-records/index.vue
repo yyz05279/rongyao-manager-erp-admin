@@ -1,28 +1,43 @@
 <template>
-  <div style="padding: 20px; background: white; min-height: 500px; border: 3px solid red;" class="salt-data-records">
-    <div style="background: #ff0000; color: white; padding: 10px; margin-bottom: 20px; font-weight: bold;">
-      🚨 调试模式 - 如果你能看到这个红色框，说明Vue组件已经渲染
-    </div>
+  <div style="padding: 20px; background: white; min-height: 500px;" class="salt-data-records">
     <h1 style="color: #409eff; margin-bottom: 20px;">🧪 化盐项目数据记录系统</h1>
-    <div style="background: #f0f9ff; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
-      <p style="margin: 0; color: #059669; font-weight: bold;">✅ 页面加载成功！路由配置正确！</p>
-      <p style="margin: 10px 0 0 0; color: #374151; font-size: 14px;">当前时间: {{ currentTime }}</p>
-      <p style="margin: 5px 0 0 0; color: #374151; font-size: 14px;">组件状态: {{ componentStatus }}</p>
-    </div>
 
     <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 30px;" data-stats="true">
+      <!-- 预热记录卡片 - 暂不添加跳转功能 -->
       <div style="background: #f8fafc; padding: 20px; border-radius: 8px; text-align: center; border: 2px solid #e2e8f0;" data-card="preheating">
         <h2 style="color: #3b82f6; margin: 0 0 10px 0;">156</h2>
         <p style="margin: 0; color: #64748b;">预热记录</p>
       </div>
-      <div style="background: #f8fafc; padding: 20px; border-radius: 8px; text-align: center; border: 2px solid #e2e8f0;" data-card="binary">
+
+      <!-- 二元化盐记录卡片 - 可点击跳转 -->
+      <div
+        style="background: #f8fafc; padding: 20px; border-radius: 8px; text-align: center; border: 2px solid #e2e8f0; cursor: pointer; transition: all 0.3s ease;"
+        data-card="binary"
+        @click="navigateToBinaryRecords"
+        @mouseenter="onCardHover"
+        @mouseleave="onCardLeave"
+        class="clickable-card"
+      >
         <h2 style="color: #10b981; margin: 0 0 10px 0;">89</h2>
         <p style="margin: 0; color: #64748b;">二元化盐记录</p>
+        <p style="margin: 5px 0 0 0; color: #10b981; font-size: 12px; opacity: 0.8;">点击查看详情 →</p>
       </div>
-      <div style="background: #f8fafc; padding: 20px; border-radius: 8px; text-align: center; border: 2px solid #e2e8f0;" data-card="ternary">
+
+      <!-- 三元化盐记录卡片 - 可点击跳转 -->
+      <div
+        style="background: #f8fafc; padding: 20px; border-radius: 8px; text-align: center; border: 2px solid #e2e8f0; cursor: pointer; transition: all 0.3s ease;"
+        data-card="ternary"
+        @click="navigateToTernaryRecords"
+        @mouseenter="onCardHover"
+        @mouseleave="onCardLeave"
+        class="clickable-card"
+      >
         <h2 style="color: #f59e0b; margin: 0 0 10px 0;">67</h2>
         <p style="margin: 0; color: #64748b;">三元化盐记录</p>
+        <p style="margin: 5px 0 0 0; color: #f59e0b; font-size: 12px; opacity: 0.8;">点击查看详情 →</p>
       </div>
+
+      <!-- 质量合格率卡片 - 暂不添加跳转功能 -->
       <div style="background: #f8fafc; padding: 20px; border-radius: 8px; text-align: center; border: 2px solid #e2e8f0;" data-card="quality">
         <h2 style="color: #ef4444; margin: 0 0 10px 0;">96.8%</h2>
         <p style="margin: 0; color: #64748b;">质量合格率</p>
@@ -64,10 +79,38 @@ console.log('🚀 [SaltDataRecords] 当前URL:', window.location.href);
 console.log('🚀 [SaltDataRecords] 组件名称:', 'SaltDataRecords');
 
 import { ref, onMounted, onBeforeMount, onBeforeUnmount } from 'vue';
+import { useRouter } from 'vue-router';
+
+// 路由实例
+const router = useRouter();
 
 // 响应式数据
 const currentTime = ref(new Date().toLocaleString());
 const componentStatus = ref('初始化中...');
+
+// 卡片点击跳转方法
+const navigateToBinaryRecords = () => {
+  console.log('🔗 [SaltDataRecords] 跳转到二元化盐记录页面');
+  router.push('/saltprocess/binary-records');
+};
+
+const navigateToTernaryRecords = () => {
+  console.log('🔗 [SaltDataRecords] 跳转到三元化盐记录页面');
+  router.push('/saltprocess/ternary-records');
+};
+
+// 卡片悬停效果
+const onCardHover = (event) => {
+  event.target.style.transform = 'translateY(-2px)';
+  event.target.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.15)';
+  event.target.style.borderColor = '#3b82f6';
+};
+
+const onCardLeave = (event) => {
+  event.target.style.transform = 'translateY(0)';
+  event.target.style.boxShadow = 'none';
+  event.target.style.borderColor = '#e2e8f0';
+};
 
 onBeforeMount(() => {
   console.log('🔄 [SaltDataRecords] onBeforeMount - 组件即将挂载');
@@ -108,3 +151,41 @@ onBeforeUnmount(() => {
 
 console.log('✅ [SaltDataRecords] 脚本执行完成，等待组件挂载...');
 </script>
+
+<style scoped>
+/* 可点击卡片样式 */
+.clickable-card {
+  position: relative;
+  user-select: none;
+}
+
+.clickable-card:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+  border-color: #3b82f6 !important;
+}
+
+.clickable-card:active {
+  transform: translateY(0) !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* 为可点击卡片添加微妙的动画效果 */
+.clickable-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(45deg, transparent 30%, rgba(59, 130, 246, 0.05) 50%, transparent 70%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  border-radius: 8px;
+  pointer-events: none;
+}
+
+.clickable-card:hover::before {
+  opacity: 1;
+}
+</style>

@@ -31,7 +31,7 @@
           />
         </el-form-item>
         <el-form-item label="项目ID" prop="projectId">
-          <el-input-number
+          <el-input
             v-model="queryParams.projectId"
             placeholder="请输入项目ID"
             clearable
@@ -68,7 +68,7 @@
     <el-card class="toolbar-card" shadow="never">
       <el-row :gutter="10" class="mb8">
         <el-col :span="1.5">
-          <el-button type="primary" plain icon="Plus" @click="handleAdd">新增记录</el-button>
+          <el-button type="primary" plain icon="Upload" @click="handleAdd">导入化盐记录</el-button>
         </el-col>
         <el-col :span="1.5">
           <el-button type="success" plain icon="Edit" :disabled="single" @click="handleUpdate">修改</el-button>
@@ -137,15 +137,17 @@
         <el-table-column label="操作员" prop="operatorName" width="100" />
         <el-table-column label="操作" width="180" fixed="right">
           <template #default="scope">
-            <el-button type="text" size="small" @click="handleView(scope.row)">
-              查看
-            </el-button>
-            <el-button type="text" size="small" @click="handleUpdate(scope.row)">
-              修改
-            </el-button>
-            <el-button type="text" size="small" @click="handleDelete(scope.row)" style="color: #f56c6c">
-              删除
-            </el-button>
+            <div style="display: flex; gap: 8px; justify-content: flex-start;">
+              <el-button type="primary" size="small" @click="handleView(scope.row)">
+                查看
+              </el-button>
+              <el-button type="success" size="small" @click="handleUpdate(scope.row)">
+                修改
+              </el-button>
+              <el-button type="danger" size="small" @click="handleDelete(scope.row)">
+                删除
+              </el-button>
+            </div>
           </template>
         </el-table-column>
       </el-table>
