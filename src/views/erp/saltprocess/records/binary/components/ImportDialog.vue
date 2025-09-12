@@ -272,31 +272,41 @@ const canImport = computed(() => {
 
 // 下载模板
 const downloadTemplate = () => {
-  // 创建模板数据
+  // 创建模板数据 - 与前端表格列结构完全一致
   const templateData = [
     {
-      '记录编码': 'BM20241201001',
-      '批次号': 'B20241201001',
-      '项目ID': '101',
-      '记录日期': '2024-12-01',
-      '班次': '1',
-      '持续时间': '120',
-      'NaNO3目标配比': '60.0',
-      'NaNO3实际配比': '59.8',
-      'NaNO3目标用量': '1500.0',
-      'NaNO3实际用量': '1495.0',
-      'KNO3目标配比': '40.0',
-      'KNO3实际配比': '40.2',
-      'KNO3目标用量': '1000.0',
-      'KNO3实际用量': '1005.0',
-      '反应温度': '450.5',
-      '反应压力': '2.5',
-      '反应时间': '90',
-      '实际产量': '2450.0',
-      '产出率': '98.5',
-      '质量等级': '1',
-      '操作员': '张三',
+      '记录编码': 'BIN_1733097600_001',
+      '项目ID': 101,
+      '日期': '2024-12-01',
+      '班次': 1,
+      '硝酸钠(t)': 3.60,
+      '硝酸钾(t)': 2.40,
+      '硝酸钠：硝酸钾': '6.0:4.0',
+      '总计化盐(t)': 6.00,
+      '熔盐液位(m)': 2.5,
+      '熔盐温度(℃)': 565,
+      '天然气耗量(Nm³)': 1200,
+      '用电量(KWh)': 850,
+      '人数': 8,
+      '记录人': '张三',
       '备注': '正常生产'
+    },
+    {
+      '记录编码': 'BIN_1733097600_002',
+      '项目ID': 102,
+      '日期': '2024-12-01',
+      '班次': 2,
+      '硝酸钠(t)': 3.58,
+      '硝酸钾(t)': 2.42,
+      '硝酸钠：硝酸钾': '5.9:4.1',
+      '总计化盐(t)': 6.00,
+      '熔盐液位(m)': 2.3,
+      '熔盐温度(℃)': 570,
+      '天然气耗量(Nm³)': 1180,
+      '用电量(KWh)': 820,
+      '人数': 6,
+      '记录人': '李四',
+      '备注': '夜班生产'
     }
   ];
 
@@ -304,6 +314,26 @@ const downloadTemplate = () => {
   const ws = XLSX.utils.json_to_sheet(templateData);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, '二元化盐记录模板');
+
+  // 设置列宽以提高可读性
+  const colWidths = [
+    { wch: 18 }, // 记录编码
+    { wch: 8 },  // 项目ID
+    { wch: 12 }, // 日期
+    { wch: 8 },  // 班次
+    { wch: 12 }, // 硝酸钠(t)
+    { wch: 12 }, // 硝酸钾(t)
+    { wch: 15 }, // 硝酸钠：硝酸钾
+    { wch: 12 }, // 总计化盐(t)
+    { wch: 12 }, // 熔盐液位(m)
+    { wch: 12 }, // 熔盐温度(℃)
+    { wch: 15 }, // 天然气耗量(Nm³)
+    { wch: 12 }, // 用电量(KWh)
+    { wch: 8 },  // 人数
+    { wch: 10 }, // 记录人
+    { wch: 15 }  // 备注
+  ];
+  ws['!cols'] = colWidths;
 
   // 下载文件
   XLSX.writeFile(wb, '二元化盐记录导入模板.xlsx');
@@ -334,48 +364,149 @@ const handleFileChange = async (file: any) => {
   }
 };
 
-// 解析Excel文件 - 使用新的ExcelParser
+// 解析Excel文件 - 支持标准模板格式
 const parseExcelFile = async (file: File) => {
   try {
-    // 1. 解析文件并识别类型
-    fileInfo.value = await excelParser.parseFile(file);
+    // 1. 直接解析Excel文件
+    const data = await file.arrayBuffer();
+    const workbook = XLSX.read(data, { type: 'array' });
+    const sheetName = workbook.SheetNames[0];
+    const worksheet = workbook.Sheets[sheetName];
+    const jsonData = XLSX.utils.sheet_to_json(worksheet);
 
-    if (!fileInfo.value || fileInfo.value.detectedType === 'unknown') {
-      ElMessage.warning('未识别的Excel文件类型，请检查文件格式');
+    if (!jsonData || jsonData.length === 0) {
+      ElMessage.warning('Excel文件中没有数据');
       return;
     }
 
-    // 2. 根据识别的类型导入数据
-    let result: any;
+    // 2. 检查是否为标准模板格式
+    const firstRow = jsonData[0] as any;
+    const isStandardTemplate = firstRow.hasOwnProperty('记录编码') &&
+                              firstRow.hasOwnProperty('项目ID') &&
+                              firstRow.hasOwnProperty('硝酸钠(t)') &&
+                              firstRow.hasOwnProperty('硝酸钾(t)');
 
-    if (fileInfo.value.detectedType === 'molten_salt_inventory') {
-      result = await excelParser.importMoltenSaltInventory();
-    } else if (fileInfo.value.detectedType === 'salt_process') {
-      result = await excelParser.importSaltProcess();
+    let binaryRecords: BinaryRecordForm[];
+
+    if (isStandardTemplate) {
+      // 3a. 使用标准模板解析
+      binaryRecords = convertStandardTemplateToBinaryRecords(jsonData);
+      ElMessage.success(`成功解析标准模板 ${binaryRecords.length} 条记录`);
     } else {
-      ElMessage.warning('当前文件类型不支持二元化盐记录导入');
-      return;
-    }
+      // 3b. 尝试使用原有的ExcelParser解析
+      fileInfo.value = await excelParser.parseFile(file);
 
-    // 3. 转换数据格式为二元化盐记录格式
-    const binaryRecords = convertToBinaryRecords(result.data);
+      if (!fileInfo.value || fileInfo.value.detectedType === 'unknown') {
+        ElMessage.warning('未识别的Excel文件类型，请使用标准模板或检查文件格式');
+        return;
+      }
+
+      let result: any;
+      if (fileInfo.value.detectedType === 'molten_salt_inventory') {
+        result = await excelParser.importMoltenSaltInventory();
+      } else if (fileInfo.value.detectedType === 'salt_process') {
+        result = await excelParser.importSaltProcess();
+      } else {
+        ElMessage.warning('当前文件类型不支持二元化盐记录导入');
+        return;
+      }
+
+      binaryRecords = convertToBinaryRecords(result.data);
+
+      if (result.errors.length > 0) {
+        ElMessage.warning(`解析完成，但有 ${result.errors.length} 条记录存在错误`);
+      }
+    }
 
     previewData.value = binaryRecords;
-    importErrors.value = result.errors;
 
-    if (binaryRecords.length > 0) {
-      ElMessage.success(`成功解析 ${binaryRecords.length} 条记录`);
-    } else {
+    if (binaryRecords.length === 0) {
       ElMessage.warning('未解析到任何数据，请检查Excel文件格式');
     }
 
-    if (result.errors.length > 0) {
-      ElMessage.warning(`解析完成，但有 ${result.errors.length} 条记录存在错误`);
-    }
   } catch (error) {
     ElMessage.error(`文件解析失败: ${error}`);
     console.error('Excel解析错误:', error);
   }
+};
+
+// 将标准模板数据转换为二元化盐记录格式
+const convertStandardTemplateToBinaryRecords = (data: any[]): BinaryRecordForm[] => {
+  return data.map((item: any, index: number) => {
+    // 生成当前时间作为默认值
+    const now = new Date();
+    const timeStr = now.toTimeString().split(' ')[0];
+
+    // 解析配比字符串 "6.0:4.0" -> [6.0, 4.0]
+    const parseRatio = (ratioStr: string) => {
+      if (!ratioStr || typeof ratioStr !== 'string') return [6.0, 4.0];
+      const parts = ratioStr.split(':');
+      if (parts.length !== 2) return [6.0, 4.0];
+      return [parseFloat(parts[0]) || 6.0, parseFloat(parts[1]) || 4.0];
+    };
+
+    const [nano3Ratio, kno3Ratio] = parseRatio(item['硝酸钠：硝酸钾']);
+
+    return {
+      recordCode: item['记录编码'] || `BIN_${Date.now()}_${String(index + 1).padStart(3, '0')}`,
+      batchNumber: `BATCH_${(item['日期'] || now.toISOString().split('T')[0]).replace(/-/g, '')}_${String(index + 1).padStart(3, '0')}`,
+      projectId: parseInt(item['项目ID']) || 101,
+      recordDate: item['日期'] || now.toISOString().split('T')[0],
+      startTime: timeStr,
+      endTime: timeStr,
+      shift: parseInt(item['班次']) || 1,
+
+      // NaNO3配比信息 - 从模板中的吨数转换为kg
+      nano3TargetRatio: nano3Ratio / 10, // 转换为小数形式
+      nano3ActualRatio: nano3Ratio / 10,
+      nano3TargetWeight: (parseFloat(item['硝酸钠(t)']) || 0) * 1000, // 吨转kg
+      nano3ActualWeight: (parseFloat(item['硝酸钠(t)']) || 0) * 1000,
+
+      // KNO3配比信息 - 从模板中的吨数转换为kg
+      kno3TargetRatio: kno3Ratio / 10, // 转换为小数形式
+      kno3ActualRatio: kno3Ratio / 10,
+      kno3TargetWeight: (parseFloat(item['硝酸钾(t)']) || 0) * 1000, // 吨转kg
+      kno3ActualWeight: (parseFloat(item['硝酸钾(t)']) || 0) * 1000,
+
+      // 工艺参数
+      reactionTemperature: parseFloat(item['熔盐温度(℃)']) || 565,
+      reactionTime: 120, // 默认反应时间(分钟)
+      stirringSpeed: 100, // 默认搅拌速度
+      heatingPower: 50, // 默认加热功率
+      phValue: 7.0, // 默认pH值
+      density: 2.1, // 默认密度
+
+      // 质量信息
+      moistureContent: 0.5, // 默认水分含量
+      purity: 99.0, // 默认纯度
+      qualityGrade: 1, // 默认质量等级
+      qualityCheckResult: 1, // 默认质检结果
+      qualityIssues: '',
+      correctiveActions: '',
+
+      // 产量信息
+      targetOutput: (parseFloat(item['总计化盐(t)']) || 0) * 1000, // 吨转kg
+      actualOutput: (parseFloat(item['总计化盐(t)']) || 0) * 1000,
+
+      // 成本信息
+      materialCost: 0, // 默认材料成本
+      energyCost: 0, // 默认能源成本
+      laborCost: 0, // 默认人工成本
+
+      // 新增字段 - 直接从模板读取
+      moltenSaltLevel: parseFloat(item['熔盐液位(m)']) || 2.5,
+      moltenSaltTemperature: parseFloat(item['熔盐温度(℃)']) || 565,
+      gasConsumption: parseFloat(item['天然气耗量(Nm³)']) || 1200,
+      powerConsumption: parseFloat(item['用电量(KWh)']) || 850,
+      staffCount: parseInt(item['人数']) || 8,
+      recorderName: item['记录人'] || '系统导入',
+      cumulativeSaltAmount: 0, // 累积化盐量 - 需要后续计算
+
+      operatorId: 1, // 默认操作员ID
+      supervisorId: 1, // 默认监督员ID
+      remarks: item['备注'] || `从标准模板导入 - 硝酸钠${item['硝酸钠(t)']}吨, 硝酸钾${item['硝酸钾(t)']}吨, 人数${item['人数']}人`
+    } as BinaryRecordForm;
+  });
 };
 
 // 将Excel解析的数据转换为二元化盐记录格式
