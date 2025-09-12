@@ -210,6 +210,7 @@
 import { ref, reactive, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { parseTime } from '@/utils/ruoyi';
+import * as XLSX from 'xlsx';
 import EditForm from './components/EditForm.vue';
 import ImportDialog from './components/ImportDialog.vue';
 
@@ -434,9 +435,397 @@ const handleDelete = async (row?: any) => {
   }
 };
 
-const handleExport = () => {
-  // TODO: 实现导出功能
-  ElMessage.info('导出功能开发中');
+const handleExport = async () => {
+  try {
+    // 显示加载状态
+    const loadingInstance = ElLoading.service({
+      lock: true,
+      text: '正在导出数据...',
+      background: 'rgba(0, 0, 0, 0.7)'
+    });
+
+    // 获取当前筛选条件下的所有数据
+    const exportData = await getExportData();
+
+    if (exportData.length === 0) {
+      loadingInstance.close();
+      ElMessage.warning('没有可导出的数据');
+      return;
+    }
+
+    // 转换数据格式为Excel导出格式
+    const excelData = convertToExcelFormat(exportData);
+
+    // 创建工作簿
+    const ws = XLSX.utils.json_to_sheet(excelData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, '二元化盐记录');
+
+    // 设置列宽以提高可读性
+    const colWidths = [
+      { wch: 18 }, // 记录编码
+      { wch: 8 },  // 项目ID
+      { wch: 12 }, // 日期
+      { wch: 8 },  // 班次
+      { wch: 12 }, // 硝酸钠(t)
+      { wch: 12 }, // 硝酸钾(t)
+      { wch: 15 }, // 硝酸钠：硝酸钾
+      { wch: 12 }, // 总计化盐(t)
+      { wch: 12 }, // 熔盐液位(m)
+      { wch: 12 }, // 熔盐温度(℃)
+      { wch: 15 }, // 天然气耗量(Nm³)
+      { wch: 12 }, // 用电量(KWh)
+      { wch: 8 },  // 人数
+      { wch: 10 }, // 记录人
+    ];
+    ws['!cols'] = colWidths;
+
+    // 应用条件格式化 - 标红不满足6:4配比的数据
+    applyConditionalFormatting(ws, exportData);
+
+    // 生成文件名
+    const fileName = generateExportFileName();
+
+    // 下载文件
+    XLSX.writeFile(wb, fileName);
+
+    loadingInstance.close();
+    ElMessage.success(`成功导出 ${exportData.length} 条记录`);
+
+  } catch (error) {
+    console.error('导出失败:', error);
+    ElMessage.error('导出失败，请重试');
+  }
+};
+
+// 获取导出数据
+const getExportData = async () => {
+  // 基于当前筛选条件获取所有数据（不分页）
+  // TODO: 这里应该调用API获取完整数据，目前使用模拟数据
+
+  // 模拟获取完整数据集
+  let allRecords = [
+    {
+      id: '1',
+      recordCode: 'BIN_1733097600_001',
+      batchNumber: 'BATCH_20241201_001',
+      projectId: 101,
+      recordDate: '2024-12-01',
+      shift: 1,
+      nano3ActualWeight: 3600, // kg
+      kno3ActualWeight: 2400, // kg
+      moltenSaltLevel: 2.5,
+      moltenSaltTemperature: 565,
+      gasConsumption: 1200,
+      powerConsumption: 850,
+      staffCount: 8,
+      recorderName: '张三',
+      operatorName: '张三',
+      qualityGrade: 1
+    },
+    {
+      id: '2',
+      recordCode: 'BIN_1733097600_002',
+      batchNumber: 'BATCH_20241201_002',
+      projectId: 102,
+      recordDate: '2024-12-01',
+      shift: 2,
+      nano3ActualWeight: 3580, // kg
+      kno3ActualWeight: 2420, // kg
+      moltenSaltLevel: 2.3,
+      moltenSaltTemperature: 570,
+      gasConsumption: 1180,
+      powerConsumption: 820,
+      staffCount: 6,
+      recorderName: '李四',
+      operatorName: '李四',
+      qualityGrade: 2
+    },
+    {
+      id: '3',
+      recordCode: 'BIN_1733184000_001',
+      batchNumber: 'BATCH_20241202_001',
+      projectId: 103,
+      recordDate: '2024-12-02',
+      shift: 1,
+      nano3ActualWeight: 3000, // kg
+      kno3ActualWeight: 3000, // kg
+      moltenSaltLevel: 2.7,
+      moltenSaltTemperature: 560,
+      gasConsumption: 1250,
+      powerConsumption: 880,
+      staffCount: 9,
+      recorderName: '王五',
+      operatorName: '王五',
+      qualityGrade: 1
+    },
+    {
+      id: '4',
+      recordCode: 'BIN_1733270400_001',
+      batchNumber: 'BATCH_20241203_001',
+      projectId: 104,
+      recordDate: '2024-12-03',
+      shift: 1,
+      nano3ActualWeight: 4200, // kg - 配比异常：70:30，超出6:4±5%范围
+      kno3ActualWeight: 1800, // kg
+      moltenSaltLevel: 2.4,
+      moltenSaltTemperature: 575,
+      gasConsumption: 1300,
+      powerConsumption: 900,
+      staffCount: 7,
+      recorderName: '赵六',
+      operatorName: '赵六',
+      qualityGrade: 3
+    },
+    {
+      id: '5',
+      recordCode: 'BIN_1733356800_001',
+      batchNumber: 'BATCH_20241204_001',
+      projectId: 105,
+      recordDate: '2024-12-04',
+      shift: 2,
+      nano3ActualWeight: 2400, // kg - 配比异常：40:60，超出6:4±5%范围
+      kno3ActualWeight: 3600, // kg
+      moltenSaltLevel: 2.6,
+      moltenSaltTemperature: 555,
+      gasConsumption: 1150,
+      powerConsumption: 780,
+      staffCount: 5,
+      recorderName: '孙七',
+      operatorName: '孙七',
+      qualityGrade: 4
+    },
+    {
+      id: '6',
+      recordCode: 'BIN_1733443200_001',
+      batchNumber: 'BATCH_20241205_001',
+      projectId: 106,
+      recordDate: '2024-12-05',
+      shift: 1,
+      nano3ActualWeight: 3900, // kg - 配比异常：65:35，刚好超出6:4±5%范围
+      kno3ActualWeight: 2100, // kg
+      moltenSaltLevel: 2.8,
+      moltenSaltTemperature: 580,
+      gasConsumption: 1350,
+      powerConsumption: 920,
+      staffCount: 8,
+      recorderName: '周八',
+      operatorName: '周八',
+      qualityGrade: 2
+    }
+  ];
+
+  // 应用当前筛选条件
+  if (queryParams.ratioStatus) {
+    allRecords = allRecords.filter(record => {
+      const recordRatioStatus = getRatioStatus(record);
+      return recordRatioStatus === queryParams.ratioStatus;
+    });
+  }
+
+  if (queryParams.recordCode) {
+    allRecords = allRecords.filter(record =>
+      record.recordCode.includes(queryParams.recordCode)
+    );
+  }
+  if (queryParams.batchNumber) {
+    allRecords = allRecords.filter(record =>
+      record.batchNumber.includes(queryParams.batchNumber)
+    );
+  }
+  if (queryParams.projectId) {
+    allRecords = allRecords.filter(record =>
+      record.projectId === queryParams.projectId
+    );
+  }
+  if (queryParams.recordDate) {
+    allRecords = allRecords.filter(record =>
+      record.recordDate === queryParams.recordDate
+    );
+  }
+
+  return allRecords;
+};
+
+// 转换数据格式为Excel导出格式
+const convertToExcelFormat = (data: any[]) => {
+  return data.map(record => {
+    const isAbnormal = !isNormalRatio(record.nano3ActualWeight, record.kno3ActualWeight);
+    const ratioText = formatRatio(record.nano3ActualWeight, record.kno3ActualWeight);
+
+    return {
+      '记录编码': record.recordCode,
+      '项目ID': record.projectId,
+      '日期': record.recordDate,
+      '班次': record.shift === 1 ? '白班' : '夜班',
+      '硝酸钠(t)': formatWeight(record.nano3ActualWeight),
+      '硝酸钾(t)': formatWeight(record.kno3ActualWeight),
+      '硝酸钠：硝酸钾': isAbnormal ? `${ratioText} ⚠️` : ratioText, // 异常配比添加警告标识
+      '总计化盐(t)': formatWeight(getTotalSaltWeight(record)),
+      '熔盐液位(m)': record.moltenSaltLevel || '-',
+      '熔盐温度(℃)': record.moltenSaltTemperature || '-',
+      '天然气耗量(Nm³)': record.gasConsumption || '-',
+      '用电量(KWh)': record.powerConsumption || '-',
+      '人数': record.staffCount || '-',
+      '记录人': record.recorderName || record.operatorName || '-'
+    };
+  });
+};
+
+// 生成导出文件名
+const generateExportFileName = () => {
+  const now = new Date();
+  const dateStr = now.toISOString().split('T')[0]; // YYYY-MM-DD
+  const timeStr = now.toTimeString().split(' ')[0].replace(/:/g, ''); // HHmmss
+
+  let fileName = `二元化盐记录_${dateStr}_${timeStr}`;
+
+  // 如果有筛选条件，在文件名中体现
+  const filters = [];
+  if (queryParams.recordCode) filters.push(`编码${queryParams.recordCode}`);
+  if (queryParams.projectId) filters.push(`项目${queryParams.projectId}`);
+  if (queryParams.recordDate) filters.push(`日期${queryParams.recordDate}`);
+  if (queryParams.ratioStatus) filters.push(`配比${queryParams.ratioStatus === 'normal' ? '正常' : '异常'}`);
+
+  if (filters.length > 0) {
+    fileName += `_${filters.join('_')}`;
+  }
+
+  return `${fileName}.xlsx`;
+};
+
+// 应用条件格式化 - 标红不满足6:4配比的数据
+const applyConditionalFormatting = (ws: any, data: any[]) => {
+  if (!ws['!ref']) return;
+
+  // 初始化样式对象
+  if (!ws['!styles']) ws['!styles'] = {};
+  if (!ws['!merges']) ws['!merges'] = [];
+
+  // 定义标红样式
+  const redStyle = {
+    fill: {
+      fgColor: { rgb: "FFCCCC" } // 浅红色背景
+    },
+    font: {
+      color: { rgb: "CC0000" }, // 红色字体
+      bold: true
+    },
+    border: {
+      top: { style: "thin", color: { rgb: "CC0000" } },
+      bottom: { style: "thin", color: { rgb: "CC0000" } },
+      left: { style: "thin", color: { rgb: "CC0000" } },
+      right: { style: "thin", color: { rgb: "CC0000" } }
+    }
+  };
+
+  // 定义正常样式
+  const normalStyle = {
+    fill: {
+      fgColor: { rgb: "FFFFFF" } // 白色背景
+    },
+    font: {
+      color: { rgb: "000000" } // 黑色字体
+    }
+  };
+
+  // 遍历数据行，检查配比是否符合6:4标准
+  data.forEach((record, index) => {
+    const rowIndex = index + 2; // Excel行号从2开始（第1行是标题）
+    const isAbnormalRatio = !isNormalRatio(record.nano3ActualWeight, record.kno3ActualWeight);
+
+    if (isAbnormalRatio) {
+      // 标红整行数据
+      const columns = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N'];
+      columns.forEach(col => {
+        const cellRef = `${col}${rowIndex}`;
+        if (ws[cellRef]) {
+          ws[cellRef].s = redStyle;
+        }
+      });
+
+      // 特别标注配比列（第7列：硝酸钠：硝酸钾）
+      const ratioCell = `G${rowIndex}`;
+      if (ws[ratioCell]) {
+        ws[ratioCell].s = {
+          ...redStyle,
+          font: {
+            ...redStyle.font,
+            size: 12,
+            bold: true
+          }
+        };
+        // 添加注释
+        ws[ratioCell].c = [{
+          a: "系统",
+          t: `配比异常：不符合标准6:4配比\n当前配比：${formatRatio(record.nano3ActualWeight, record.kno3ActualWeight)}\n偏差超出正常范围(±5%)`
+        }];
+      }
+    } else {
+      // 应用正常样式
+      const columns = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N'];
+      columns.forEach(col => {
+        const cellRef = `${col}${rowIndex}`;
+        if (ws[cellRef]) {
+          ws[cellRef].s = normalStyle;
+        }
+      });
+    }
+  });
+
+  // 设置标题行样式
+  const headerStyle = {
+    fill: {
+      fgColor: { rgb: "E6F3FF" } // 浅蓝色背景
+    },
+    font: {
+      color: { rgb: "000000" },
+      bold: true,
+      size: 12
+    },
+    alignment: {
+      horizontal: "center",
+      vertical: "center"
+    },
+    border: {
+      top: { style: "thin", color: { rgb: "000000" } },
+      bottom: { style: "thin", color: { rgb: "000000" } },
+      left: { style: "thin", color: { rgb: "000000" } },
+      right: { style: "thin", color: { rgb: "000000" } }
+    }
+  };
+
+  // 应用标题行样式
+  const headerColumns = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N'];
+  headerColumns.forEach(col => {
+    const cellRef = `${col}1`;
+    if (ws[cellRef]) {
+      ws[cellRef].s = headerStyle;
+    }
+  });
+};
+
+// 判断配比是否正常（6:4标准，允许±5%偏差）
+const isNormalRatio = (nano3Weight: number, kno3Weight: number): boolean => {
+  if (!nano3Weight || !kno3Weight) return false;
+
+  const total = nano3Weight + kno3Weight;
+  if (total === 0) return false;
+
+  const nano3Ratio = nano3Weight / total;
+  const kno3Ratio = kno3Weight / total;
+
+  // 标准配比：硝酸钠60%，硝酸钾40%
+  const standardNano3Ratio = 0.6;
+  const standardKno3Ratio = 0.4;
+
+  // 允许±5%的偏差
+  const tolerance = 0.05;
+
+  const nano3Deviation = Math.abs(nano3Ratio - standardNano3Ratio);
+  const kno3Deviation = Math.abs(kno3Ratio - standardKno3Ratio);
+
+  return nano3Deviation <= tolerance && kno3Deviation <= tolerance;
 };
 
 const handleStatistics = () => {
