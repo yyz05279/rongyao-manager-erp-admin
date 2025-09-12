@@ -45,23 +45,80 @@
 
           <!-- 数据预览 -->
           <div v-if="previewData.length > 0" class="preview-section">
-            <h4>数据预览 (共 {{ previewData.length }} 条记录)</h4>
+            <h4>📊 导入数据预览 (共 {{ previewData.length }} 条二元化盐记录)</h4>
             <el-table
               :data="previewData.slice(0, 5)"
               border
               size="small"
-              max-height="300"
+              max-height="400"
+              style="width: 100%"
             >
-              <el-table-column prop="recordCode" label="记录编码" width="120" />
-              <el-table-column prop="batchNumber" label="批次号" width="120" />
-              <el-table-column prop="projectId" label="项目ID" width="80" />
-              <el-table-column prop="recordDate" label="记录日期" width="100" />
-              <el-table-column prop="operatorName" label="操作员" width="80" />
-              <el-table-column prop="actualOutput" label="实际产量" width="100" />
-              <el-table-column prop="yieldRate" label="产出率" width="80" />
+              <el-table-column label="序号" type="index" width="60" align="center" />
+              <el-table-column label="记录编码" prop="recordCode" width="140" show-overflow-tooltip />
+              <el-table-column label="项目ID" prop="projectId" width="80" align="center" />
+              <el-table-column label="日期" prop="recordDate" width="120" />
+              <el-table-column label="班次" prop="shift" width="80">
+                <template #default="scope">
+                  <el-tag :type="scope.row.shift === 1 ? 'primary' : 'warning'">
+                    {{ scope.row.shift === 1 ? '白班' : '夜班' }}
+                  </el-tag>
+                </template>
+              </el-table-column>
+              <el-table-column label="硝酸钠(t)" prop="nano3ActualWeight" width="100">
+                <template #default="scope">
+                  {{ formatWeight(scope.row.nano3ActualWeight) }}
+                </template>
+              </el-table-column>
+              <el-table-column label="硝酸钾(t)" prop="kno3ActualWeight" width="100">
+                <template #default="scope">
+                  {{ formatWeight(scope.row.kno3ActualWeight) }}
+                </template>
+              </el-table-column>
+              <el-table-column label="硝酸钠：硝酸钾" width="130">
+                <template #default="scope">
+                  <span :class="getRatioClass(scope.row)">
+                    {{ formatRatio(scope.row.nano3ActualWeight, scope.row.kno3ActualWeight) }}
+                  </span>
+                </template>
+              </el-table-column>
+              <el-table-column label="总计化盐(t)" width="110">
+                <template #default="scope">
+                  {{ formatWeight(getTotalSaltWeight(scope.row)) }}
+                </template>
+              </el-table-column>
+              <el-table-column label="熔盐液位(m)" prop="moltenSaltLevel" width="110">
+                <template #default="scope">
+                  {{ scope.row.moltenSaltLevel || '-' }}
+                </template>
+              </el-table-column>
+              <el-table-column label="熔盐温度(℃)" prop="moltenSaltTemperature" width="110">
+                <template #default="scope">
+                  {{ scope.row.moltenSaltTemperature || '-' }}
+                </template>
+              </el-table-column>
+              <el-table-column label="天然气耗量(Nm³)" prop="gasConsumption" width="130">
+                <template #default="scope">
+                  {{ scope.row.gasConsumption || '-' }}
+                </template>
+              </el-table-column>
+              <el-table-column label="用电量(KWh)" prop="powerConsumption" width="120">
+                <template #default="scope">
+                  {{ scope.row.powerConsumption || '-' }}
+                </template>
+              </el-table-column>
+              <el-table-column label="人数" prop="staffCount" width="80">
+                <template #default="scope">
+                  {{ scope.row.staffCount || '-' }}
+                </template>
+              </el-table-column>
+              <el-table-column label="记录人" prop="recorderName" width="100">
+                <template #default="scope">
+                  {{ scope.row.recorderName || scope.row.operatorName || '-' }}
+                </template>
+              </el-table-column>
             </el-table>
             <div v-if="previewData.length > 5" class="more-tip">
-              还有 {{ previewData.length - 5 }} 条记录未显示...
+              还有 {{ previewData.length - 5 }} 条记录未显示，导入时将处理全部数据...
             </div>
           </div>
 
@@ -332,23 +389,23 @@ const convertToBinaryRecords = (data: any[]): BinaryRecordForm[] => {
     return {
       recordCode: item.recordCode || `BIN_${Date.now()}_${String(index + 1).padStart(3, '0')}`,
       batchNumber: item.batchNumber || `BATCH_${dateStr.replace(/-/g, '')}_${String(index + 1).padStart(3, '0')}`,
-      projectId: 1, // 默认项目ID
+      projectId: item.projectId || 101, // 从Excel读取项目ID，默认101
       recordDate: dateStr,
       startTime: timeStr,
       endTime: timeStr,
-      shift: 1, // 默认班次
+      shift: item.shift || 1, // 从Excel读取班次，默认白班
 
       // NaNO3配比信息
       nano3TargetRatio: 0.6, // 默认NaNO3目标配比
       nano3ActualRatio: 0.6, // 默认NaNO3实际配比
-      nano3TargetWeight: item.sodiumWeight || 0, // 使用钠盐重量
-      nano3ActualWeight: item.sodiumWeight || 0,
+      nano3TargetWeight: (item.sodiumWeight || (item.sodiumBags || 0) * 1.2) * 1000, // 吨转换为kg
+      nano3ActualWeight: (item.sodiumWeight || (item.sodiumBags || 0) * 1.2) * 1000, // 吨转换为kg
 
       // KNO3配比信息
       kno3TargetRatio: 0.4, // 默认KNO3目标配比
       kno3ActualRatio: 0.4, // 默认KNO3实际配比
-      kno3TargetWeight: item.potassiumWeight || 0, // 使用钾盐重量
-      kno3ActualWeight: item.potassiumWeight || 0,
+      kno3TargetWeight: (item.potassiumWeight || (item.potassiumBags || 0) * 1.0) * 1000, // 吨转换为kg
+      kno3ActualWeight: (item.potassiumWeight || (item.potassiumBags || 0) * 1.0) * 1000, // 吨转换为kg
 
       // 工艺参数
       reactionTemperature: 850, // 默认反应温度
@@ -373,8 +430,17 @@ const convertToBinaryRecords = (data: any[]): BinaryRecordForm[] => {
       energyCost: 0, // 默认能源成本
       laborCost: 0, // 默认人工成本
 
+      // 新增字段 - 根据Excel表格结构
+      moltenSaltLevel: parseFloat(item.moltenSaltLevel) || 2.5, // 熔盐液位(m) - 默认2.5m
+      moltenSaltTemperature: parseFloat(item.moltenSaltTemperature) || 565, // 熔盐温度(℃) - 默认565℃
+      gasConsumption: parseFloat(item.gasConsumption) || 1200, // 天然气耗量(Nm³) - 默认1200
+      powerConsumption: parseFloat(item.powerConsumption) || 850, // 用电量(KWh) - 默认850
+      staffCount: parseInt(item.staffCount) || 8, // 人数 - 默认8人
+      recorderName: item.recorderName || item.operatorName || '系统导入', // 记录人
+      cumulativeSaltAmount: 0, // 累积化盐量 - 需要后续计算
+
       operatorId: 1, // 默认操作员ID
-      remarks: `从Excel导入 - 原始数据: 钠盐${item.sodiumBags || 0}袋, 钾盐${item.potassiumBags || 0}袋, 人数${item.staffCount || 0}人`
+      remarks: `从Excel导入 - 原始数据: 钠盐${item.sodiumBags || 0}袋(${((item.sodiumBags || 0) * 1.2).toFixed(1)}吨), 钾盐${item.potassiumBags || 0}袋(${((item.potassiumBags || 0) * 1.0).toFixed(1)}吨), 人数${item.staffCount || 0}人`
     } as BinaryRecordForm;
   });
 };
@@ -401,6 +467,57 @@ const deleteRecord = (index: number) => {
 const handleRecordSaved = () => {
   // TODO: 将新记录添加到手动记录列表
   ElMessage.success('记录添加成功');
+};
+
+// 格式化重量显示（吨）- 与主列表页面保持一致
+const formatWeight = (weight: number) => {
+  if (!weight && weight !== 0) return '-';
+  return (weight / 1000).toFixed(2); // 将kg转换为吨，保留2位小数
+};
+
+// 计算总化盐重量 - 与主列表页面保持一致
+const getTotalSaltWeight = (row: any) => {
+  const nano3Weight = row.nano3ActualWeight || 0;
+  const kno3Weight = row.kno3ActualWeight || 0;
+  return nano3Weight + kno3Weight;
+};
+
+// 格式化配比显示 - 与主列表页面保持一致
+const formatRatio = (nano3Weight: number, kno3Weight: number) => {
+  if (!nano3Weight && !kno3Weight) return '-';
+  if (!nano3Weight) return `0:${(kno3Weight / 1000).toFixed(1)}`;
+  if (!kno3Weight) return `${(nano3Weight / 1000).toFixed(1)}:0`;
+
+  // 计算比例并简化
+  const nano3Tons = nano3Weight / 1000;
+  const kno3Tons = kno3Weight / 1000;
+  const total = nano3Tons + kno3Tons;
+
+  if (total === 0) return '-';
+
+  const nano3Ratio = (nano3Tons / total * 10).toFixed(1);
+  const kno3Ratio = (kno3Tons / total * 10).toFixed(1);
+
+  return `${nano3Ratio}:${kno3Ratio}`;
+};
+
+// 获取配比样式类 - 与主列表页面保持一致
+const getRatioClass = (row: any) => {
+  const nano3Weight = row.nano3ActualWeight || 0;
+  const kno3Weight = row.kno3ActualWeight || 0;
+
+  if (!nano3Weight && !kno3Weight) return '';
+
+  const total = nano3Weight + kno3Weight;
+  if (total === 0) return '';
+
+  const nano3Ratio = nano3Weight / total;
+  const targetRatio = 0.6; // 目标6:4配比中的6
+  const deviation = Math.abs(nano3Ratio - targetRatio);
+
+  if (deviation <= 0.02) return 'text-success'; // 偏差在2%以内为绿色
+  if (deviation <= 0.05) return 'text-warning'; // 偏差在5%以内为橙色
+  return 'text-danger'; // 偏差超过5%为红色
 };
 
 // 开始导入
@@ -548,6 +665,22 @@ const handleClose = () => {
     .manual-records {
       margin-top: 20px;
     }
+  }
+
+  // 配比颜色样式类 - 与主列表页面保持一致
+  .text-success {
+    color: #67c23a;
+    font-weight: 600;
+  }
+
+  .text-warning {
+    color: #e6a23c;
+    font-weight: 600;
+  }
+
+  .text-danger {
+    color: #f56c6c;
+    font-weight: 600;
   }
 }
 

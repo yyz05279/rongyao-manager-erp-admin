@@ -133,7 +133,16 @@ export interface BinaryRecordForm {
   materialCost: number;
   energyCost: number;
   laborCost: number;
-  
+
+  // 新增字段 - 根据Excel表格结构
+  moltenSaltLevel?: number; // 熔盐罐熔盐液位(m)
+  moltenSaltTemperature?: number; // 熔盐罐熔盐温度(℃)
+  gasConsumption?: number; // 每班天然气耗量(Nm³)
+  powerConsumption?: number; // 每班用电量(KWh)
+  staffCount?: number; // 人数
+  recorderName?: string; // 记录人
+  cumulativeSaltAmount?: number; // 累积化盐量(t)
+
   operatorId: number;
   supervisorId?: number;
   remarks?: string;

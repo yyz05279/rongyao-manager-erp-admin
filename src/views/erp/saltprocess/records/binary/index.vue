@@ -95,10 +95,10 @@
         height="600"
       >
         <el-table-column type="selection" width="55" align="center" />
-        <el-table-column label="记录编码" prop="recordCode" width="150" show-overflow-tooltip />
-        <el-table-column label="批次号" prop="batchNumber" width="120" />
-        <el-table-column label="项目ID" prop="projectId" width="100" />
-        <el-table-column label="记录日期" prop="recordDate" width="120" />
+        <el-table-column label="序号" type="index" width="60" align="center" />
+        <el-table-column label="记录编码" prop="recordCode" width="140" show-overflow-tooltip />
+        <el-table-column label="项目ID" prop="projectId" width="80" align="center" />
+        <el-table-column label="日期" prop="recordDate" width="120" />
         <el-table-column label="班次" prop="shift" width="80">
           <template #default="scope">
             <el-tag :type="scope.row.shift === 1 ? 'primary' : 'warning'">
@@ -106,31 +106,58 @@
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="NaNO3配比(%)" prop="nano3ActualRatio" width="120" />
-        <el-table-column label="KNO3配比(%)" prop="kno3ActualRatio" width="120" />
-        <el-table-column label="配比偏差" prop="ratioDeviation" width="100">
+        <el-table-column label="硝酸钠(t)" prop="nano3ActualWeight" width="100">
           <template #default="scope">
-            <span :class="getDeviationClass(scope.row.ratioDeviation)">
-              {{ scope.row.ratioDeviation }}%
+            {{ formatWeight(scope.row.nano3ActualWeight) }}
+          </template>
+        </el-table-column>
+        <el-table-column label="硝酸钾(t)" prop="kno3ActualWeight" width="100">
+          <template #default="scope">
+            {{ formatWeight(scope.row.kno3ActualWeight) }}
+          </template>
+        </el-table-column>
+        <el-table-column label="硝酸钠：硝酸钾" width="130">
+          <template #default="scope">
+            <span :class="getRatioClass(scope.row)">
+              {{ formatRatio(scope.row.nano3ActualWeight, scope.row.kno3ActualWeight) }}
             </span>
           </template>
         </el-table-column>
-        <el-table-column label="实际产量(kg)" prop="actualOutput" width="120" />
-        <el-table-column label="产出率(%)" prop="yieldRate" width="100">
+        <el-table-column label="总计化盐(t)" width="110">
           <template #default="scope">
-            <span :class="getYieldRateClass(scope.row.yieldRate)">
-              {{ scope.row.yieldRate }}%
-            </span>
+            {{ formatWeight(getTotalSaltWeight(scope.row)) }}
           </template>
         </el-table-column>
-        <el-table-column label="质量等级" prop="qualityGrade" width="100">
+        <el-table-column label="熔盐液位(m)" prop="moltenSaltLevel" width="110">
           <template #default="scope">
-            <el-tag :type="getQualityGradeTag(scope.row.qualityGrade)">
-              {{ getQualityGradeText(scope.row.qualityGrade) }}
-            </el-tag>
+            {{ scope.row.moltenSaltLevel || '-' }}
           </template>
         </el-table-column>
-        <el-table-column label="操作员" prop="operatorName" width="100" />
+        <el-table-column label="熔盐温度(℃)" prop="moltenSaltTemperature" width="110">
+          <template #default="scope">
+            {{ scope.row.moltenSaltTemperature || '-' }}
+          </template>
+        </el-table-column>
+        <el-table-column label="天然气耗量(Nm³)" prop="gasConsumption" width="130">
+          <template #default="scope">
+            {{ scope.row.gasConsumption || '-' }}
+          </template>
+        </el-table-column>
+        <el-table-column label="用电量(KWh)" prop="powerConsumption" width="120">
+          <template #default="scope">
+            {{ scope.row.powerConsumption || '-' }}
+          </template>
+        </el-table-column>
+        <el-table-column label="人数" prop="staffCount" width="80">
+          <template #default="scope">
+            {{ scope.row.staffCount || '-' }}
+          </template>
+        </el-table-column>
+        <el-table-column label="记录人" prop="recorderName" width="100">
+          <template #default="scope">
+            {{ scope.row.recorderName || scope.row.operatorName || '-' }}
+          </template>
+        </el-table-column>
         <el-table-column label="操作" width="210" fixed="right">
           <template #default="scope">
             <div style="display: flex; gap: 8px; justify-content: flex-start;">
@@ -193,9 +220,9 @@ const router = useRouter();
 // 响应式数据
 const loading = ref(false);
 const showSearch = ref(true);
-const recordList = ref([]);
+const recordList = ref<any[]>([]);
 const total = ref(0);
-const ids = ref([]);
+const ids = ref<string[]>([]);
 const single = ref(true);
 const multiple = ref(true);
 
@@ -243,36 +270,60 @@ const getList = async () => {
     recordList.value = [
       {
         id: '1',
-        recordCode: 'BM20241201001',
-        batchNumber: 'B20241201001',
+        recordCode: 'BIN_1733097600_001',
+        batchNumber: 'BATCH_20241201_001',
         projectId: 101,
         recordDate: '2024-12-01',
         shift: 1,
-        nano3ActualRatio: 60.2,
-        kno3ActualRatio: 39.8,
-        ratioDeviation: 0.2,
-        actualOutput: 2450,
-        yieldRate: 98.5,
-        qualityGrade: 1,
-        operatorName: '张三'
+        nano3ActualWeight: 3600, // 3.6吨 = 3600kg
+        kno3ActualWeight: 2400, // 2.4吨 = 2400kg
+        moltenSaltLevel: 2.5,
+        moltenSaltTemperature: 565,
+        gasConsumption: 1200,
+        powerConsumption: 850,
+        staffCount: 8,
+        recorderName: '张三',
+        operatorName: '张三',
+        qualityGrade: 1
       },
       {
         id: '2',
-        recordCode: 'BM20241201002',
-        batchNumber: 'B20241201002',
+        recordCode: 'BIN_1733097600_002',
+        batchNumber: 'BATCH_20241201_002',
         projectId: 102,
         recordDate: '2024-12-01',
         shift: 2,
-        nano3ActualRatio: 59.8,
-        kno3ActualRatio: 40.2,
-        ratioDeviation: -0.2,
-        actualOutput: 2380,
-        yieldRate: 96.8,
-        qualityGrade: 2,
-        operatorName: '李四'
+        nano3ActualWeight: 3580, // 3.58吨
+        kno3ActualWeight: 2420, // 2.42吨
+        moltenSaltLevel: 2.3,
+        moltenSaltTemperature: 570,
+        gasConsumption: 1180,
+        powerConsumption: 820,
+        staffCount: 6,
+        recorderName: '李四',
+        operatorName: '李四',
+        qualityGrade: 2
+      },
+      {
+        id: '3',
+        recordCode: 'BIN_1733184000_001',
+        batchNumber: 'BATCH_20241202_001',
+        projectId: 103,
+        recordDate: '2024-12-02',
+        shift: 1,
+        nano3ActualWeight: 3650, // 3.65吨
+        kno3ActualWeight: 2350, // 2.35吨
+        moltenSaltLevel: 2.7,
+        moltenSaltTemperature: 560,
+        gasConsumption: 1250,
+        powerConsumption: 880,
+        staffCount: 9,
+        recorderName: '王五',
+        operatorName: '王五',
+        qualityGrade: 1
       }
     ];
-    total.value = 2;
+    total.value = 3;
   } catch (error) {
     console.error('获取二元化盐记录列表失败:', error);
   } finally {
@@ -317,6 +368,7 @@ const handleView = (row: any) => {
 
 const handleDelete = async (row?: any) => {
   const recordIds = row?.id ? [row.id] : ids.value;
+  console.log('删除记录IDs:', recordIds);
   try {
     await ElMessageBox.confirm('是否确认删除选中的二元化盐记录？', '系统提示', {
       confirmButtonText: '确定',
@@ -366,13 +418,64 @@ const getYieldRateClass = (rate: number) => {
 };
 
 const getQualityGradeTag = (grade: number) => {
-  const tagMap = { 1: 'success', 2: 'primary', 3: 'warning', 4: 'danger' };
+  const tagMap: Record<number, string> = { 1: 'success', 2: 'primary', 3: 'warning', 4: 'danger' };
   return tagMap[grade] || 'info';
 };
 
 const getQualityGradeText = (grade: number) => {
-  const textMap = { 1: '优秀', 2: '良好', 3: '合格', 4: '不合格' };
+  const textMap: Record<number, string> = { 1: '优秀', 2: '良好', 3: '合格', 4: '不合格' };
   return textMap[grade] || '未知';
+};
+
+// 新增：格式化重量显示（吨）
+const formatWeight = (weight: number) => {
+  if (!weight && weight !== 0) return '-';
+  return (weight / 1000).toFixed(2); // 将kg转换为吨，保留2位小数
+};
+
+// 新增：计算总化盐重量
+const getTotalSaltWeight = (row: any) => {
+  const nano3Weight = row.nano3ActualWeight || 0;
+  const kno3Weight = row.kno3ActualWeight || 0;
+  return nano3Weight + kno3Weight;
+};
+
+// 新增：格式化配比显示
+const formatRatio = (nano3Weight: number, kno3Weight: number) => {
+  if (!nano3Weight && !kno3Weight) return '-';
+  if (!nano3Weight) return `0:${(kno3Weight / 1000).toFixed(1)}`;
+  if (!kno3Weight) return `${(nano3Weight / 1000).toFixed(1)}:0`;
+
+  // 计算比例并简化
+  const nano3Tons = nano3Weight / 1000;
+  const kno3Tons = kno3Weight / 1000;
+  const total = nano3Tons + kno3Tons;
+
+  if (total === 0) return '-';
+
+  const nano3Ratio = (nano3Tons / total * 10).toFixed(1);
+  const kno3Ratio = (kno3Tons / total * 10).toFixed(1);
+
+  return `${nano3Ratio}:${kno3Ratio}`;
+};
+
+// 新增：获取配比样式类
+const getRatioClass = (row: any) => {
+  const nano3Weight = row.nano3ActualWeight || 0;
+  const kno3Weight = row.kno3ActualWeight || 0;
+
+  if (!nano3Weight && !kno3Weight) return '';
+
+  const total = nano3Weight + kno3Weight;
+  if (total === 0) return '';
+
+  const nano3Ratio = nano3Weight / total;
+  const targetRatio = 0.6; // 目标6:4配比中的6
+  const deviation = Math.abs(nano3Ratio - targetRatio);
+
+  if (deviation <= 0.02) return 'text-success'; // 偏差在2%以内为绿色
+  if (deviation <= 0.05) return 'text-warning'; // 偏差在5%以内为橙色
+  return 'text-danger'; // 偏差超过5%为红色
 };
 </script>
 
