@@ -46,12 +46,10 @@
             style="width: 200px"
           />
         </el-form-item>
-        <el-form-item label="质量等级" prop="qualityGrade">
-          <el-select v-model="queryParams.qualityGrade" placeholder="请选择质量等级" clearable style="width: 150px">
-            <el-option label="优秀" :value="1" />
-            <el-option label="良好" :value="2" />
-            <el-option label="合格" :value="3" />
-            <el-option label="不合格" :value="4" />
+        <el-form-item label="配比状态" prop="ratioStatus">
+          <el-select v-model="queryParams.ratioStatus" placeholder="请选择配比状态" clearable style="width: 150px">
+            <el-option label="正常" value="normal" />
+            <el-option label="异常" value="abnormal" />
           </el-select>
         </el-form-item>
         <el-form-item>
@@ -249,7 +247,7 @@ const queryParams = reactive({
   batchNumber: '',
   projectId: undefined,
   recordDate: '',
-  qualityGrade: undefined
+  ratioStatus: undefined
 });
 
 // 表单引用
@@ -266,8 +264,8 @@ const getList = async () => {
   loading.value = true;
   try {
     // TODO: 调用API获取二元化盐记录列表
-    // 模拟数据
-    recordList.value = [
+    // 模拟数据 - 包含不同配比状态的记录
+    let allRecords = [
       {
         id: '1',
         recordCode: 'BIN_1733097600_001',
@@ -275,8 +273,8 @@ const getList = async () => {
         projectId: 101,
         recordDate: '2024-12-01',
         shift: 1,
-        nano3ActualWeight: 3600, // 3.6吨 = 3600kg
-        kno3ActualWeight: 2400, // 2.4吨 = 2400kg
+        nano3ActualWeight: 3600, // 3.6吨 = 3600kg (60% - 正常配比)
+        kno3ActualWeight: 2400, // 2.4吨 = 2400kg (40% - 正常配比)
         moltenSaltLevel: 2.5,
         moltenSaltTemperature: 565,
         gasConsumption: 1200,
@@ -293,8 +291,8 @@ const getList = async () => {
         projectId: 102,
         recordDate: '2024-12-01',
         shift: 2,
-        nano3ActualWeight: 3580, // 3.58吨
-        kno3ActualWeight: 2420, // 2.42吨
+        nano3ActualWeight: 3580, // 3.58吨 (59.7% - 正常配比)
+        kno3ActualWeight: 2420, // 2.42吨 (40.3% - 正常配比)
         moltenSaltLevel: 2.3,
         moltenSaltTemperature: 570,
         gasConsumption: 1180,
@@ -311,8 +309,8 @@ const getList = async () => {
         projectId: 103,
         recordDate: '2024-12-02',
         shift: 1,
-        nano3ActualWeight: 3650, // 3.65吨
-        kno3ActualWeight: 2350, // 2.35吨
+        nano3ActualWeight: 3000, // 3.0吨 (50% - 异常配比)
+        kno3ActualWeight: 3000, // 3.0吨 (50% - 异常配比)
         moltenSaltLevel: 2.7,
         moltenSaltTemperature: 560,
         gasConsumption: 1250,
@@ -321,9 +319,59 @@ const getList = async () => {
         recorderName: '王五',
         operatorName: '王五',
         qualityGrade: 1
+      },
+      {
+        id: '4',
+        recordCode: 'BIN_1733270400_001',
+        batchNumber: 'BATCH_20241203_001',
+        projectId: 104,
+        recordDate: '2024-12-03',
+        shift: 1,
+        nano3ActualWeight: 4200, // 4.2吨 (70% - 异常配比)
+        kno3ActualWeight: 1800, // 1.8吨 (30% - 异常配比)
+        moltenSaltLevel: 2.4,
+        moltenSaltTemperature: 575,
+        gasConsumption: 1300,
+        powerConsumption: 900,
+        staffCount: 7,
+        recorderName: '赵六',
+        operatorName: '赵六',
+        qualityGrade: 3
       }
     ];
-    total.value = 3;
+
+    // 应用配比筛选
+    if (queryParams.ratioStatus) {
+      allRecords = allRecords.filter(record => {
+        const recordRatioStatus = getRatioStatus(record);
+        return recordRatioStatus === queryParams.ratioStatus;
+      });
+    }
+
+    // 应用其他筛选条件
+    if (queryParams.recordCode) {
+      allRecords = allRecords.filter(record =>
+        record.recordCode.includes(queryParams.recordCode)
+      );
+    }
+    if (queryParams.batchNumber) {
+      allRecords = allRecords.filter(record =>
+        record.batchNumber.includes(queryParams.batchNumber)
+      );
+    }
+    if (queryParams.projectId) {
+      allRecords = allRecords.filter(record =>
+        record.projectId === queryParams.projectId
+      );
+    }
+    if (queryParams.recordDate) {
+      allRecords = allRecords.filter(record =>
+        record.recordDate === queryParams.recordDate
+      );
+    }
+
+    recordList.value = allRecords;
+    total.value = allRecords.length;
   } catch (error) {
     console.error('获取二元化盐记录列表失败:', error);
   } finally {
@@ -476,6 +524,24 @@ const getRatioClass = (row: any) => {
   if (deviation <= 0.02) return 'text-success'; // 偏差在2%以内为绿色
   if (deviation <= 0.05) return 'text-warning'; // 偏差在5%以内为橙色
   return 'text-danger'; // 偏差超过5%为红色
+};
+
+// 获取配比状态 - 用于筛选
+const getRatioStatus = (row: any) => {
+  const nano3Weight = row.nano3ActualWeight || 0;
+  const kno3Weight = row.kno3ActualWeight || 0;
+
+  if (!nano3Weight && !kno3Weight) return 'normal';
+
+  const total = nano3Weight + kno3Weight;
+  if (total === 0) return 'normal';
+
+  const nano3Ratio = nano3Weight / total;
+  const targetRatio = 0.6; // 目标6:4配比中的6
+  const deviation = Math.abs(nano3Ratio - targetRatio);
+
+  // 偏差在5%以内为正常，超过5%为异常
+  return deviation <= 0.05 ? 'normal' : 'abnormal';
 };
 </script>
 
