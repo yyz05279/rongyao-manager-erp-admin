@@ -135,7 +135,7 @@
           </template>
         </el-table-column>
         <el-table-column label="操作员" prop="operatorName" width="100" />
-        <el-table-column label="操作" width="180" fixed="right">
+        <el-table-column label="操作" width="210" fixed="right">
           <template #default="scope">
             <div style="display: flex; gap: 8px; justify-content: flex-start;">
               <el-button type="primary" size="small" @click="handleView(scope.row)">

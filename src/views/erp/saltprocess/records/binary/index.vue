@@ -131,7 +131,7 @@
           </template>
         </el-table-column>
         <el-table-column label="操作员" prop="operatorName" width="100" />
-        <el-table-column label="操作" width="180" fixed="right">
+        <el-table-column label="操作" width="210" fixed="right">
           <template #default="scope">
             <div style="display: flex; gap: 8px; justify-content: flex-start;">
               <el-button type="primary" size="small" @click="handleView(scope.row)">
@@ -157,16 +157,19 @@
       />
     </el-card>
 
-    <!-- 记录表单对话框 -->
-    <el-dialog :title="dialog.title" v-model="dialog.visible" width="900px" append-to-body>
-      <binary-record-form
-        v-if="dialog.visible"
-        ref="recordFormRef"
-        :record-id="dialog.recordId"
-        @success="handleFormSuccess"
-        @cancel="dialog.visible = false"
-      />
-    </el-dialog>
+    <!-- 编辑表单对话框 -->
+    <EditForm
+      v-model:visible="editDialog.visible"
+      :title="editDialog.title"
+      :record-id="editDialog.recordId"
+      @success="handleFormSuccess"
+    />
+
+    <!-- 导入对话框 -->
+    <ImportDialog
+      v-model:visible="importDialog.visible"
+      @success="handleImportSuccess"
+    />
 
     <!-- 统计分析对话框 -->
     <el-dialog title="二元化盐统计分析" v-model="statisticsDialog.visible" width="1200px" append-to-body>
@@ -182,6 +185,8 @@
 import { ref, reactive, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { parseTime } from '@/utils/ruoyi';
+import EditForm from './components/EditForm.vue';
+import ImportDialog from './components/ImportDialog.vue';
 
 const router = useRouter();
 
@@ -195,10 +200,14 @@ const single = ref(true);
 const multiple = ref(true);
 
 // 对话框
-const dialog = reactive({
+const editDialog = reactive({
   visible: false,
   title: '',
   recordId: null
+});
+
+const importDialog = reactive({
+  visible: false
 });
 
 const statisticsDialog = reactive({
@@ -292,16 +301,14 @@ const handleRowClick = (row: any) => {
 };
 
 const handleAdd = () => {
-  dialog.title = '新增二元化盐记录';
-  dialog.recordId = null;
-  dialog.visible = true;
+  importDialog.visible = true;
 };
 
 const handleUpdate = (row?: any) => {
   const recordId = row?.id || ids.value[0];
-  dialog.title = '修改二元化盐记录';
-  dialog.recordId = recordId;
-  dialog.visible = true;
+  editDialog.title = '修改二元化盐记录';
+  editDialog.recordId = recordId;
+  editDialog.visible = true;
 };
 
 const handleView = (row: any) => {
@@ -337,7 +344,12 @@ const handleStatistics = () => {
 };
 
 const handleFormSuccess = () => {
-  dialog.visible = false;
+  editDialog.visible = false;
+  getList();
+};
+
+const handleImportSuccess = () => {
+  importDialog.visible = false;
   getList();
 };
 
