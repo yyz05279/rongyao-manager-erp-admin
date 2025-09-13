@@ -43,6 +43,66 @@
             </template>
           </el-upload>
 
+          <!-- 数据验证结果 -->
+          <div v-if="validationResult" class="validation-section">
+            <el-alert
+              :title="`数据验证完成 - 共${validationResult.totalCount}条记录`"
+              :type="validationResult.isValid ? 'success' : 'warning'"
+              :description="`有效记录：${validationResult.validCount}条，无效记录：${validationResult.invalidCount}条`"
+              show-icon
+              :closable="false"
+            />
+
+            <!-- 错误详情 -->
+            <div v-if="validationResult.errors.length > 0" class="error-details">
+              <h5>❌ 验证错误 ({{ validationResult.errors.length }}条)</h5>
+              <el-table
+                :data="validationResult.errors.slice(0, 10)"
+                border
+                size="small"
+                max-height="200"
+              >
+                <el-table-column label="行号" prop="rowIndex" width="60" align="center" />
+                <el-table-column label="字段" prop="field" width="120" />
+                <el-table-column label="错误值" prop="value" width="120" show-overflow-tooltip />
+                <el-table-column label="错误类型" prop="errorType" width="100">
+                  <template #default="scope">
+                    <el-tag :type="getErrorTypeTag(scope.row.errorType)" size="small">
+                      {{ getErrorTypeText(scope.row.errorType) }}
+                    </el-tag>
+                  </template>
+                </el-table-column>
+                <el-table-column label="错误信息" prop="message" show-overflow-tooltip />
+              </el-table>
+              <div v-if="validationResult.errors.length > 10" class="more-tip">
+                还有 {{ validationResult.errors.length - 10 }} 条错误未显示...
+              </div>
+            </div>
+
+            <!-- 警告详情 -->
+            <div v-if="validationResult.warnings.length > 0" class="warning-details">
+              <h5>⚠️ 验证警告 ({{ validationResult.warnings.length }}条)</h5>
+              <el-table
+                :data="validationResult.warnings.slice(0, 5)"
+                border
+                size="small"
+                max-height="150"
+              >
+                <el-table-column label="行号" prop="rowIndex" width="60" align="center" />
+                <el-table-column label="字段" prop="field" width="120" />
+                <el-table-column label="警告值" prop="value" width="120" show-overflow-tooltip />
+                <el-table-column label="警告类型" prop="warningType" width="100">
+                  <template #default="scope">
+                    <el-tag type="warning" size="small">
+                      {{ getWarningTypeText(scope.row.warningType) }}
+                    </el-tag>
+                  </template>
+                </el-table-column>
+                <el-table-column label="警告信息" prop="message" show-overflow-tooltip />
+              </el-table>
+            </div>
+          </div>
+
           <!-- 数据预览 -->
           <div v-if="previewData.length > 0" class="preview-section">
             <h4>📊 导入数据预览 (共 {{ previewData.length }} 条二元化盐记录)</h4>
@@ -52,6 +112,7 @@
               size="small"
               max-height="400"
               style="width: 100%"
+              :row-class-name="getRowClassName"
             >
               <el-table-column label="序号" type="index" width="60" align="center" />
               <el-table-column label="记录编码" prop="recordCode" width="140" show-overflow-tooltip />
@@ -210,12 +271,22 @@
 
 <script setup name="ImportDialog" lang="ts">
 import { ref, computed } from 'vue';
-import { ElMessage } from 'element-plus';
+import { ElMessage, ElMessageBox } from 'element-plus';
 import { UploadFilled } from '@element-plus/icons-vue';
 import type { UploadInstance, UploadRawFile } from 'element-plus';
 import * as XLSX from 'xlsx';
 import EditForm from './EditForm.vue';
-import type { BinaryRecordForm } from '@/api/erp/saltprocess/records/binary/types';
+import type {
+  BinaryRecordForm,
+  ValidationResult,
+  ImportError,
+  ImportWarning,
+  BatchImportResult
+} from '@/api/erp/saltprocess/records/binary/types';
+import {
+  batchImportBinaryRecord,
+  validateBatchImportData
+} from '@/api/erp/saltprocess/records/binary';
 import { ExcelParser } from '@/utils/excel-parser';
 import type {
   ExcelFileInfo,
@@ -254,6 +325,11 @@ const fileInfo = ref<ExcelFileInfo | null>(null);
 const importErrors = ref<ExcelImportError[]>([]);
 const excelParser = new ExcelParser();
 
+// 数据验证相关
+const validationResult = ref<ValidationResult | null>(null);
+const validatedData = ref<BinaryRecordForm[]>([]);
+const validating = ref(false);
+
 // 手动录入相关
 const manualRecords = ref<BinaryRecordForm[]>([]);
 const editFormVisible = ref(false);
@@ -261,10 +337,46 @@ const editFormTitle = ref('新增记录');
 
 // 计算属性
 const canImport = computed(() => {
+  const result = {
+    importing: importing.value,
+    validating: validating.value,
+    importMethod: importMethod.value,
+    previewDataLength: previewData.value.length,
+    hasValidationResult: !!validationResult.value,
+    validCount: validationResult.value?.validCount || 0,
+    manualRecordsLength: manualRecords.value.length
+  };
+
+  console.log('canImport 计算状态:', result);
+
+  // 如果正在导入或验证中，禁用按钮
+  if (importing.value || validating.value) {
+    console.log('按钮禁用原因: 正在导入或验证中');
+    return false;
+  }
+
   if (importMethod.value === 'excel') {
-    return previewData.value.length > 0 && !importing.value;
+    // Excel导入需要有预览数据
+    if (previewData.value.length === 0) {
+      console.log('按钮禁用原因: 没有预览数据');
+      return false;
+    }
+
+    // 如果有验证结果，检查是否有有效记录
+    if (validationResult.value) {
+      const canImportResult = validationResult.value.validCount > 0;
+      console.log('基于验证结果的导入判断:', canImportResult, '有效记录数:', validationResult.value.validCount);
+      return canImportResult;
+    }
+
+    // 如果还没有验证结果，但有预览数据，允许导入
+    console.log('没有验证结果但有预览数据，允许导入');
+    return true;
   } else {
-    return manualRecords.value.length > 0 && !importing.value;
+    // 手动录入模式
+    const canImportManual = manualRecords.value.length > 0;
+    console.log('手动录入模式导入判断:', canImportManual);
+    return canImportManual;
   }
 });
 
@@ -422,7 +534,11 @@ const parseExcelFile = async (file: File) => {
 
     if (binaryRecords.length === 0) {
       ElMessage.warning('未解析到任何数据，请检查Excel文件格式');
+      return;
     }
+
+    // 自动进行数据验证
+    await validateImportData(binaryRecords);
 
   } catch (error) {
     ElMessage.error(`文件解析失败: ${error}`);
@@ -576,6 +692,205 @@ const convertToBinaryRecords = (data: any[]): BinaryRecordForm[] => {
   });
 };
 
+// 数据验证方法
+const validateImportData = async (data: BinaryRecordForm[]) => {
+  try {
+    validating.value = true;
+    validationResult.value = null;
+
+    console.log('开始数据验证，记录数量:', data.length);
+
+    // 前端基础验证
+    const frontendValidation = performFrontendValidation(data);
+    console.log('前端验证结果:', frontendValidation);
+
+    // 暂时只使用前端验证，避免后端API调用失败影响流程
+    validationResult.value = frontendValidation;
+
+    // 保存验证通过的数据
+    if (validationResult.value) {
+      validatedData.value = data.filter((_, index) => {
+        return !validationResult.value!.errors.some(error => error.rowIndex === index + 1);
+      });
+      console.log('验证通过的数据数量:', validatedData.value.length);
+    }
+
+    const message = `数据验证完成 - 有效记录：${validationResult.value?.validCount || 0}条`;
+    console.log(message);
+    ElMessage.success(message);
+
+  } catch (error) {
+    console.error('数据验证错误:', error);
+    ElMessage.error(`数据验证失败: ${error}`);
+
+    // 即使验证失败，也要设置一个基本的验证结果，允许用户继续操作
+    validationResult.value = {
+      isValid: true,
+      totalCount: data.length,
+      validCount: data.length,
+      invalidCount: 0,
+      errors: [],
+      warnings: []
+    };
+    validatedData.value = data;
+  } finally {
+    validating.value = false;
+    console.log('验证状态重置，validating:', validating.value);
+  }
+};
+
+// 前端数据验证
+const performFrontendValidation = (data: BinaryRecordForm[]): ValidationResult => {
+  console.log('开始前端验证，数据数量:', data.length);
+
+  const errors: ImportError[] = [];
+  const warnings: ImportWarning[] = [];
+
+  data.forEach((record, index) => {
+    const rowIndex = index + 1;
+
+    // 必填字段验证
+    if (!record.recordCode) {
+      errors.push({
+        rowIndex,
+        field: '记录编码',
+        value: record.recordCode,
+        message: '记录编码不能为空',
+        errorType: 'validation'
+      });
+    }
+
+    if (!record.projectId) {
+      errors.push({
+        rowIndex,
+        field: '项目ID',
+        value: record.projectId,
+        message: '项目ID不能为空',
+        errorType: 'validation'
+      });
+    }
+
+    if (!record.recordDate) {
+      errors.push({
+        rowIndex,
+        field: '日期',
+        value: record.recordDate,
+        message: '记录日期不能为空',
+        errorType: 'validation'
+      });
+    }
+
+    // 重量数据验证
+    if (!record.nano3ActualWeight || record.nano3ActualWeight <= 0) {
+      errors.push({
+        rowIndex,
+        field: '硝酸钠重量',
+        value: record.nano3ActualWeight,
+        message: '硝酸钠重量必须大于0',
+        errorType: 'validation'
+      });
+    }
+
+    if (!record.kno3ActualWeight || record.kno3ActualWeight <= 0) {
+      errors.push({
+        rowIndex,
+        field: '硝酸钾重量',
+        value: record.kno3ActualWeight,
+        message: '硝酸钾重量必须大于0',
+        errorType: 'validation'
+      });
+    }
+
+    // 配比验证
+    if (record.nano3ActualWeight && record.kno3ActualWeight) {
+      const total = record.nano3ActualWeight + record.kno3ActualWeight;
+      const nano3Ratio = record.nano3ActualWeight / total;
+      const targetRatio = 0.6; // 6:4配比中的6
+      const deviation = Math.abs(nano3Ratio - targetRatio);
+
+      if (deviation > 0.1) { // 偏差超过10%为错误
+        errors.push({
+          rowIndex,
+          field: '配比',
+          value: `${(nano3Ratio * 100).toFixed(1)}:${((1 - nano3Ratio) * 100).toFixed(1)}`,
+          message: `配比严重偏离标准6:4，偏差${(deviation * 100).toFixed(1)}%`,
+          errorType: 'business'
+        });
+      } else if (deviation > 0.05) { // 偏差超过5%为警告
+        warnings.push({
+          rowIndex,
+          field: '配比',
+          value: `${(nano3Ratio * 100).toFixed(1)}:${((1 - nano3Ratio) * 100).toFixed(1)}`,
+          message: `配比偏离标准6:4，偏差${(deviation * 100).toFixed(1)}%`,
+          warningType: 'ratio'
+        });
+      }
+    }
+
+    // 班次验证
+    if (record.shift && ![1, 2].includes(record.shift)) {
+      errors.push({
+        rowIndex,
+        field: '班次',
+        value: record.shift,
+        message: '班次只能是1(白班)或2(夜班)',
+        errorType: 'validation'
+      });
+    }
+
+    // 日期格式验证
+    if (record.recordDate && !/^\d{4}-\d{2}-\d{2}$/.test(record.recordDate)) {
+      errors.push({
+        rowIndex,
+        field: '日期',
+        value: record.recordDate,
+        message: '日期格式应为YYYY-MM-DD',
+        errorType: 'format'
+      });
+    }
+  });
+
+  // 重复记录检查
+  const recordCodes = data.map(r => r.recordCode).filter(Boolean);
+  const duplicateCodes = recordCodes.filter((code, index) => recordCodes.indexOf(code) !== index);
+
+  duplicateCodes.forEach(code => {
+    const duplicateIndexes = data
+      .map((record, index) => ({ record, index }))
+      .filter(({ record }) => record.recordCode === code)
+      .map(({ index }) => index + 1);
+
+    duplicateIndexes.forEach(rowIndex => {
+      errors.push({
+        rowIndex,
+        field: '记录编码',
+        value: code,
+        message: `记录编码重复，重复行：${duplicateIndexes.join(', ')}`,
+        errorType: 'duplicate'
+      });
+    });
+  });
+
+  const totalCount = data.length;
+
+  // 计算有错误的行数（去重）
+  const errorRows = new Set(errors.map(error => error.rowIndex));
+  const invalidCount = errorRows.size;
+  const validCount = totalCount - invalidCount;
+
+  const result = {
+    isValid: errors.length === 0,
+    totalCount,
+    validCount,
+    invalidCount,
+    errors,
+    warnings
+  };
+
+  console.log('前端验证结果:', result);
+  return result;
+};
+
 // 添加手动记录
 const addRecord = () => {
   editFormTitle.value = '新增记录';
@@ -651,13 +966,76 @@ const getRatioClass = (row: any) => {
   return 'text-danger'; // 偏差超过5%为红色
 };
 
+// 获取错误类型标签样式
+const getErrorTypeTag = (errorType: string) => {
+  const tagMap: Record<string, string> = {
+    'validation': 'danger',
+    'business': 'warning',
+    'duplicate': 'info',
+    'format': 'danger'
+  };
+  return tagMap[errorType] || 'info';
+};
+
+// 获取错误类型文本
+const getErrorTypeText = (errorType: string) => {
+  const textMap: Record<string, string> = {
+    'validation': '验证错误',
+    'business': '业务错误',
+    'duplicate': '重复数据',
+    'format': '格式错误'
+  };
+  return textMap[errorType] || '未知错误';
+};
+
+// 获取警告类型文本
+const getWarningTypeText = (warningType: string) => {
+  const textMap: Record<string, string> = {
+    'ratio': '配比警告',
+    'range': '范围警告',
+    'suggestion': '建议优化'
+  };
+  return textMap[warningType] || '未知警告';
+};
+
+// 获取表格行样式类名
+const getRowClassName = ({ row, rowIndex }: { row: any; rowIndex: number }) => {
+  if (!validationResult.value) return '';
+
+  const hasError = validationResult.value.errors.some(error => error.rowIndex === rowIndex + 1);
+  const hasWarning = validationResult.value.warnings.some(warning => warning.rowIndex === rowIndex + 1);
+
+  if (hasError) return 'error-row';
+  if (hasWarning) return 'warning-row';
+  return '';
+};
+
 // 开始导入
 const handleImport = async () => {
   const records = importMethod.value === 'excel' ? previewData.value : manualRecords.value;
-  
+
   if (records.length === 0) {
     ElMessage.warning('没有可导入的记录');
     return;
+  }
+
+  // 检查是否有验证结果
+  if (importMethod.value === 'excel' && validationResult.value) {
+    if (!validationResult.value.isValid) {
+      const proceed = await ElMessageBox.confirm(
+        `检测到 ${validationResult.value.invalidCount} 条无效记录，是否跳过无效记录，仅导入 ${validationResult.value.validCount} 条有效记录？`,
+        '数据验证警告',
+        {
+          confirmButtonText: '仅导入有效记录',
+          cancelButtonText: '取消导入',
+          type: 'warning'
+        }
+      ).catch(() => false);
+
+      if (!proceed) {
+        return;
+      }
+    }
   }
 
   importing.value = true;
@@ -666,39 +1044,79 @@ const handleImport = async () => {
   importProgressText.value = '开始导入...';
 
   try {
-    // 模拟批量导入过程
-    for (let i = 0; i < records.length; i++) {
-      importProgress.value = Math.round(((i + 1) / records.length) * 100);
-      importProgressText.value = `正在导入第 ${i + 1} 条记录，共 ${records.length} 条`;
-      
-      // 模拟API调用延迟
-      await new Promise(resolve => setTimeout(resolve, 100));
+    // 使用验证通过的数据或全部数据
+    const dataToImport = (importMethod.value === 'excel' && validatedData.value.length > 0)
+      ? validatedData.value
+      : records;
+
+    importProgressText.value = '正在提交数据到服务器...';
+    importProgress.value = 20;
+
+    // 调用批量导入API
+    const response = await batchImportBinaryRecord(dataToImport);
+    const result = response.data;
+
+    importProgress.value = 80;
+    importProgressText.value = '正在处理导入结果...';
+
+    // 处理导入结果
+    if (result.success) {
+      importStatus.value = 'success';
+      importProgressText.value = '导入完成';
+
+      let description = `成功导入 ${result.successCount} 条记录`;
+      if (result.failureCount > 0) {
+        description += `，失败 ${result.failureCount} 条`;
+      }
+      if (result.skippedCount > 0) {
+        description += `，跳过 ${result.skippedCount} 条`;
+      }
+
+      importResult.value = {
+        title: '导入完成',
+        type: result.failureCount > 0 ? 'warning' : 'success',
+        description
+      };
+
+      // 显示详细错误信息
+      if (result.errors.length > 0) {
+        console.warn('导入错误详情:', result.errors);
+        ElMessage.warning(`导入完成，但有 ${result.errors.length} 条记录处理失败`);
+      } else {
+        ElMessage.success('所有记录导入成功');
+      }
+
+      emit('success');
+
+      // 延迟关闭弹窗
+      setTimeout(() => {
+        handleClose();
+      }, 3000);
+
+    } else {
+      throw new Error(result.message || '导入失败');
     }
 
-    importStatus.value = 'success';
-    importProgressText.value = '导入完成';
-    importResult.value = {
-      title: '导入成功',
-      type: 'success',
-      description: `成功导入 ${records.length} 条记录`
-    };
+    importProgress.value = 100;
 
-    ElMessage.success('导入成功');
-    emit('success');
-    
-    // 延迟关闭弹窗
-    setTimeout(() => {
-      handleClose();
-    }, 2000);
-  } catch (error) {
+  } catch (error: any) {
     importStatus.value = 'exception';
     importProgressText.value = '导入失败';
+
+    let errorMessage = '导入过程中发生错误';
+    if (error.response?.data?.message) {
+      errorMessage = error.response.data.message;
+    } else if (error.message) {
+      errorMessage = error.message;
+    }
+
     importResult.value = {
       title: '导入失败',
       type: 'error',
-      description: '导入过程中发生错误，请检查数据格式或联系管理员'
+      description: errorMessage
     };
-    ElMessage.error('导入失败');
+
+    ElMessage.error(`导入失败: ${errorMessage}`);
     console.error('导入错误:', error);
   } finally {
     importing.value = false;
@@ -728,6 +1146,11 @@ const handleClose = () => {
     // 重置Excel解析状态
     fileInfo.value = null;
     importErrors.value = [];
+
+    // 重置验证状态
+    validationResult.value = null;
+    validatedData.value = [];
+    validating.value = false;
   }, 300);
 };
 </script>
@@ -812,6 +1235,46 @@ const handleClose = () => {
   .text-danger {
     color: #f56c6c;
     font-weight: 600;
+  }
+
+  // 验证结果样式
+  .validation-section {
+    margin-top: 20px;
+
+    .error-details, .warning-details {
+      margin-top: 15px;
+
+      h5 {
+        margin-bottom: 10px;
+        color: #303133;
+        font-size: 14px;
+      }
+    }
+  }
+
+  // 表格行样式
+  :deep(.error-row) {
+    background-color: #fef0f0 !important;
+
+    td {
+      color: #f56c6c;
+    }
+  }
+
+  :deep(.warning-row) {
+    background-color: #fdf6ec !important;
+
+    td {
+      color: #e6a23c;
+    }
+  }
+
+  // 更多提示样式
+  .more-tip {
+    text-align: center;
+    color: #909399;
+    margin-top: 8px;
+    font-size: 12px;
   }
 }
 
