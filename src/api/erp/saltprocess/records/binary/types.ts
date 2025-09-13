@@ -338,3 +338,62 @@ export interface BinaryRecordComparison {
   improvements: string[];
   regressions: string[];
 }
+
+/**
+ * 批量导入结果
+ */
+export interface BatchImportResult {
+  success: boolean;
+  message: string;
+  totalCount: number;
+  successCount: number;
+  failureCount: number;
+  skippedCount: number;
+  errors: ImportError[];
+  warnings: ImportWarning[];
+}
+
+/**
+ * 导入错误信息
+ */
+export interface ImportError {
+  rowIndex: number;
+  field: string;
+  value: any;
+  message: string;
+  errorType: 'validation' | 'business' | 'duplicate' | 'format';
+}
+
+/**
+ * 导入警告信息
+ */
+export interface ImportWarning {
+  rowIndex: number;
+  field: string;
+  value: any;
+  message: string;
+  warningType: 'ratio' | 'range' | 'suggestion';
+}
+
+/**
+ * 数据验证结果
+ */
+export interface ValidationResult {
+  isValid: boolean;
+  totalCount: number;
+  validCount: number;
+  invalidCount: number;
+  errors: ImportError[];
+  warnings: ImportWarning[];
+}
+
+/**
+ * 导入进度信息
+ */
+export interface ImportProgress {
+  current: number;
+  total: number;
+  percentage: number;
+  status: 'processing' | 'validating' | 'importing' | 'completed' | 'failed';
+  message: string;
+}

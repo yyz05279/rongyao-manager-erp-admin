@@ -7,7 +7,9 @@ import { AxiosPromise } from 'axios';
 import {
   BinaryRecordQuery,
   BinaryRecordVO,
-  BinaryRecordForm
+  BinaryRecordForm,
+  BatchImportResult,
+  ValidationResult
 } from './types';
 import { PageResult } from '../../types';
 
@@ -139,7 +141,7 @@ export const exportBinaryRecord = (query?: BinaryRecordQuery): AxiosPromise<void
 };
 
 /**
- * 导入二元化盐记录
+ * 导入二元化盐记录（文件上传方式）
  */
 export const importBinaryRecord = (file: File): AxiosPromise<void> => {
   const formData = new FormData();
@@ -150,6 +152,32 @@ export const importBinaryRecord = (file: File): AxiosPromise<void> => {
     data: formData,
     headers: {
       'Content-Type': 'multipart/form-data'
+    }
+  });
+};
+
+/**
+ * 批量导入二元化盐记录（数据提交方式）
+ */
+export const batchImportBinaryRecord = (data: BinaryRecordForm[]): AxiosPromise<BatchImportResult> => {
+  return request({
+    url: '/erp/saltprocess/binary-record/batch-import',
+    method: 'post',
+    data: {
+      records: data
+    }
+  });
+};
+
+/**
+ * 验证批量导入数据
+ */
+export const validateBatchImportData = (data: BinaryRecordForm[]): AxiosPromise<ValidationResult> => {
+  return request({
+    url: '/erp/saltprocess/binary-record/validate-batch',
+    method: 'post',
+    data: {
+      records: data
     }
   });
 };
