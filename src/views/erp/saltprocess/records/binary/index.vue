@@ -74,9 +74,10 @@
         <el-col :span="1.5">
           <el-button type="warning" plain icon="Download" @click="handleExport">导出</el-button>
         </el-col>
-        <el-col :span="1.5">
+        <!-- Todo 暂时隐藏统计分析按钮 -->
+        <!-- <el-col :span="1.5">
           <el-button type="info" plain icon="TrendCharts" @click="handleStatistics">统计分析</el-button>
-        </el-col>
+        </el-col> -->
         <right-toolbar v-model:showSearch="showSearch" @queryTable="getList" />
       </el-row>
     </el-card>

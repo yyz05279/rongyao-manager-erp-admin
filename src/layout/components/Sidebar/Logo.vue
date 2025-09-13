@@ -23,7 +23,6 @@
 
 <script setup lang="ts">
 import variables from '@/assets/styles/variables.module.scss'
-import logo from '@/assets/logo/logo.png'
 import useSettingsStore from '@/store/modules/settings'
 import { ComponentInternalInstance } from "vue";
 const { proxy } = getCurrentInstance() as ComponentInternalInstance;
@@ -35,7 +34,8 @@ defineProps({
     }
 })
 
-const title = ref('企业管理系统');
+const title = ref('江苏联储ERP管理系统');
+const logo = '/logo.png'; // 使用public目录下的logo.png
 const settingsStore = useSettingsStore();
 const sideTheme = computed(() => settingsStore.sideTheme);
 </script>
