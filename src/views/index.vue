@@ -2,7 +2,7 @@
   <div class="app-container home">
     <!-- 系统标题区域 -->
     <div class="header-section">
-      <h1 class="system-title">海棠企业管理系统</h1>
+      <h1 class="system-title">江苏联储ERP管理系统</h1>
       <p class="system-desc">现代化的企业级管理平台，专注于提供高效、安全、易用的业务管理解决方案</p>
       <div class="version-info">
         <el-tag type="success">v1.0.0</el-tag>
