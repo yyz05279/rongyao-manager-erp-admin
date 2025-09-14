@@ -230,7 +230,7 @@
 import { ref, reactive, computed, watch } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import type { FormInstance, FormRules } from 'element-plus';
-// import { getBinaryRecord, addBinaryRecord, updateBinaryRecord } from '@/api/erp/saltprocess/records/binary';
+import { getBinaryRecord, addBinaryRecord, updateBinaryRecord } from '@/api/erp/saltprocess/records/binary';
 import type { BinaryRecordForm, BinaryRecordVO } from '@/api/erp/saltprocess/records/binary/types';
 
 // Props
@@ -397,29 +397,11 @@ const getRecordDetail = async () => {
 
   loading.value = true;
   try {
-    // TODO: 暂时注释掉接口调用，使用模拟数据
-    // const { data } = await getBinaryRecord(props.recordId);
-    // Object.assign(formData, data);
-
-    // 模拟数据填充
-    const mockData = {
-      recordCode: 'BIN_1733097600_001',
-      projectId: 101,
-      recordDate: '2024-12-01',
-      shift: 1,
-      nano3ActualWeight: 36000,
-      kno3ActualWeight: 24000,
-      moltenSaltLevel: 2.5,
-      moltenSaltTemperature: 565,
-      gasConsumption: 1200,
-      powerConsumption: 850,
-      staffCount: 8,
-      recorderName: '张三',
-      remarks: '测试数据'
-    };
-    Object.assign(formData, mockData);
-  } catch (error) {
-    ElMessage.error('获取记录详情失败');
+    const response = await getBinaryRecord(props.recordId);
+    // 直接使用返回的数据，假设API返回的就是记录对象
+    Object.assign(formData, response.data);
+  } catch (error: any) {
+    ElMessage.error(`获取记录详情失败: ${error.message || '请检查API服务状态'}`);
     console.error('获取记录详情失败:', error);
   } finally {
     loading.value = false;
@@ -464,21 +446,28 @@ const handleSubmit = async () => {
 
   loading.value = true;
   try {
-    // TODO: 暂时注释掉接口调用，使用模拟操作
     if (isEdit.value) {
-      // await updateBinaryRecord({ ...formData, id: props.recordId });
-      console.log('模拟更新操作:', { ...formData, id: props.recordId });
-      ElMessage.success('更新成功（模拟）');
+      // 更新记录
+      const response = await updateBinaryRecord({ ...formData, id: props.recordId || undefined });
+      if (response.code === 200) {
+        ElMessage.success('更新成功');
+      } else {
+        throw new Error(response.msg || '更新失败');
+      }
     } else {
-      // await addBinaryRecord(formData);
-      console.log('模拟保存操作:', formData);
-      ElMessage.success('保存成功（模拟）');
+      // 新增记录
+      const response = await addBinaryRecord(formData);
+      if (response.code === 200) {
+        ElMessage.success('保存成功');
+      } else {
+        throw new Error(response.msg || '保存失败');
+      }
     }
     emit('success');
     handleClose();
-  } catch (error) {
-    ElMessage.error(isEdit.value ? '更新失败' : '保存失败');
-    console.error('提交失败:', error);
+  } catch (error: any) {
+    console.error('API调用失败:', error);
+    ElMessage.error(`${isEdit.value ? '更新' : '保存'}失败: ${error.message || '请检查API服务状态'}`);
   } finally {
     loading.value = false;
   }

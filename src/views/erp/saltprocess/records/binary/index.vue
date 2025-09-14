@@ -198,8 +198,9 @@
 
     <!-- 统计分析对话框 -->
     <el-dialog title="二元化盐统计分析" v-model="statisticsDialog.visible" width="1200px" append-to-body>
-      <binary-statistics
-        v-if="statisticsDialog.visible"
+      <component
+        :is="BinaryStatistics"
+        v-if="statisticsDialog.visible && BinaryStatistics"
         @close="statisticsDialog.visible = false"
       />
     </el-dialog>
@@ -210,9 +211,20 @@
 import { ref, reactive, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { parseTime } from '@/utils/ruoyi';
-import * as XLSX from 'xlsx';
+import { ElMessage, ElMessageBox, ElLoading } from 'element-plus';
+
 import EditForm from './components/EditForm.vue';
 import ImportDialog from './components/ImportDialog.vue';
+// API接口导入
+import {
+  listBinaryRecords,
+  getBinaryRecord,
+  addBinaryRecord,
+  updateBinaryRecord,
+  deleteBinaryRecord,
+  exportBinaryRecords,
+  getStatisticsData
+} from '@/api/erp/saltprocess/records/binary';
 
 const router = useRouter();
 
@@ -224,6 +236,9 @@ const total = ref(0);
 const ids = ref<string[]>([]);
 const single = ref(true);
 const multiple = ref(true);
+
+// 动态组件
+const BinaryStatistics = ref<any>(null);
 
 // 对话框
 const editDialog = reactive({
@@ -264,121 +279,57 @@ onMounted(() => {
 const getList = async () => {
   loading.value = true;
   try {
-    // TODO: 调用API获取二元化盐记录列表
-    // 模拟数据 - 包含不同配比状态的记录
-    let allRecords = [
-      {
-        id: '1',
-        recordCode: 'BIN_1733097600_001',
-        batchNumber: 'BATCH_20241201_001',
-        projectId: 101,
-        recordDate: '2024-12-01',
-        shift: 1,
-        nano3ActualWeight: 3600, // 3.6吨 = 3600kg (60% - 正常配比)
-        kno3ActualWeight: 2400, // 2.4吨 = 2400kg (40% - 正常配比)
-        moltenSaltLevel: 2.5,
-        moltenSaltTemperature: 565,
-        gasConsumption: 1200,
-        powerConsumption: 850,
-        staffCount: 8,
-        recorderName: '张三',
-        operatorName: '张三',
-        qualityGrade: 1
-      },
-      {
-        id: '2',
-        recordCode: 'BIN_1733097600_002',
-        batchNumber: 'BATCH_20241201_002',
-        projectId: 102,
-        recordDate: '2024-12-01',
-        shift: 2,
-        nano3ActualWeight: 3580, // 3.58吨 (59.7% - 正常配比)
-        kno3ActualWeight: 2420, // 2.42吨 (40.3% - 正常配比)
-        moltenSaltLevel: 2.3,
-        moltenSaltTemperature: 570,
-        gasConsumption: 1180,
-        powerConsumption: 820,
-        staffCount: 6,
-        recorderName: '李四',
-        operatorName: '李四',
-        qualityGrade: 2
-      },
-      {
-        id: '3',
-        recordCode: 'BIN_1733184000_001',
-        batchNumber: 'BATCH_20241202_001',
-        projectId: 103,
-        recordDate: '2024-12-02',
-        shift: 1,
-        nano3ActualWeight: 3000, // 3.0吨 (50% - 异常配比)
-        kno3ActualWeight: 3000, // 3.0吨 (50% - 异常配比)
-        moltenSaltLevel: 2.7,
-        moltenSaltTemperature: 560,
-        gasConsumption: 1250,
-        powerConsumption: 880,
-        staffCount: 9,
-        recorderName: '王五',
-        operatorName: '王五',
-        qualityGrade: 1
-      },
-      {
-        id: '4',
-        recordCode: 'BIN_1733270400_001',
-        batchNumber: 'BATCH_20241203_001',
-        projectId: 104,
-        recordDate: '2024-12-03',
-        shift: 1,
-        nano3ActualWeight: 4200, // 4.2吨 (70% - 异常配比)
-        kno3ActualWeight: 1800, // 1.8吨 (30% - 异常配比)
-        moltenSaltLevel: 2.4,
-        moltenSaltTemperature: 575,
-        gasConsumption: 1300,
-        powerConsumption: 900,
-        staffCount: 7,
-        recorderName: '赵六',
-        operatorName: '赵六',
-        qualityGrade: 3
-      }
-    ];
+    console.log('=== 开始调用二元记录API ===');
+    console.log('请求参数:', queryParams);
+    console.log('API URL:', '/erp/saltprocess/binary-record/list');
 
-    // 应用配比筛选
-    if (queryParams.ratioStatus) {
-      allRecords = allRecords.filter(record => {
-        const recordRatioStatus = getRatioStatus(record);
-        return recordRatioStatus === queryParams.ratioStatus;
-      });
+    // 调用API获取二元化盐记录列表
+    const response = await listBinaryRecords(queryParams);
+
+    console.log('=== API响应详情 ===');
+    console.log('完整响应对象:', response);
+    console.log('响应数据类型:', typeof response);
+
+    // 由于响应拦截器返回了res.data，所以response就是原始数据
+    console.log('response.code:', response.code);
+    console.log('response.msg:', response.msg);
+    console.log('response.rows:', response.rows);
+    console.log('response.total:', response.total);
+
+    if (response && response.code === 200) {
+      recordList.value = response.rows || [];
+      total.value = response.total || 0;
+      console.log('数据设置成功 - 记录数量:', recordList.value.length, '总数:', total.value);
+    } else {
+      const errorMsg = response?.msg || 'API调用失败';
+      console.error('API返回错误:', errorMsg);
+      throw new Error(errorMsg);
+    }
+  } catch (error: any) {
+    console.error('=== 捕获到错误 ===');
+    console.error('错误对象:', error);
+    console.error('错误类型:', error?.constructor?.name);
+    console.error('错误消息:', error?.message);
+    console.error('错误堆栈:', error?.stack);
+
+    if (error?.response) {
+      console.error('HTTP响应错误:');
+      console.error('- 状态码:', error.response.status);
+      console.error('- 状态文本:', error.response.statusText);
+      console.error('- 响应数据:', error.response.data);
+      console.error('- 响应头:', error.response.headers);
     }
 
-    // 应用其他筛选条件
-    if (queryParams.recordCode) {
-      allRecords = allRecords.filter(record =>
-        record.recordCode.includes(queryParams.recordCode)
-      );
-    }
-    if (queryParams.batchNumber) {
-      allRecords = allRecords.filter(record =>
-        record.batchNumber.includes(queryParams.batchNumber)
-      );
-    }
-    if (queryParams.projectId) {
-      allRecords = allRecords.filter(record =>
-        record.projectId === queryParams.projectId
-      );
-    }
-    if (queryParams.recordDate) {
-      allRecords = allRecords.filter(record =>
-        record.recordDate === queryParams.recordDate
-      );
-    }
-
-    recordList.value = allRecords;
-    total.value = allRecords.length;
-  } catch (error) {
-    console.error('获取二元化盐记录列表失败:', error);
+    ElMessage.error(`获取数据失败: ${error.message || '请检查API服务状态'}`);
+    // 清空数据列表
+    recordList.value = [];
+    total.value = 0;
   } finally {
     loading.value = false;
   }
 };
+
+
 
 const handleQuery = () => {
   queryParams.pageNum = 1;
@@ -424,253 +375,70 @@ const handleDelete = async (row?: any) => {
       cancelButtonText: '取消',
       type: 'warning'
     });
-    
-    // TODO: 调用删除API
-    ElMessage.success('删除成功');
-    getList();
+
+    // 调用删除API
+    const response = await deleteBinaryRecord(recordIds);
+    if (response.code === 200) {
+      ElMessage.success('删除成功');
+      getList();
+    } else {
+      ElMessage.error(response.msg || '删除失败');
+    }
   } catch (error) {
     if (error !== 'cancel') {
+      console.error('删除失败:', error);
       ElMessage.error('删除失败');
     }
   }
 };
 
 const handleExport = async () => {
-  try {
-    // 显示加载状态
-    const loadingInstance = ElLoading.service({
-      lock: true,
-      text: '正在导出数据...',
-      background: 'rgba(0, 0, 0, 0.7)'
-    });
-
-    // 获取当前筛选条件下的所有数据
-    const exportData = await getExportData();
-
-    if (exportData.length === 0) {
-      loadingInstance.close();
-      ElMessage.warning('没有可导出的数据');
-      return;
-    }
-
-    // 转换数据格式为Excel导出格式
-    const excelData = convertToExcelFormat(exportData);
-
-    // 创建工作簿
-    const ws = XLSX.utils.json_to_sheet(excelData);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, '二元化盐记录');
-
-    // 设置列宽以提高可读性
-    const colWidths = [
-      { wch: 18 }, // 记录编码
-      { wch: 8 },  // 项目ID
-      { wch: 12 }, // 日期
-      { wch: 8 },  // 班次
-      { wch: 12 }, // 硝酸钠(t)
-      { wch: 12 }, // 硝酸钾(t)
-      { wch: 15 }, // 硝酸钠：硝酸钾
-      { wch: 12 }, // 总计化盐(t)
-      { wch: 12 }, // 熔盐液位(m)
-      { wch: 12 }, // 熔盐温度(℃)
-      { wch: 15 }, // 天然气耗量(Nm³)
-      { wch: 12 }, // 用电量(KWh)
-      { wch: 8 },  // 人数
-      { wch: 10 }, // 记录人
-    ];
-    ws['!cols'] = colWidths;
-
-    // 应用条件格式化 - 标红不满足6:4配比的数据
-    applyConditionalFormatting(ws, exportData);
-
-    // 生成文件名
-    const fileName = generateExportFileName();
-
-    // 下载文件
-    XLSX.writeFile(wb, fileName);
-
-    loadingInstance.close();
-    ElMessage.success(`成功导出 ${exportData.length} 条记录`);
-
-  } catch (error) {
-    console.error('导出失败:', error);
-    ElMessage.error('导出失败，请重试');
-  }
-};
-
-// 获取导出数据
-const getExportData = async () => {
-  // 基于当前筛选条件获取所有数据（不分页）
-  // TODO: 这里应该调用API获取完整数据，目前使用模拟数据
-
-  // 模拟获取完整数据集
-  let allRecords = [
-    {
-      id: '1',
-      recordCode: 'BIN_1733097600_001',
-      batchNumber: 'BATCH_20241201_001',
-      projectId: 101,
-      recordDate: '2024-12-01',
-      shift: 1,
-      nano3ActualWeight: 3600, // kg
-      kno3ActualWeight: 2400, // kg
-      moltenSaltLevel: 2.5,
-      moltenSaltTemperature: 565,
-      gasConsumption: 1200,
-      powerConsumption: 850,
-      staffCount: 8,
-      recorderName: '张三',
-      operatorName: '张三',
-      qualityGrade: 1
-    },
-    {
-      id: '2',
-      recordCode: 'BIN_1733097600_002',
-      batchNumber: 'BATCH_20241201_002',
-      projectId: 102,
-      recordDate: '2024-12-01',
-      shift: 2,
-      nano3ActualWeight: 3580, // kg
-      kno3ActualWeight: 2420, // kg
-      moltenSaltLevel: 2.3,
-      moltenSaltTemperature: 570,
-      gasConsumption: 1180,
-      powerConsumption: 820,
-      staffCount: 6,
-      recorderName: '李四',
-      operatorName: '李四',
-      qualityGrade: 2
-    },
-    {
-      id: '3',
-      recordCode: 'BIN_1733184000_001',
-      batchNumber: 'BATCH_20241202_001',
-      projectId: 103,
-      recordDate: '2024-12-02',
-      shift: 1,
-      nano3ActualWeight: 3000, // kg
-      kno3ActualWeight: 3000, // kg
-      moltenSaltLevel: 2.7,
-      moltenSaltTemperature: 560,
-      gasConsumption: 1250,
-      powerConsumption: 880,
-      staffCount: 9,
-      recorderName: '王五',
-      operatorName: '王五',
-      qualityGrade: 1
-    },
-    {
-      id: '4',
-      recordCode: 'BIN_1733270400_001',
-      batchNumber: 'BATCH_20241203_001',
-      projectId: 104,
-      recordDate: '2024-12-03',
-      shift: 1,
-      nano3ActualWeight: 4200, // kg - 配比异常：70:30，超出6:4±5%范围
-      kno3ActualWeight: 1800, // kg
-      moltenSaltLevel: 2.4,
-      moltenSaltTemperature: 575,
-      gasConsumption: 1300,
-      powerConsumption: 900,
-      staffCount: 7,
-      recorderName: '赵六',
-      operatorName: '赵六',
-      qualityGrade: 3
-    },
-    {
-      id: '5',
-      recordCode: 'BIN_1733356800_001',
-      batchNumber: 'BATCH_20241204_001',
-      projectId: 105,
-      recordDate: '2024-12-04',
-      shift: 2,
-      nano3ActualWeight: 2400, // kg - 配比异常：40:60，超出6:4±5%范围
-      kno3ActualWeight: 3600, // kg
-      moltenSaltLevel: 2.6,
-      moltenSaltTemperature: 555,
-      gasConsumption: 1150,
-      powerConsumption: 780,
-      staffCount: 5,
-      recorderName: '孙七',
-      operatorName: '孙七',
-      qualityGrade: 4
-    },
-    {
-      id: '6',
-      recordCode: 'BIN_1733443200_001',
-      batchNumber: 'BATCH_20241205_001',
-      projectId: 106,
-      recordDate: '2024-12-05',
-      shift: 1,
-      nano3ActualWeight: 3900, // kg - 配比异常：65:35，刚好超出6:4±5%范围
-      kno3ActualWeight: 2100, // kg
-      moltenSaltLevel: 2.8,
-      moltenSaltTemperature: 580,
-      gasConsumption: 1350,
-      powerConsumption: 920,
-      staffCount: 8,
-      recorderName: '周八',
-      operatorName: '周八',
-      qualityGrade: 2
-    }
-  ];
-
-  // 应用当前筛选条件
-  if (queryParams.ratioStatus) {
-    allRecords = allRecords.filter(record => {
-      const recordRatioStatus = getRatioStatus(record);
-      return recordRatioStatus === queryParams.ratioStatus;
-    });
-  }
-
-  if (queryParams.recordCode) {
-    allRecords = allRecords.filter(record =>
-      record.recordCode.includes(queryParams.recordCode)
-    );
-  }
-  if (queryParams.batchNumber) {
-    allRecords = allRecords.filter(record =>
-      record.batchNumber.includes(queryParams.batchNumber)
-    );
-  }
-  if (queryParams.projectId) {
-    allRecords = allRecords.filter(record =>
-      record.projectId === queryParams.projectId
-    );
-  }
-  if (queryParams.recordDate) {
-    allRecords = allRecords.filter(record =>
-      record.recordDate === queryParams.recordDate
-    );
-  }
-
-  return allRecords;
-};
-
-// 转换数据格式为Excel导出格式
-const convertToExcelFormat = (data: any[]) => {
-  return data.map(record => {
-    const isAbnormal = !isNormalRatio(record.nano3ActualWeight, record.kno3ActualWeight);
-    const ratioText = formatRatio(record.nano3ActualWeight, record.kno3ActualWeight);
-
-    return {
-      '记录编码': record.recordCode,
-      '项目ID': record.projectId,
-      '日期': record.recordDate,
-      '班次': record.shift === 1 ? '白班' : '夜班',
-      '硝酸钠(t)': formatWeight(record.nano3ActualWeight),
-      '硝酸钾(t)': formatWeight(record.kno3ActualWeight),
-      '硝酸钠：硝酸钾': isAbnormal ? `${ratioText} ⚠️` : ratioText, // 异常配比添加警告标识
-      '总计化盐(t)': formatWeight(getTotalSaltWeight(record)),
-      '熔盐液位(m)': record.moltenSaltLevel || '-',
-      '熔盐温度(℃)': record.moltenSaltTemperature || '-',
-      '天然气耗量(Nm³)': record.gasConsumption || '-',
-      '用电量(KWh)': record.powerConsumption || '-',
-      '人数': record.staffCount || '-',
-      '记录人': record.recorderName || record.operatorName || '-'
-    };
+  // 显示加载状态
+  const loadingInstance = ElLoading.service({
+    lock: true,
+    text: '正在导出数据...',
+    background: 'rgba(0, 0, 0, 0.7)'
   });
+
+  try {
+    // 使用API导出
+    const exportParams = {
+      ...queryParams,
+      exportType: 'excel' as const,
+      fileName: generateExportFileName()
+    };
+    delete (exportParams as any).pageNum;
+    delete (exportParams as any).pageSize;
+
+    const response = await exportBinaryRecords(exportParams);
+
+    // 创建下载链接
+    const blob = new Blob([response.data], {
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = exportParams.fileName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+
+    ElMessage.success('导出成功');
+
+  } catch (error: any) {
+    console.error('导出失败:', error);
+    ElMessage.error(`导出失败: ${error.message || '请检查API服务状态'}`);
+  } finally {
+    loadingInstance.close();
+  }
 };
+
+
+
+
+
 
 // 生成导出文件名
 const generateExportFileName = () => {
@@ -694,116 +462,7 @@ const generateExportFileName = () => {
   return `${fileName}.xlsx`;
 };
 
-// 应用条件格式化 - 标红不满足6:4配比的数据
-const applyConditionalFormatting = (ws: any, data: any[]) => {
-  if (!ws['!ref']) return;
 
-  // 初始化样式对象
-  if (!ws['!styles']) ws['!styles'] = {};
-  if (!ws['!merges']) ws['!merges'] = [];
-
-  // 定义标红样式
-  const redStyle = {
-    fill: {
-      fgColor: { rgb: "FFCCCC" } // 浅红色背景
-    },
-    font: {
-      color: { rgb: "CC0000" }, // 红色字体
-      bold: true
-    },
-    border: {
-      top: { style: "thin", color: { rgb: "CC0000" } },
-      bottom: { style: "thin", color: { rgb: "CC0000" } },
-      left: { style: "thin", color: { rgb: "CC0000" } },
-      right: { style: "thin", color: { rgb: "CC0000" } }
-    }
-  };
-
-  // 定义正常样式
-  const normalStyle = {
-    fill: {
-      fgColor: { rgb: "FFFFFF" } // 白色背景
-    },
-    font: {
-      color: { rgb: "000000" } // 黑色字体
-    }
-  };
-
-  // 遍历数据行，检查配比是否符合6:4标准
-  data.forEach((record, index) => {
-    const rowIndex = index + 2; // Excel行号从2开始（第1行是标题）
-    const isAbnormalRatio = !isNormalRatio(record.nano3ActualWeight, record.kno3ActualWeight);
-
-    if (isAbnormalRatio) {
-      // 标红整行数据
-      const columns = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N'];
-      columns.forEach(col => {
-        const cellRef = `${col}${rowIndex}`;
-        if (ws[cellRef]) {
-          ws[cellRef].s = redStyle;
-        }
-      });
-
-      // 特别标注配比列（第7列：硝酸钠：硝酸钾）
-      const ratioCell = `G${rowIndex}`;
-      if (ws[ratioCell]) {
-        ws[ratioCell].s = {
-          ...redStyle,
-          font: {
-            ...redStyle.font,
-            size: 12,
-            bold: true
-          }
-        };
-        // 添加注释
-        ws[ratioCell].c = [{
-          a: "系统",
-          t: `配比异常：不符合标准6:4配比\n当前配比：${formatRatio(record.nano3ActualWeight, record.kno3ActualWeight)}\n偏差超出正常范围(±5%)`
-        }];
-      }
-    } else {
-      // 应用正常样式
-      const columns = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N'];
-      columns.forEach(col => {
-        const cellRef = `${col}${rowIndex}`;
-        if (ws[cellRef]) {
-          ws[cellRef].s = normalStyle;
-        }
-      });
-    }
-  });
-
-  // 设置标题行样式
-  const headerStyle = {
-    fill: {
-      fgColor: { rgb: "E6F3FF" } // 浅蓝色背景
-    },
-    font: {
-      color: { rgb: "000000" },
-      bold: true,
-      size: 12
-    },
-    alignment: {
-      horizontal: "center",
-      vertical: "center"
-    },
-    border: {
-      top: { style: "thin", color: { rgb: "000000" } },
-      bottom: { style: "thin", color: { rgb: "000000" } },
-      left: { style: "thin", color: { rgb: "000000" } },
-      right: { style: "thin", color: { rgb: "000000" } }
-    }
-  };
-
-  // 应用标题行样式
-  const headerColumns = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N'];
-  headerColumns.forEach(col => {
-    const cellRef = `${col}1`;
-    if (ws[cellRef]) {
-      ws[cellRef].s = headerStyle;
-    }
-  });
-};
 
 // 判断配比是否正常（6:4标准，允许±5%偏差）
 const isNormalRatio = (nano3Weight: number, kno3Weight: number): boolean => {
@@ -828,7 +487,18 @@ const isNormalRatio = (nano3Weight: number, kno3Weight: number): boolean => {
   return nano3Deviation <= tolerance && kno3Deviation <= tolerance;
 };
 
-const handleStatistics = () => {
+const handleStatistics = async () => {
+  // 动态导入统计组件
+  if (!BinaryStatistics.value) {
+    try {
+      const module = await import('./components/BinaryStatistics.vue');
+      BinaryStatistics.value = module.default;
+    } catch (error) {
+      console.error('加载统计组件失败:', error);
+      ElMessage.error('加载统计组件失败');
+      return;
+    }
+  }
   statisticsDialog.visible = true;
 };
 
