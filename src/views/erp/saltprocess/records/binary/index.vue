@@ -22,14 +22,14 @@
             style="width: 200px"
           />
         </el-form-item>
-        <el-form-item label="批次号" prop="batchNumber">
+        <!-- <el-form-item label="批次号" prop="batchNumber">
           <el-input
             v-model="queryParams.batchNumber"
             placeholder="请输入批次号"
             clearable
             style="width: 200px"
           />
-        </el-form-item>
+        </el-form-item> -->
         <el-form-item label="项目ID" prop="projectId">
           <el-input
             v-model="queryParams.projectId"
@@ -44,6 +44,10 @@
             type="date"
             placeholder="选择记录日期"
             style="width: 200px"
+            format="YYYY-MM-DD"
+            value-format="YYYY-MM-DD"
+            clearable
+            @change="handleDateChange"
           />
         </el-form-item>
         <el-form-item label="配比状态" prop="ratioStatus">
@@ -87,7 +91,6 @@
         v-loading="loading"
         :data="recordList"
         @selection-change="handleSelectionChange"
-        @row-click="handleRowClick"
         stripe
         border
         height="600"
@@ -275,16 +278,47 @@ onMounted(() => {
   getList();
 });
 
+// 工具函数
+const formatDate = (date: any): string => {
+  if (!date) return '';
+  if (typeof date === 'string') return date;
+  if (date instanceof Date) {
+    return date.toISOString().split('T')[0]; // YYYY-MM-DD
+  }
+  return '';
+};
+
 // 方法
 const getList = async () => {
   loading.value = true;
   try {
     console.log('=== 开始调用二元记录API ===');
-    console.log('请求参数:', queryParams);
+    console.log('原始查询参数:', queryParams);
+
+    // 处理查询参数
+    const processedParams: any = { ...queryParams };
+
+    // 由于日期选择器已配置value-format="YYYY-MM-DD"，日期应该已经是字符串格式
+    console.log('日期参数类型:', typeof processedParams.recordDate, '值:', processedParams.recordDate);
+
+    // 清理空值参数（保留分页参数）
+    const cleanedParams: any = {};
+    Object.keys(processedParams).forEach(key => {
+      const value = processedParams[key];
+      if (key === 'pageNum' || key === 'pageSize') {
+        // 分页参数始终保留
+        cleanedParams[key] = value;
+      } else if (value !== '' && value !== null && value !== undefined) {
+        // 其他参数只有在有值时才保留
+        cleanedParams[key] = value;
+      }
+    });
+
+    console.log('处理后的查询参数:', cleanedParams);
     console.log('API URL:', '/erp/saltprocess/binary-record/list');
 
     // 调用API获取二元化盐记录列表
-    const response = await listBinaryRecords(queryParams);
+    const response = await listBinaryRecords(cleanedParams);
 
     console.log('=== API响应详情 ===');
     console.log('完整响应对象:', response);
@@ -341,14 +375,17 @@ const resetQuery = () => {
   handleQuery();
 };
 
+const handleDateChange = (value: string | null) => {
+  console.log('日期选择器值变化:', value);
+  queryParams.recordDate = value || '';
+  // 可以选择是否自动触发查询
+  // handleQuery();
+};
+
 const handleSelectionChange = (selection: any[]) => {
   ids.value = selection.map(item => item.id);
   single.value = selection.length !== 1;
   multiple.value = !selection.length;
-};
-
-const handleRowClick = (row: any) => {
-  handleView(row);
 };
 
 const handleAdd = () => {
