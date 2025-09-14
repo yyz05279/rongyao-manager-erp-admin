@@ -10,10 +10,14 @@ export interface BinaryRecordQuery {
   batchNumber?: string;
   projectId?: number;
   recordDate?: string;
-  qualityGrade?: number;
-  operatorId?: number;
   startDate?: string;
   endDate?: string;
+  shift?: number;              // 班次 (1-白班, 2-夜班)
+  ratioStatus?: 'normal' | 'abnormal';  // 配比状态
+  qualityGrade?: number;
+  operatorId?: number;
+  recorderName?: string;       // 记录人
+  operatorName?: string;       // 操作人
   ratioDeviationRange?: [number, number];
   yieldRateRange?: [number, number];
 }
@@ -396,4 +400,82 @@ export interface ImportProgress {
   percentage: number;
   status: 'processing' | 'validating' | 'importing' | 'completed' | 'failed';
   message: string;
+}
+
+// API响应基础结构
+export interface ApiResponse<T = any> {
+  code: number;
+  msg: string;
+  data: T;
+}
+
+// 分页响应结构
+export interface PageResponse<T = any> {
+  total: number;
+  rows: T[];
+}
+
+// 二元化盐记录列表响应
+export type BinaryRecordListResponse = ApiResponse<PageResponse<BinaryRecordVO>>;
+
+// 二元化盐记录详情响应
+export type BinaryRecordDetailResponse = ApiResponse<BinaryRecordVO>;
+
+// 删除操作参数
+export interface DeleteParams {
+  ids: string[];              // 要删除的记录ID数组
+}
+
+// 导出参数
+export interface ExportParams extends Omit<BinaryRecordQuery, 'pageNum' | 'pageSize'> {
+  exportType?: 'excel' | 'csv'; // 导出类型
+  fileName?: string;          // 文件名
+}
+
+// 统计分析查询参数
+export interface StatisticsQuery {
+  startDate?: string;         // 开始日期
+  endDate?: string;           // 结束日期
+  projectId?: number;         // 项目ID
+  timeRange?: '7days' | '30days' | '3months' | 'custom'; // 时间范围
+}
+
+// 统计分析数据结构
+export interface StatisticsData {
+  dates: string[];            // 日期数组
+  nano3Data: number[];        // 硝酸钠用量数据
+  kno3Data: number[];         // 硝酸钾用量数据
+  gasData: number[];          // 天然气消耗数据
+  powerData: number[];        // 电量消耗数据
+  staffData: number[];        // 人员数据
+}
+
+// 统计概览数据
+export interface OverviewStatistics {
+  totalSalt: number;          // 总化盐量(t)
+  avgGas: number;             // 平均气耗(Nm³)
+  avgPower: number;           // 平均电耗(KWh)
+  avgStaff: number;           // 平均人数
+  normalRatio: number;        // 正常配比率(%)
+}
+
+// 统计分析响应
+export interface StatisticsResponse {
+  overview: OverviewStatistics;
+  chartData: StatisticsData;
+}
+
+// 统计分析API响应
+export type StatisticsApiResponse = ApiResponse<StatisticsResponse>;
+
+// 配比状态枚举
+export enum RatioStatus {
+  NORMAL = 'normal',
+  ABNORMAL = 'abnormal'
+}
+
+// 班次枚举
+export enum Shift {
+  DAY = 1,    // 白班
+  NIGHT = 2   // 夜班
 }

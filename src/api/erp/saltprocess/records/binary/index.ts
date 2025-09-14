@@ -9,20 +9,27 @@ import {
   BinaryRecordVO,
   BinaryRecordForm,
   BatchImportResult,
-  ValidationResult
+  ValidationResult,
+  StatisticsQuery,
+  StatisticsApiResponse,
+  ApiResponse,
+  DeleteParams,
+  ExportParams
 } from './types';
-import { PageResult } from '../../types';
 
 /**
  * 查询二元化盐记录列表
  */
-export const listBinaryRecord = (query?: BinaryRecordQuery): AxiosPromise<PageResult<BinaryRecordVO>> => {
+export const listBinaryRecord = (query?: BinaryRecordQuery): AxiosPromise<any> => {
   return request({
     url: '/erp/saltprocess/binary-record/list',
     method: 'get',
     params: query
   });
 };
+
+// 兼容新的命名方式
+export const listBinaryRecords = listBinaryRecord;
 
 /**
  * 获取二元化盐记录详情
@@ -37,7 +44,7 @@ export const getBinaryRecord = (id: string | number): AxiosPromise<BinaryRecordV
 /**
  * 新增二元化盐记录
  */
-export const addBinaryRecord = (data: BinaryRecordForm): AxiosPromise<BinaryRecordVO> => {
+export const addBinaryRecord = (data: BinaryRecordForm): AxiosPromise<ApiResponse<BinaryRecordVO>> => {
   return request({
     url: '/erp/saltprocess/binary-record',
     method: 'post',
@@ -48,7 +55,7 @@ export const addBinaryRecord = (data: BinaryRecordForm): AxiosPromise<BinaryReco
 /**
  * 修改二元化盐记录
  */
-export const updateBinaryRecord = (data: BinaryRecordForm): AxiosPromise<void> => {
+export const updateBinaryRecord = (data: BinaryRecordForm): AxiosPromise<ApiResponse> => {
   return request({
     url: '/erp/saltprocess/binary-record',
     method: 'put',
@@ -59,10 +66,24 @@ export const updateBinaryRecord = (data: BinaryRecordForm): AxiosPromise<void> =
 /**
  * 删除二元化盐记录
  */
-export const delBinaryRecord = (ids: string | number | Array<string | number>): AxiosPromise<void> => {
+export const delBinaryRecord = (ids: string | number | Array<string | number>): AxiosPromise<ApiResponse> => {
   return request({
     url: '/erp/saltprocess/binary-record/' + ids,
     method: 'delete'
+  });
+};
+
+// 兼容新的命名方式
+export const deleteBinaryRecord = delBinaryRecord;
+
+/**
+ * 批量删除二元化盐记录
+ */
+export const batchDeleteBinaryRecords = (params: DeleteParams): AxiosPromise<ApiResponse> => {
+  return request({
+    url: '/erp/saltprocess/binary-record/batch',
+    method: 'delete',
+    data: params
   });
 };
 
@@ -131,7 +152,7 @@ export const countBinaryRecord = (startDate: string, endDate: string): AxiosProm
 /**
  * 导出二元化盐记录
  */
-export const exportBinaryRecord = (query?: BinaryRecordQuery): AxiosPromise<void> => {
+export const exportBinaryRecord = (query?: ExportParams): AxiosPromise<Blob> => {
   return request({
     url: '/erp/saltprocess/binary-record/export',
     method: 'post',
@@ -139,6 +160,9 @@ export const exportBinaryRecord = (query?: BinaryRecordQuery): AxiosPromise<void
     responseType: 'blob'
   });
 };
+
+// 兼容新的命名方式
+export const exportBinaryRecords = exportBinaryRecord;
 
 /**
  * 导入二元化盐记录（文件上传方式）
@@ -370,5 +394,69 @@ export const getBinaryRatioOptimization = (recordId: string | number): AxiosProm
   return request({
     url: '/erp/saltprocess/binary-record/ratio-optimization/' + recordId,
     method: 'get'
+  });
+};
+
+/**
+ * 获取统计分析数据（用于统计分析组件）
+ */
+export const getStatisticsData = (query?: StatisticsQuery): AxiosPromise<StatisticsApiResponse> => {
+  return request({
+    url: '/erp/saltprocess/binary-record/statistics-data',
+    method: 'get',
+    params: query
+  });
+};
+
+/**
+ * 生成记录编码
+ */
+export const generateRecordCode = (projectId: number, recordDate: string): AxiosPromise<ApiResponse<string>> => {
+  return request({
+    url: '/erp/saltprocess/binary-record/generate-code',
+    method: 'get',
+    params: { projectId, recordDate }
+  });
+};
+
+/**
+ * 检查记录编码是否存在
+ */
+export const checkRecordCodeExists = (recordCode: string): AxiosPromise<ApiResponse<boolean>> => {
+  return request({
+    url: '/erp/saltprocess/binary-record/check-code',
+    method: 'get',
+    params: { recordCode }
+  });
+};
+
+/**
+ * 获取项目列表（用于下拉选择）
+ */
+export const getProjectList = (): AxiosPromise<ApiResponse<Array<{id: number, name: string}>>> => {
+  return request({
+    url: '/erp/saltprocess/binary-record/projects',
+    method: 'get'
+  });
+};
+
+/**
+ * 获取操作员列表（用于下拉选择）
+ */
+export const getOperatorList = (): AxiosPromise<ApiResponse<Array<{id: number, name: string}>>> => {
+  return request({
+    url: '/erp/saltprocess/binary-record/operators',
+    method: 'get'
+  });
+};
+
+/**
+ * 下载导入模板
+ */
+export const downloadTemplate = (): AxiosPromise<Blob> => {
+  return request({
+    url: '/erp/saltprocess/binary-record/template',
+    method: 'get',
+    responseType: 'blob'
   });
 };

@@ -154,9 +154,9 @@ import { initWebSocket } from '@/utils/websocket';
 
 // 功能开发状态概览数据
 const overviewData = ref({
-  completedFeatures: 25,
-  developingFeatures: 8,
-  plannedFeatures: 11, // 减少1个（移除租户管理）
+  completedFeatures: 26, // 增加1个（二元化盐统计分析）
+  developingFeatures: 7,  // 减少1个
+  plannedFeatures: 11,
   totalModules: 3
 });
 
@@ -203,7 +203,10 @@ const moduleList = ref([
       { name: '产品分类', version: 'v1.0.0' },
       { name: '采购订单', version: 'v1.0.0' },
       { name: '采购入库', version: 'v1.0.0' },
-      { name: '供应商管理', version: 'v1.0.0' }
+      { name: '供应商管理', version: 'v1.0.0' },
+      { name: '化盐工艺流程管理', version: 'v1.0.0' },
+      { name: '二元化盐记录管理', version: 'v1.0.0' },
+      { name: '二元化盐统计分析', version: 'v1.0.0' }
     ],
     plannedFunctions: [
       { name: '销售订单', version: 'v1.1.0' },
@@ -214,6 +217,8 @@ const moduleList = ref([
       { name: '客户管理', version: 'v1.0.0' },
       { name: '付款管理', version: 'v1.0.0' },
       { name: '收款管理', version: 'v1.0.0' },
+      { name: '三元化盐记录管理', version: 'v1.1.0' },
+      { name: '化盐工艺优化分析', version: 'v1.2.0' }
     ]
   },
   {
@@ -248,10 +253,12 @@ const versionHistory = ref([
     tagType: 'success',
     type: 'released',
     icon: 'star',
-    description: '系统基础功能完成，包含用户管理、权限控制、基础ERP功能和监控工具',
+    description: '系统基础功能完成，包含用户管理、权限控制、基础ERP功能、化盐工艺流程管理和监控工具',
     features: [
       '完整的用户权限管理体系',
       '基础ERP业务流程',
+      '化盐工艺流程管理模块',
+      '二元化盐统计分析功能',
       '系统监控和日志管理',
       '响应式前端界面'
     ]
@@ -267,6 +274,7 @@ const versionHistory = ref([
     features: [
       '销售订单管理',
       '销售出库流程',
+      '三元化盐记录管理',
       '岗位管理功能',
       '界面优化升级'
     ]
@@ -282,6 +290,7 @@ const versionHistory = ref([
     features: [
       '库存盘点功能',
       '财务报表模块',
+      '化盐工艺优化分析',
       '租户管理系统',
       '性能监控工具'
     ]
