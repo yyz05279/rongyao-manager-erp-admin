@@ -123,7 +123,9 @@
 <script setup name="BinaryRecordDetail" lang="ts">
 import { ref, reactive, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import { ElMessage } from 'element-plus';
 import EditForm from './components/EditForm.vue';
+import { getBinaryRecord } from '@/api/erp/saltprocess/records/binary';
 
 const route = useRoute();
 const router = useRouter();
@@ -226,25 +228,79 @@ onMounted(() => {
 const loadRecordData = async (recordId: string) => {
   loading.value = true;
   try {
-    // TODO: 调用API获取记录详情
-    // 模拟数据 - 与EditForm.vue保持一致
+    console.log('=== 开始加载记录详情 ===');
+    console.log('记录ID:', recordId);
+
+    // 调用API获取记录详情
+    const response = await getBinaryRecord(recordId);
+
+    console.log('=== 详情API响应 ===');
+    console.log('完整响应:', response);
+    console.log('响应类型:', typeof response);
+
+    if (response && response.code === 200) {
+      // 由于响应拦截器返回了res.data，所以response就是原始数据
+      const apiData = response.data;
+      recordData.value = {
+        recordCode: apiData.recordCode || '',
+        projectId: apiData.projectId || 101,
+        recordDate: apiData.recordDate || '',
+        shift: apiData.shift || 1,
+        nano3ActualWeight: apiData.nano3ActualWeight || 0,
+        kno3ActualWeight: apiData.kno3ActualWeight || 0,
+        // 映射API字段到详情页显示字段
+        moltenSaltLevel: apiData.reactionTemperature || 0, // 使用反应温度作为熔盐液位的替代
+        moltenSaltTemperature: apiData.reactionTemperature || 0, // 反应温度
+        gasConsumption: apiData.energyCost || 0, // 使用能源成本作为气耗的替代
+        powerConsumption: apiData.heatingPower || 0, // 加热功率
+        staffCount: 1, // API中没有直接的人员数量字段，使用默认值
+        recorderName: apiData.operatorName || '',
+        remarks: apiData.qualityIssues || apiData.correctiveActions || ''
+      };
+      console.log('记录详情加载成功:', recordData.value);
+    } else {
+      const errorMsg = response?.msg || 'API调用失败';
+      console.error('API返回错误:', errorMsg);
+      ElMessage.error(`获取记录详情失败: ${errorMsg}`);
+
+      // 如果API失败，使用默认数据避免页面崩溃
+      recordData.value = {
+        recordCode: '数据加载失败',
+        projectId: 101,
+        recordDate: '',
+        shift: 1,
+        nano3ActualWeight: 0,
+        kno3ActualWeight: 0,
+        moltenSaltLevel: 0,
+        moltenSaltTemperature: 0,
+        gasConsumption: 0,
+        powerConsumption: 0,
+        staffCount: 0,
+        recorderName: '',
+        remarks: ''
+      };
+    }
+  } catch (error: any) {
+    console.error('=== 加载记录详情失败 ===');
+    console.error('错误详情:', error);
+    ElMessage.error(`加载记录详情失败: ${error.message || '请检查网络连接'}`);
+
+    // 错误时使用默认数据
     recordData.value = {
-      recordCode: 'BIN_1733097600_001',
+      recordCode: '数据加载失败',
       projectId: 101,
-      recordDate: '2024-12-01',
+      recordDate: '',
       shift: 1,
-      nano3ActualWeight: 36000, // 36.00吨
-      kno3ActualWeight: 24000,  // 24.00吨
-      moltenSaltLevel: 2.5,
-      moltenSaltTemperature: 565,
-      gasConsumption: 1200,
-      powerConsumption: 850,
-      staffCount: 8,
-      recorderName: '张三',
-      remarks: '从Excel导入 - 原始数据: 钠盐30袋(36.0吨), 钾盐24袋(24.0吨), 人数8人'
+      nano3ActualWeight: 0,
+      kno3ActualWeight: 0,
+      moltenSaltLevel: 0,
+      moltenSaltTemperature: 0,
+      gasConsumption: 0,
+      powerConsumption: 0,
+      staffCount: 0,
+      recorderName: '',
+      remarks: ''
     };
-  } catch (error) {
-    console.error('加载记录详情失败:', error);
   } finally {
     loading.value = false;
   }
