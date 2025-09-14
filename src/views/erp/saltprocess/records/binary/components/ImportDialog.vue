@@ -28,6 +28,8 @@
             drag
             :auto-upload="false"
             :on-change="handleFileChange"
+            :on-exceed="handleFileExceed"
+            :on-remove="handleFileRemove"
             :before-upload="beforeUpload"
             accept=".xlsx,.xls"
             :limit="1"
@@ -42,6 +44,38 @@
               </div>
             </template>
           </el-upload>
+
+          <!-- 文件解析状态 -->
+          <div v-if="importing" class="parsing-status">
+            <el-alert
+              :title="importProgressText"
+              type="info"
+              :closable="false"
+              show-icon
+            >
+              <template #default>
+                <el-progress :percentage="50" :show-text="false" />
+              </template>
+            </el-alert>
+          </div>
+
+          <!-- 文件信息显示 -->
+          <div v-if="fileInfo && !importing" class="file-info">
+            <el-alert
+              :title="`文件解析成功 - ${fileInfo.fileName}`"
+              type="success"
+              :closable="false"
+              show-icon
+            >
+              <template #default>
+                <div class="file-details">
+                  <p><strong>文件类型:</strong> {{ getFileTypeText(fileInfo.detectedType) }}</p>
+                  <p><strong>数据行数:</strong> {{ previewData.length }}行</p>
+                  <p><strong>解析时间:</strong> {{ new Date().toLocaleTimeString() }}</p>
+                </div>
+              </template>
+            </el-alert>
+          </div>
 
           <!-- 数据验证结果 -->
           <div v-if="validationResult" class="validation-section">
@@ -472,13 +506,94 @@ const beforeUpload = (file: UploadRawFile) => {
 // 文件变化处理
 const handleFileChange = async (file: any) => {
   if (file.raw) {
-    await parseExcelFile(file.raw);
+    // 重置所有相关状态
+    resetImportState();
+
+    // 显示加载状态
+    importing.value = true;
+    importProgressText.value = '正在解析Excel文件...';
+
+    try {
+      await parseExcelFile(file.raw);
+    } catch (error) {
+      console.error('文件解析失败:', error);
+      ElMessage.error('文件解析失败，请检查文件格式');
+    } finally {
+      importing.value = false;
+      importProgressText.value = '';
+    }
   }
+};
+
+// 重置导入状态
+const resetImportState = () => {
+  // 清空之前的数据
+  previewData.value = [];
+  validatedData.value = [];
+  fileInfo.value = null;
+  importErrors.value = [];
+  validationResult.value = null;
+  importResult.value = null;
+
+  // 重置状态
+  importing.value = false;
+  validating.value = false;
+  importProgress.value = 0;
+  importStatus.value = undefined;
+  importProgressText.value = '';
+
+  console.log('导入状态已重置，准备处理新文件');
+};
+
+// 处理文件超出限制（替换文件）
+const handleFileExceed = (files: File[]) => {
+  if (uploadRef.value) {
+    // 清除现有文件
+    uploadRef.value.clearFiles();
+
+    // 重置状态
+    resetImportState();
+
+    // 添加新文件并自动解析
+    const file = files[0];
+    if (file) {
+      ElMessage.info('正在替换文件并重新解析...');
+
+      // 模拟文件变化事件
+      handleFileChange({
+        raw: file,
+        name: file.name,
+        size: file.size
+      });
+    }
+  }
+};
+
+// 处理文件移除
+const handleFileRemove = () => {
+  resetImportState();
+  ElMessage.info('已清除文件和解析数据');
+};
+
+// 获取文件类型文本
+const getFileTypeText = (type: string): string => {
+  const typeMap: Record<string, string> = {
+    'molten_salt_inventory': '熔盐库存表',
+    'salt_process': '化盐工艺表',
+    'standard_template': '标准模板',
+    'unknown': '未知格式'
+  };
+  return typeMap[type] || '未知格式';
 };
 
 // 解析Excel文件 - 支持标准模板格式
 const parseExcelFile = async (file: File) => {
+  console.log('开始解析新的Excel文件:', file.name);
+
   try {
+    // 更新解析状态
+    importProgressText.value = `正在读取文件: ${file.name}`;
+
     // 1. 直接解析Excel文件
     const data = await file.arrayBuffer();
     const workbook = XLSX.read(data, { type: 'array' });
@@ -490,6 +605,8 @@ const parseExcelFile = async (file: File) => {
       ElMessage.warning('Excel文件中没有数据');
       return;
     }
+
+    importProgressText.value = `正在解析 ${jsonData.length} 行数据...`;
 
     // 2. 检查是否为标准模板格式
     const firstRow = jsonData[0] as any;
@@ -503,6 +620,21 @@ const parseExcelFile = async (file: File) => {
     if (isStandardTemplate) {
       // 3a. 使用标准模板解析
       binaryRecords = convertStandardTemplateToBinaryRecords(jsonData);
+
+      // 设置标准模板的文件信息
+      fileInfo.value = {
+        fileName: file.name,
+        fileSize: file.size,
+        sheetNames: [sheetName],
+        detectedType: 'standard_template' as any,
+        config: {
+          headerRow: 1,
+          dataStartRow: 2,
+          columnMapping: {},
+          requiredFields: ['记录编码', '项目ID', '硝酸钠(t)', '硝酸钾(t)']
+        }
+      };
+
       ElMessage.success(`成功解析标准模板 ${binaryRecords.length} 条记录`);
     } else {
       // 3b. 尝试使用原有的ExcelParser解析
@@ -1133,24 +1265,17 @@ const handleClose = () => {
   emit('update:visible', false);
   // 重置状态
   setTimeout(() => {
+    // 使用统一的重置函数
+    resetImportState();
+
+    // 重置导入方法和手动录入数据
     importMethod.value = 'excel';
-    previewData.value = [];
     manualRecords.value = [];
-    importing.value = false;
-    importProgress.value = 0;
-    importStatus.value = undefined;
-    importProgressText.value = '';
-    importResult.value = null;
+
+    // 清除上传组件中的文件
     uploadRef.value?.clearFiles();
 
-    // 重置Excel解析状态
-    fileInfo.value = null;
-    importErrors.value = [];
-
-    // 重置验证状态
-    validationResult.value = null;
-    validatedData.value = [];
-    validating.value = false;
+    console.log('对话框已关闭，所有状态已重置');
   }, 300);
 };
 </script>
