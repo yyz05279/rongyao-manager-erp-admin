@@ -6,6 +6,7 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 **/*.log
+/docs/淮安项目发货清单/
 
 # 测试相关文件
 tests/
