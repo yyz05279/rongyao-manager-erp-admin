@@ -76,7 +76,7 @@
           <el-button type="danger" plain icon="Delete" :disabled="multiple" @click="handleDelete">删除</el-button>
         </el-col>
         <el-col :span="1.5">
-          <el-button type="warning" plain icon="Download" @click="handleExport">导出</el-button>
+          <el-button type="warning" plain icon="Download" @click="handleExport">Excel导出</el-button>
         </el-col>
         <el-col :span="1.5">
           <el-button type="info" plain icon="TrendCharts" @click="handleStatistics">统计分析</el-button>
@@ -207,14 +207,89 @@
         @close="statisticsDialog.visible = false"
       />
     </el-dialog>
+
+    <!-- 导出参数选择对话框 -->
+    <el-dialog title="Excel导出设置" v-model="exportDialog.visible" width="600px" append-to-body>
+      <div class="export-dialog-content">
+        <el-alert
+          title="导出说明"
+          type="info"
+          :closable="false"
+          show-icon
+          style="margin-bottom: 20px;"
+        >
+          <template #default>
+            <p>• 导出文件将使用预定义的Excel模版格式</p>
+            <p>• 支持最多导出10,000条记录</p>
+            <p>• 建议按日期范围分批导出大量数据</p>
+          </template>
+        </el-alert>
+
+        <el-form :model="exportParams" label-width="120px">
+          <el-form-item label="导出范围">
+            <el-radio-group v-model="exportParams.exportType">
+              <el-radio value="current">当前查询结果</el-radio>
+              <el-radio value="custom">自定义条件</el-radio>
+            </el-radio-group>
+            <div class="form-item-tip">
+              <span v-if="exportParams.exportType === 'current'">
+                将导出当前页面查询条件下的所有数据
+              </span>
+              <span v-else>
+                可以设置更详细的筛选条件进行导出
+              </span>
+            </div>
+          </el-form-item>
+
+        <template v-if="exportParams.exportType === 'custom'">
+          <el-form-item label="项目ID">
+            <el-input v-model="exportParams.projectId" placeholder="请输入项目ID" clearable />
+          </el-form-item>
+
+          <el-form-item label="日期范围">
+            <el-date-picker
+              v-model="exportParams.dateRange"
+              type="daterange"
+              range-separator="至"
+              start-placeholder="开始日期"
+              end-placeholder="结束日期"
+              format="YYYY-MM-DD"
+              value-format="YYYY-MM-DD"
+              clearable
+            />
+          </el-form-item>
+
+          <el-form-item label="班次">
+            <el-select v-model="exportParams.shift" placeholder="请选择班次" clearable>
+              <el-option label="白班" :value="1" />
+              <el-option label="夜班" :value="2" />
+            </el-select>
+          </el-form-item>
+
+          <el-form-item label="批次号">
+            <el-input v-model="exportParams.batchNumber" placeholder="请输入批次号" clearable />
+          </el-form-item>
+        </template>
+        </el-form>
+      </div>
+
+      <template #footer>
+        <div class="dialog-footer">
+          <el-button @click="exportDialog.visible = false">取消</el-button>
+          <el-button type="primary" @click="confirmExport" :loading="exportDialog.loading">
+            确认导出
+          </el-button>
+        </div>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup name="BinaryRecord" lang="ts">
-import { ref, reactive, onMounted } from 'vue';
+import { ref, reactive, onMounted, getCurrentInstance } from 'vue';
 import { useRouter } from 'vue-router';
-import { parseTime } from '@/utils/ruoyi';
-import { ElMessage, ElMessageBox, ElLoading } from 'element-plus';
+import { ElMessage, ElMessageBox } from 'element-plus';
+import type { ComponentInternalInstance } from 'vue';
 
 import EditForm from './components/EditForm.vue';
 import ImportDialog from './components/ImportDialog.vue';
@@ -226,10 +301,12 @@ import {
   updateBinaryRecord,
   deleteBinaryRecord,
   exportBinaryRecords,
+  exportBinaryRecordTemplate,
   getStatisticsData
 } from '@/api/erp/saltprocess/records/binary';
 
 const router = useRouter();
+const { proxy } = getCurrentInstance() as ComponentInternalInstance;
 
 // 响应式数据
 const loading = ref(false);
@@ -256,6 +333,20 @@ const importDialog = reactive({
 
 const statisticsDialog = reactive({
   visible: false
+});
+
+const exportDialog = reactive({
+  visible: false,
+  loading: false
+});
+
+// 导出参数
+const exportParams = reactive({
+  exportType: 'current', // current: 当前查询结果, custom: 自定义条件
+  projectId: '',
+  dateRange: null as [string, string] | null,
+  shift: undefined as number | undefined,
+  batchNumber: ''
 });
 
 // 查询参数
@@ -429,47 +520,89 @@ const handleDelete = async (row?: any) => {
   }
 };
 
-const handleExport = async () => {
-  // 显示加载状态
-  const loadingInstance = ElLoading.service({
-    lock: true,
-    text: '正在导出数据...',
-    background: 'rgba(0, 0, 0, 0.7)'
-  });
+const handleExport = () => {
+  // 重置导出参数
+  exportParams.exportType = 'current';
+  exportParams.projectId = queryParams.projectId || '';
+  exportParams.dateRange = null;
+  exportParams.shift = undefined;
+  exportParams.batchNumber = queryParams.batchNumber || '';
 
-  try {
-    // 使用API导出
-    const exportParams = {
-      ...queryParams,
-      exportType: 'excel' as const,
-      fileName: generateExportFileName()
-    };
-    delete (exportParams as any).pageNum;
-    delete (exportParams as any).pageSize;
+  // 显示导出对话框
+  exportDialog.visible = true;
+};
 
-    const response = await exportBinaryRecords(exportParams);
+const confirmExport = () => {
+  // 验证自定义条件
+  if (exportParams.exportType === 'custom') {
+    if (exportParams.dateRange && exportParams.dateRange.length === 2) {
+      const startDate = new Date(exportParams.dateRange[0]);
+      const endDate = new Date(exportParams.dateRange[1]);
+      const diffTime = endDate.getTime() - startDate.getTime();
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
-    // 创建下载链接
-    const blob = new Blob([response.data], {
-      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-    });
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = exportParams.fileName;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    window.URL.revokeObjectURL(url);
+      // 检查日期范围是否过大（超过1年）
+      if (diffDays > 365) {
+        ElMessage.warning('导出日期范围不能超过1年，请缩小日期范围');
+        return;
+      }
+    }
 
-    ElMessage.success('导出成功');
+    // 检查是否至少设置了一个筛选条件
+    const hasCondition = exportParams.projectId ||
+                        exportParams.dateRange ||
+                        exportParams.shift ||
+                        exportParams.batchNumber;
 
-  } catch (error: any) {
-    console.error('导出失败:', error);
-    ElMessage.error(`导出失败: ${error.message || '请检查API服务状态'}`);
-  } finally {
-    loadingInstance.close();
+    if (!hasCondition) {
+      ElMessage.warning('请至少设置一个筛选条件');
+      return;
+    }
   }
+
+  // 构建导出参数
+  const downloadParams: any = {};
+
+  if (exportParams.exportType === 'current') {
+    // 使用当前查询条件
+    if (queryParams.projectId) {
+      downloadParams.projectId = Number(queryParams.projectId);
+    }
+    if (queryParams.recordDate) {
+      downloadParams.recordDate = queryParams.recordDate;
+    }
+    if (queryParams.batchNumber) {
+      downloadParams.batchNumber = queryParams.batchNumber;
+    }
+  } else {
+    // 使用自定义条件
+    if (exportParams.projectId) {
+      downloadParams.projectId = Number(exportParams.projectId);
+    }
+    if (exportParams.dateRange && exportParams.dateRange.length === 2) {
+      downloadParams.startDate = exportParams.dateRange[0];
+      downloadParams.endDate = exportParams.dateRange[1];
+    }
+    if (exportParams.shift) {
+      downloadParams.shift = exportParams.shift;
+    }
+    if (exportParams.batchNumber) {
+      downloadParams.batchNumber = exportParams.batchNumber;
+    }
+  }
+
+  // 生成文件名（根据接口文档格式）
+  const now = new Date();
+  const timestamp = now.toISOString().replace(/[-:]/g, '').replace('T', '_').split('.')[0];
+  const fileName = `二元盐化盐量记录表_${timestamp}.xlsx`;
+
+  // 使用项目的通用下载方法
+  proxy?.download('/erp/saltprocess/binary-record/export-template', downloadParams, fileName);
+
+  // 关闭对话框
+  exportDialog.visible = false;
+
+  ElMessage.success('导出请求已提交，请稍候下载');
 };
 
 
@@ -679,6 +812,31 @@ const getRatioStatus = (row: any) => {
   .text-danger {
     color: #f56c6c;
     font-weight: 600;
+  }
+}
+
+// 导出对话框样式
+.export-dialog-content {
+  .form-item-tip {
+    font-size: 12px;
+    color: #909399;
+    margin-top: 5px;
+    line-height: 1.4;
+  }
+
+  .el-alert {
+    p {
+      margin: 2px 0;
+      font-size: 13px;
+    }
+  }
+}
+
+.dialog-footer {
+  text-align: right;
+
+  .el-button {
+    margin-left: 10px;
   }
 }
 </style>
