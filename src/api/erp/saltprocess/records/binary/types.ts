@@ -347,14 +347,14 @@ export interface BinaryRecordComparison {
  * 批量导入结果
  */
 export interface BatchImportResult {
-  success: boolean;
-  message: string;
+  success?: boolean; // 可选字段，某些API可能不返回
+  message?: string;  // 可选字段，某些API可能不返回
   totalCount: number;
   successCount: number;
   failureCount: number;
-  skippedCount: number;
+  skippedCount?: number; // 可选字段，某些API可能不返回
   errors: ImportError[];
-  warnings: ImportWarning[];
+  warnings?: ImportWarning[]; // 可选字段，某些API可能不返回
 }
 
 /**
@@ -430,6 +430,20 @@ export interface DeleteParams {
 export interface ExportParams extends Omit<BinaryRecordQuery, 'pageNum' | 'pageSize'> {
   exportType?: 'excel' | 'csv'; // 导出类型
   fileName?: string;          // 文件名
+}
+
+// 基于模版的导出参数（根据接口文档定义）
+export interface BinaryRecordTemplateExportParams {
+  taskId?: number;            // 任务ID
+  projectId?: number;         // 项目ID
+  batchNumber?: string;       // 批次号
+  recordDate?: string;        // 记录日期 (YYYY-MM-DD)
+  startDate?: string;         // 开始日期 (YYYY-MM-DD)
+  endDate?: string;           // 结束日期 (YYYY-MM-DD)
+  shift?: number;             // 班次：1-白班,2-夜班
+  operatorId?: number;        // 操作员ID
+  qualityGrade?: number;      // 质量等级
+  qualityCheckResult?: number; // 质检结果
 }
 
 // 统计分析查询参数

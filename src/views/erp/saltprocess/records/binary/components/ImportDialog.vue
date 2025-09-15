@@ -1186,32 +1186,39 @@ const handleImport = async () => {
 
     // 调用批量导入API
     const response = await batchImportBinaryRecord(dataToImport);
-    const result = response.data;
+
+    console.log('=== 批量导入API响应 ===');
+    console.log('完整响应:', response);
+    console.log('响应类型:', typeof response);
+    console.log('response.code:', response.code);
+    console.log('response.msg:', response.msg);
+    console.log('response.data:', response.data);
 
     importProgress.value = 80;
     importProgressText.value = '正在处理导入结果...';
 
-    // 处理导入结果
-    if (result.success) {
+    // 处理导入结果 - 修复：由于响应拦截器，response就是原始数据，response.data是实际的数据部分
+    if (response.code === 200) {
+      const result = response.data;
       importStatus.value = 'success';
       importProgressText.value = '导入完成';
 
-      let description = `成功导入 ${result.successCount} 条记录`;
-      if (result.failureCount > 0) {
+      let description = `成功导入 ${result.successCount || 0} 条记录`;
+      if (result.failureCount && result.failureCount > 0) {
         description += `，失败 ${result.failureCount} 条`;
       }
-      if (result.skippedCount > 0) {
+      if (result.skippedCount && result.skippedCount > 0) {
         description += `，跳过 ${result.skippedCount} 条`;
       }
 
       importResult.value = {
         title: '导入完成',
-        type: result.failureCount > 0 ? 'warning' : 'success',
+        type: (result.failureCount && result.failureCount > 0) ? 'warning' : 'success',
         description
       };
 
       // 显示详细错误信息
-      if (result.errors.length > 0) {
+      if (result.errors && result.errors.length > 0) {
         console.warn('导入错误详情:', result.errors);
         ElMessage.warning(`导入完成，但有 ${result.errors.length} 条记录处理失败`);
       } else {
@@ -1226,7 +1233,8 @@ const handleImport = async () => {
       }, 3000);
 
     } else {
-      throw new Error(result.message || '导入失败');
+      const errorMsg = response.msg || '导入失败';
+      throw new Error(errorMsg);
     }
 
     importProgress.value = 100;

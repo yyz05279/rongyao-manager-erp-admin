@@ -14,7 +14,8 @@ import {
   StatisticsApiResponse,
   ApiResponse,
   DeleteParams,
-  ExportParams
+  ExportParams,
+  BinaryRecordTemplateExportParams
 } from './types';
 
 /**
@@ -155,6 +156,19 @@ export const countBinaryRecord = (startDate: string, endDate: string): AxiosProm
 export const exportBinaryRecord = (query?: ExportParams): AxiosPromise<Blob> => {
   return request({
     url: '/erp/saltprocess/binary-record/export',
+    method: 'post',
+    data: query,
+    responseType: 'blob'
+  });
+};
+
+/**
+ * 基于模版导出二元化盐记录
+ * 根据接口文档：POST /erp/saltprocess/binary-record/export-template
+ */
+export const exportBinaryRecordTemplate = (query?: BinaryRecordTemplateExportParams): AxiosPromise<Blob> => {
+  return request({
+    url: '/erp/saltprocess/binary-record/export-template',
     method: 'post',
     data: query,
     responseType: 'blob'
