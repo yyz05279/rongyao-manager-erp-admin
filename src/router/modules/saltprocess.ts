@@ -523,6 +523,47 @@ const saltprocessRouter: RouteOption = {
         icon: 'standard'
       },
       permissions: ['erp:saltprocess:inspection-standard:list']
+    },
+
+    // 项目发货清单管理
+    {
+      path: 'shipping',
+      component: () => import('@/views/erp/saltprocess/shipping/index.vue'),
+      name: 'SaltProcessShipping',
+      meta: {
+        title: '发货清单管理',
+        icon: 'list'
+      }
+    },
+    {
+      path: 'shipping/detail/:id',
+      component: () => import('@/views/erp/saltprocess/shipping/detail.vue'),
+      name: 'SaltProcessShippingDetail',
+      hidden: true,
+      meta: {
+        title: '发货清单详情',
+        activeMenu: '/saltprocess/shipping'
+      }
+    },
+    {
+      path: 'shipping/create',
+      component: () => import('@/views/erp/saltprocess/shipping/form.vue'),
+      name: 'SaltProcessShippingCreate',
+      hidden: true,
+      meta: {
+        title: '新增发货清单',
+        activeMenu: '/saltprocess/shipping'
+      }
+    },
+    {
+      path: 'shipping/edit/:id',
+      component: () => import('@/views/erp/saltprocess/shipping/form.vue'),
+      name: 'SaltProcessShippingEdit',
+      hidden: true,
+      meta: {
+        title: '编辑发货清单',
+        activeMenu: '/saltprocess/shipping'
+      }
     }
   ]
 };
