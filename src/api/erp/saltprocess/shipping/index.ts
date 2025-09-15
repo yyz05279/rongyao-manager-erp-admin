@@ -314,3 +314,8 @@ export const getResponsiblePersonList = (): AxiosPromise<{ id: string; name: str
     method: 'get'
   });
 };
+
+// 为了与Mock API保持一致，添加函数别名
+export const getShippingItems = listShippingItems;
+export const getTrackingRecords = getShippingTrackingRecords;
+export const getAttachments = getShippingAttachments;

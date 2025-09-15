@@ -1,5 +1,19 @@
 <template>
   <div class="shipping-management">
+    <!-- 开发环境提示 -->
+    <el-alert
+      v-if="API_CONFIG.useMockData"
+      title="开发模式"
+      type="info"
+      :closable="false"
+      show-icon
+      style="margin-bottom: 16px;"
+    >
+      <template #default>
+        当前使用Mock数据进行开发测试，所有操作均为模拟操作，不会影响真实数据。
+      </template>
+    </el-alert>
+
     <!-- 搜索区域 -->
     <el-card class="search-card" shadow="never">
       <el-form
@@ -319,7 +333,7 @@
     </el-card>
 
     <!-- Excel导入对话框 -->
-    <SimpleImportDialog
+    <ExcelImportDialog
       v-if="importDialog.visible"
       v-model:visible="importDialog.visible"
       @success="handleImportSuccess"
@@ -461,16 +475,18 @@ import { ref, reactive, onMounted, computed, getCurrentInstance } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { useRouter } from 'vue-router';
 import type { ComponentInternalInstance } from 'vue';
+// 根据环境配置自动选择API
 import {
   listShippingList,
-  delShippingList
-} from '@/api/erp/saltprocess/shipping';
+  delShippingList,
+  API_CONFIG
+} from '@/api/erp/saltprocess/shipping/api-config';
 import type {
   ShippingListVO,
   ShippingListQuery,
   ShippingStatus
 } from '@/api/erp/saltprocess/shipping/types';
-import SimpleImportDialog from './components/SimpleImportDialog.vue';
+import ExcelImportDialog from './components/ExcelImportDialog.vue';
 
 const router = useRouter();
 const { proxy } = getCurrentInstance() as ComponentInternalInstance;
@@ -560,7 +576,7 @@ const getList = async () => {
       shippingDateEnd: dateRange.value?.[1]
     };
     const response = await listShippingList(params);
-    shippingList.value = response.data.rows;
+    shippingList.value = response.data.records;
     total.value = response.data.total;
   } catch (error) {
     ElMessage.error('获取发货清单列表失败');
@@ -634,8 +650,11 @@ const handleImport = () => {
   importDialog.visible = true;
 };
 
-const handleImportSuccess = () => {
+const handleImportSuccess = (id: string) => {
+  ElMessage.success('发货清单创建成功');
   getList();
+  // 可以选择跳转到详情页面
+  // router.push(`/saltprocess/shipping/detail/${id}`);
 };
 
 const handleExport = () => {

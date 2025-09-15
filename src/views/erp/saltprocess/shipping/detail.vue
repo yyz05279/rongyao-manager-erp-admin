@@ -1,42 +1,59 @@
 <template>
   <div class="shipping-detail">
     <!-- 页面头部 -->
-    <div class="detail-header">
-      <el-page-header @back="handleBack" title="返回列表">
-        <template #content>
-          <div class="header-content">
-            <h2>发货清单详情</h2>
-            <div class="header-actions">
-              <el-button
-                type="primary"
-                icon="Edit"
-                @click="handleEdit"
-                v-hasPermi="['erp:saltprocess:shipping:edit']"
-              >
-                编辑
-              </el-button>
-              <el-button
-                type="success"
-                icon="Download"
-                @click="handleExport"
-                v-hasPermi="['erp:saltprocess:shipping:export']"
-              >
-                导出
-              </el-button>
-              <el-button
-                type="warning"
-                icon="Printer"
-                @click="handlePrint"
-              >
-                打印
-              </el-button>
-            </div>
-          </div>
-        </template>
-      </el-page-header>
+    <div class="page-header">
+      <el-breadcrumb separator="/">
+        <el-breadcrumb-item :to="{ path: '/index' }">首页</el-breadcrumb-item>
+        <el-breadcrumb-item :to="{ path: '/saltprocess' }">化盐工艺流程</el-breadcrumb-item>
+        <el-breadcrumb-item :to="{ path: '/saltprocess/shipping' }">发货清单管理</el-breadcrumb-item>
+        <el-breadcrumb-item>清单详情</el-breadcrumb-item>
+      </el-breadcrumb>
+      <div class="title-row">
+        <h1 class="page-title">发货清单详情</h1>
+        <div class="actions">
+          <el-button @click="handleBack">返回</el-button>
+          <el-button
+            type="primary"
+            icon="Edit"
+            @click="handleEdit"
+            v-hasPermi="['erp:saltprocess:shipping:edit']"
+          >
+            编辑
+          </el-button>
+          <el-button
+            type="success"
+            icon="Download"
+            @click="handleExport"
+            v-hasPermi="['erp:saltprocess:shipping:export']"
+          >
+            导出
+          </el-button>
+          <el-button
+            type="warning"
+            icon="Printer"
+            @click="handlePrint"
+          >
+            打印
+          </el-button>
+        </div>
+      </div>
     </div>
 
     <div v-loading="loading" class="detail-content">
+      <!-- 开发环境提示 -->
+      <el-alert
+        v-if="API_CONFIG.useMockData"
+        title="开发模式"
+        type="info"
+        :closable="false"
+        show-icon
+        style="margin-bottom: 16px;"
+      >
+        <template #default>
+          当前使用Mock数据进行开发测试，所有操作均为模拟操作，不会影响真实数据。
+        </template>
+      </el-alert>
+
       <!-- 基本信息 -->
       <el-card class="info-card" shadow="never">
         <template #header>
@@ -404,15 +421,17 @@ import { useRoute, useRouter } from 'vue-router';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import type { ComponentInternalInstance } from 'vue';
 import { Location, Document } from '@element-plus/icons-vue';
+// 根据环境配置自动选择API
 import {
   getShippingList,
-  listShippingItems,
-  getShippingTrackingRecords,
-  getShippingAttachments,
+  getShippingItems,
+  getTrackingRecords,
+  getAttachments,
   delShippingAttachment,
   downloadShippingAttachment,
-  exportSingleShippingList
-} from '@/api/erp/saltprocess/shipping';
+  exportSingleShippingList,
+  API_CONFIG
+} from '@/api/erp/saltprocess/shipping/api-config';
 import type {
   ShippingListVO,
   ShippingItemVO,
@@ -454,9 +473,9 @@ const getShippingDetail = async () => {
   try {
     const [detailRes, itemsRes, trackingRes, attachmentsRes] = await Promise.all([
       getShippingList(id),
-      listShippingItems(id),
-      getShippingTrackingRecords(id),
-      getShippingAttachments(id)
+      getShippingItems(id),
+      getTrackingRecords(id),
+      getAttachments(id)
     ]);
     
     shippingDetail.value = detailRes.data;
@@ -656,22 +675,33 @@ onMounted(() => {
 .shipping-detail {
   padding: 20px;
 
-  .detail-header {
+  .page-header {
     margin-bottom: 20px;
 
-    .header-content {
+    .title-row {
       display: flex;
       justify-content: space-between;
       align-items: center;
+      margin-top: 16px;
 
-      h2 {
+      .page-title {
+        font-size: 24px;
+        font-weight: 600;
+        color: #2c3e50;
         margin: 0;
-        color: #303133;
       }
 
-      .header-actions {
+      .actions {
         display: flex;
         gap: 12px;
+
+        .el-button {
+          &:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            transition: all 0.2s ease;
+          }
+        }
       }
     }
   }
@@ -833,19 +863,56 @@ onMounted(() => {
   }
 }
 
-// 响应式设计
+// 响应式设计 - 平板设备
+@media (max-width: 1024px) and (min-width: 769px) {
+  .shipping-detail {
+    .page-header {
+      .title-row {
+        .actions {
+          gap: 8px;
+
+          .el-button {
+            font-size: 13px;
+            padding: 8px 12px;
+          }
+        }
+      }
+    }
+  }
+}
+
+// 响应式设计 - 移动设备
 @media (max-width: 768px) {
   .shipping-detail {
     padding: 10px;
 
-    .header-content {
-      flex-direction: column;
-      gap: 12px;
-      align-items: flex-start;
+    .page-header {
+      .title-row {
+        flex-direction: column;
+        gap: 16px;
+        align-items: center;
 
-      .header-actions {
-        width: 100%;
-        justify-content: center;
+        .page-title {
+          text-align: center;
+          font-size: 20px;
+        }
+
+        .actions {
+          width: 100%;
+          justify-content: center;
+          flex-wrap: wrap;
+          gap: 8px;
+
+          .el-button {
+            margin-bottom: 8px;
+            font-size: 12px;
+            padding: 6px 12px;
+
+            &:hover {
+              transform: none; /* 移动端取消悬停效果 */
+            }
+          }
+        }
       }
     }
 

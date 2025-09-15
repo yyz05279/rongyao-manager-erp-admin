@@ -332,13 +332,14 @@
 import { ref, reactive, computed, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { ElMessage, ElMessageBox } from 'element-plus';
+// 根据环境配置自动选择API
 import {
   getShippingList,
   addShippingList,
   updateShippingList,
   getProjectSimpleList,
   getResponsiblePersonList
-} from '@/api/erp/saltprocess/shipping';
+} from '@/api/erp/saltprocess/shipping/api-config';
 import type {
   ShippingListForm,
   ShippingItemForm,
@@ -521,7 +522,7 @@ const handleSubmit = async () => {
     submitting.value = true;
     
     if (isEdit.value) {
-      await updateShippingList(formData);
+      await updateShippingList(route.params.id as string, formData);
       ElMessage.success('更新成功');
     } else {
       await addShippingList(formData);
