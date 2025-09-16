@@ -26,11 +26,21 @@
             </el-form-item>
           </el-col>
           <el-col :span="8">
-            <el-form-item label="项目ID" prop="projectId">
-              <el-input v-model="formData.projectId" placeholder="请输入项目ID" />
-              <div class="project-info" v-if="formData.projectId">
-                {{ getProjectName(formData.projectId) }}
-              </div>
+            <el-form-item label="项目名称" prop="projectName">
+              <el-select
+                v-model="formData.projectName"
+                placeholder="请选择项目名称"
+                clearable
+                filterable
+                style="width: 100%"
+              >
+                <el-option
+                  v-for="project in projectList"
+                  :key="project.id"
+                  :label="project.projectName"
+                  :value="project.projectName"
+                />
+              </el-select>
             </el-form-item>
           </el-col>
           <el-col :span="8">
@@ -227,11 +237,11 @@
 </template>
 
 <script setup name="EditForm" lang="ts">
-import { ref, reactive, computed, watch } from 'vue';
+import { ref, reactive, computed, watch, onMounted } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import type { FormInstance, FormRules } from 'element-plus';
-import { getBinaryRecord, addBinaryRecord, updateBinaryRecord } from '@/api/erp/saltprocess/records/binary';
-import type { BinaryRecordForm, BinaryRecordVO } from '@/api/erp/saltprocess/records/binary/types';
+import { getBinaryRecord, addBinaryRecord, updateBinaryRecord, getProjectList } from '@/api/erp/saltprocess/records/binary';
+import type { BinaryRecordForm } from '@/api/erp/saltprocess/records/binary/types';
 
 // Props
 interface Props {
@@ -253,6 +263,7 @@ const emit = defineEmits<{
 // 响应式数据
 const loading = ref(false);
 const formRef = ref<FormInstance>();
+const projectList = ref<any[]>([]);
 
 // 计算属性
 const isEdit = computed(() => !!props.recordId);
@@ -262,6 +273,7 @@ const formData = reactive<BinaryRecordForm>({
   recordCode: '',
   batchNumber: '',
   projectId: 101,
+  projectName: '阿克塞化盐服务项目',  // 默认选择阿克塞项目
   recordDate: '',
   startTime: '',
   endTime: '',
@@ -306,7 +318,7 @@ const formData = reactive<BinaryRecordForm>({
 // 项目名称映射
 const getProjectName = (projectId: number) => {
   const projectMap: Record<number, string> = {
-    101: '阿克塞化盐服项目',
+    101: '阿克塞化盐服务项目',
     102: '青海盐湖项目',
     103: '新疆化工项目',
     104: '内蒙古盐化项目'
@@ -368,8 +380,8 @@ const formRules: FormRules = {
   batchNumber: [
     { required: true, message: '请输入批次号', trigger: 'blur' }
   ],
-  projectId: [
-    { required: true, message: '请输入项目ID', trigger: 'blur' }
+  projectName: [
+    { required: true, message: '请选择项目名称', trigger: 'change' }
   ],
   recordDate: [
     { required: true, message: '请选择记录日期', trigger: 'change' }
@@ -381,6 +393,32 @@ const formRules: FormRules = {
     { required: true, message: '请输入操作员姓名', trigger: 'blur' }
   ]
 };
+
+// 加载项目列表
+const loadProjectList = async () => {
+  try {
+    const response = await getProjectList();
+    // 处理API响应数据
+    if (response && response.data) {
+      projectList.value = Array.isArray(response.data) ? response.data : [];
+    } else {
+      projectList.value = [];
+    }
+  } catch (error) {
+    console.error('加载项目列表失败:', error);
+    // 如果API失败，使用默认项目列表
+    projectList.value = [
+      { id: '101', projectName: '阿克塞化盐服务项目' },
+      { id: '102', projectName: '青海盐湖项目' },
+      { id: '103', projectName: '新疆化工项目' }
+    ];
+  }
+};
+
+// 生命周期
+onMounted(() => {
+  loadProjectList();
+});
 
 // 监听弹窗显示状态
 watch(() => props.visible, (newVal) => {
@@ -399,7 +437,16 @@ const getRecordDetail = async () => {
   try {
     const response = await getBinaryRecord(props.recordId);
     // 直接使用返回的数据，假设API返回的就是记录对象
-    Object.assign(formData, response.data);
+    const recordData = response.data;
+
+    // 将项目ID转换为项目名称
+    const extendedRecordData = recordData as any;
+    if (extendedRecordData.projectId) {
+      const project = projectList.value.find(p => p.id == extendedRecordData.projectId);
+      extendedRecordData.projectName = project ? project.projectName : '未知项目';
+    }
+
+    Object.assign(formData, extendedRecordData);
   } catch (error: any) {
     ElMessage.error(`获取记录详情失败: ${error.message || '请检查API服务状态'}`);
     console.error('获取记录详情失败:', error);
@@ -413,7 +460,8 @@ const resetForm = () => {
   Object.assign(formData, {
     recordCode: '',
     batchNumber: '',
-    projectId: '',
+    projectId: 101,
+    projectName: '阿克塞化盐服务项目',
     recordDate: '',
     shift: 1,
     duration: 0,
@@ -446,9 +494,20 @@ const handleSubmit = async () => {
 
   loading.value = true;
   try {
+    // 准备提交数据，将项目名称转换为项目ID
+    const submitData = { ...formData };
+    if (submitData.projectName) {
+      const selectedProject = projectList.value.find(p => p.projectName === submitData.projectName);
+      if (selectedProject) {
+        submitData.projectId = selectedProject.id;
+      }
+      // 删除projectName字段，因为后端不需要
+      delete submitData.projectName;
+    }
+
     if (isEdit.value) {
       // 更新记录
-      const response = await updateBinaryRecord({ ...formData, id: props.recordId || undefined });
+      const response = await updateBinaryRecord({ ...submitData, id: props.recordId || undefined });
       if (response.code === 200) {
         ElMessage.success('更新成功');
       } else {
@@ -456,7 +515,7 @@ const handleSubmit = async () => {
       }
     } else {
       // 新增记录
-      const response = await addBinaryRecord(formData);
+      const response = await addBinaryRecord(submitData);
       if (response.code === 200) {
         ElMessage.success('保存成功');
       } else {

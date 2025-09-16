@@ -17,6 +17,8 @@ import {
   ExportParams,
   BinaryRecordTemplateExportParams
 } from './types';
+import { listSaltProject } from '../../project';
+import { SaltProjectVO } from '../../project/types';
 
 /**
  * 查询二元化盐记录列表
@@ -444,15 +446,7 @@ export const checkRecordCodeExists = (recordCode: string): AxiosPromise<ApiRespo
   });
 };
 
-/**
- * 获取项目列表（用于下拉选择）
- */
-export const getProjectList = (): AxiosPromise<ApiResponse<Array<{id: number, name: string}>>> => {
-  return request({
-    url: '/erp/saltprocess/binary-record/projects',
-    method: 'get'
-  });
-};
+
 
 /**
  * 获取操作员列表（用于下拉选择）
@@ -473,4 +467,11 @@ export const downloadTemplate = (): AxiosPromise<Blob> => {
     method: 'get',
     responseType: 'blob'
   });
+};
+
+/**
+ * 获取项目列表（用于二元化盐记录筛选）
+ */
+export const getProjectList = (): AxiosPromise<SaltProjectVO[]> => {
+  return listSaltProject();
 };

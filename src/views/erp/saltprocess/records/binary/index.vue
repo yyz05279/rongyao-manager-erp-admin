@@ -30,13 +30,21 @@
             style="width: 200px"
           />
         </el-form-item> -->
-        <el-form-item label="项目ID" prop="projectId">
-          <el-input
-            v-model="queryParams.projectId"
-            placeholder="请输入项目ID"
+        <el-form-item label="项目名称" prop="projectName">
+          <el-select
+            v-model="queryParams.projectName"
+            placeholder="请选择项目名称"
             clearable
+            filterable
             style="width: 200px"
-          />
+          >
+            <el-option
+              v-for="project in projectList"
+              :key="project.id"
+              :label="project.projectName"
+              :value="project.projectName"
+            />
+          </el-select>
         </el-form-item>
         <el-form-item label="记录日期" prop="recordDate">
           <el-date-picker
@@ -98,7 +106,11 @@
         <el-table-column type="selection" width="55" align="center" />
         <el-table-column label="序号" type="index" width="60" align="center" />
         <el-table-column label="记录编码" prop="recordCode" width="140" show-overflow-tooltip />
-        <el-table-column label="项目ID" prop="projectId" width="80" align="center" />
+        <el-table-column label="项目名称" prop="projectName" width="150" show-overflow-tooltip>
+          <template #default="scope">
+            {{ getProjectName(scope.row.projectId) }}
+          </template>
+        </el-table-column>
         <el-table-column label="日期" prop="recordDate" width="120" />
         <el-table-column label="班次" prop="shift" width="80">
           <template #default="scope">
@@ -302,7 +314,8 @@ import {
   deleteBinaryRecord,
   exportBinaryRecords,
   exportBinaryRecordTemplate,
-  getStatisticsData
+  getStatisticsData,
+  getProjectList
 } from '@/api/erp/saltprocess/records/binary';
 
 const router = useRouter();
@@ -312,6 +325,7 @@ const { proxy } = getCurrentInstance() as ComponentInternalInstance;
 const loading = ref(false);
 const showSearch = ref(true);
 const recordList = ref<any[]>([]);
+const projectList = ref<any[]>([]);
 const total = ref(0);
 const ids = ref<string[]>([]);
 const single = ref(true);
@@ -355,7 +369,8 @@ const queryParams = reactive({
   pageSize: 10,
   recordCode: '',
   batchNumber: '',
-  projectId: undefined,
+  projectId: undefined,      // 保留用于后端查询
+  projectName: '阿克塞化盐服务项目',  // 默认选择阿克塞项目
   recordDate: '',
   ratioStatus: undefined
 });
@@ -366,8 +381,31 @@ const recordFormRef = ref();
 
 // 生命周期
 onMounted(() => {
+  loadProjectList();
   getList();
 });
+
+// 加载项目列表
+const loadProjectList = async () => {
+  try {
+    const response = await getProjectList();
+    // 处理API响应数据
+    if (response && response.data) {
+      projectList.value = Array.isArray(response.data) ? response.data : [];
+    } else {
+      projectList.value = [];
+    }
+    console.log('项目列表加载成功:', projectList.value);
+  } catch (error) {
+    console.error('加载项目列表失败:', error);
+    // 如果API失败，使用默认项目列表
+    projectList.value = [
+      { id: '101', projectName: '阿克塞化盐服务项目' },
+      { id: '102', projectName: '青海盐湖项目' },
+      { id: '103', projectName: '新疆化工项目' }
+    ];
+  }
+};
 
 // 工具函数
 const formatDate = (date: any): string => {
@@ -379,6 +417,13 @@ const formatDate = (date: any): string => {
   return '';
 };
 
+// 根据项目ID获取项目名称
+const getProjectName = (projectId: number | string): string => {
+  if (!projectId) return '未知项目';
+  const project = projectList.value.find(p => p.id == projectId);
+  return project ? project.projectName : '未知项目';
+};
+
 // 方法
 const getList = async () => {
   loading.value = true;
@@ -388,6 +433,16 @@ const getList = async () => {
 
     // 处理查询参数
     const processedParams: any = { ...queryParams };
+
+    // 将项目名称转换为项目ID（用于后端查询）
+    if (processedParams.projectName) {
+      const selectedProject = projectList.value.find(p => p.projectName === processedParams.projectName);
+      if (selectedProject) {
+        processedParams.projectId = selectedProject.id;
+      }
+      // 删除projectName字段，因为后端不需要
+      delete processedParams.projectName;
+    }
 
     // 由于日期选择器已配置value-format="YYYY-MM-DD"，日期应该已经是字符串格式
     console.log('日期参数类型:', typeof processedParams.recordDate, '值:', processedParams.recordDate);

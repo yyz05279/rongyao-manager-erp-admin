@@ -289,6 +289,84 @@ export interface InventoryCountDetailForm {
   remarks?: string;
 }
 
+// 物料管理相关类型
+export interface InventoryMaterialVO {
+  id: string;
+  materialCode: string;
+  materialName: string;
+  materialType: 'RAW_MATERIAL' | 'FINISHED_PRODUCT' | 'SEMI_FINISHED' | 'AUXILIARY';
+  specification?: string;
+  unit: string;
+  currentStock: number;
+  availableStock: number;
+  reservedStock: number;
+  safetyStock: number;
+  maxStock?: number;
+  warehouseId: string;
+  warehouseName?: string;
+  stockStatus: 'NORMAL' | 'LOW_STOCK' | 'OUT_OF_STOCK' | 'OVERSTOCK';
+  storageConditions?: string;
+  remarks?: string;
+  createTime: string;
+  updateTime: string;
+}
+
+export interface InventoryMaterialForm {
+  id?: string;
+  materialCode: string;
+  materialName: string;
+  materialType: 'RAW_MATERIAL' | 'FINISHED_PRODUCT' | 'SEMI_FINISHED' | 'AUXILIARY';
+  specification?: string;
+  unit: string;
+  safetyStock: number;
+  maxStock?: number;
+  warehouseId: string;
+  storageConditions?: string;
+  remarks?: string;
+}
+
+export interface InventoryMaterialQuery extends PageQuery {
+  materialCode?: string;
+  materialName?: string;
+  materialType?: string;
+  warehouseId?: string;
+  stockStatus?: string;
+}
+
+// 库存明细相关类型
+export interface InventoryDetailVO {
+  id: string;
+  materialId: string;
+  batchNo: string;
+  locationId: string;
+  locationName?: string;
+  quantity: number;
+  unitPrice: number;
+  totalValue: number;
+  productionDate?: string;
+  expiryDate?: string;
+  supplierId?: string;
+  supplierName?: string;
+  qualityGrade?: string;
+  remarks?: string;
+  createTime: string;
+  updateTime: string;
+}
+
+export interface InventoryDetailForm {
+  id?: string;
+  materialId: string;
+  batchNo: string;
+  locationId: string;
+  quantity: number;
+  unitPrice: number;
+  productionDate?: string;
+  expiryDate?: string;
+  supplierId?: string;
+  qualityGrade?: string;
+  remarks?: string;
+}
+
 // 库存统计
 export interface InventoryStatistics {
   totalMaterials: number;

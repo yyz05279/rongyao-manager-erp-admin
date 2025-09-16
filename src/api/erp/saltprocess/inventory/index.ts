@@ -89,6 +89,141 @@ export const getInventoryRealtime = (materialId: string): AxiosPromise<Inventory
   });
 };
 
+/**
+ * 获取物料详情
+ */
+export const getInventoryMaterial = (materialId: string): AxiosPromise<any> => {
+  return request({
+    url: `/erp/saltprocess/inventory/material/${materialId}`,
+    method: 'get'
+  });
+};
+
+/**
+ * 新增物料
+ */
+export const addInventoryMaterial = (data: any): AxiosPromise<void> => {
+  return request({
+    url: '/erp/saltprocess/inventory/material',
+    method: 'post',
+    data
+  });
+};
+
+/**
+ * 更新物料
+ */
+export const updateInventoryMaterial = (data: any): AxiosPromise<void> => {
+  return request({
+    url: '/erp/saltprocess/inventory/material',
+    method: 'put',
+    data
+  });
+};
+
+/**
+ * 获取库存明细
+ */
+export const getInventoryDetails = (materialId: string): AxiosPromise<any[]> => {
+  return request({
+    url: `/erp/saltprocess/inventory/material/${materialId}/details`,
+    method: 'get'
+  });
+};
+
+/**
+ * 新增库存明细
+ */
+export const addInventoryDetail = (data: any): AxiosPromise<void> => {
+  return request({
+    url: '/erp/saltprocess/inventory/detail',
+    method: 'post',
+    data
+  });
+};
+
+/**
+ * 更新库存明细
+ */
+export const updateInventoryDetail = (data: any): AxiosPromise<void> => {
+  return request({
+    url: '/erp/saltprocess/inventory/detail',
+    method: 'put',
+    data
+  });
+};
+
+/**
+ * 删除库存明细
+ */
+export const deleteInventoryDetail = (detailId: string): AxiosPromise<void> => {
+  return request({
+    url: `/erp/saltprocess/inventory/detail/${detailId}`,
+    method: 'delete'
+  });
+};
+
+/**
+ * 获取库位列表
+ */
+export const getLocationList = (): AxiosPromise<any[]> => {
+  return request({
+    url: '/erp/saltprocess/inventory/location/list',
+    method: 'get'
+  });
+};
+
+/**
+ * 获取供应商列表
+ */
+export const getSupplierList = (): AxiosPromise<any[]> => {
+  return request({
+    url: '/erp/saltprocess/inventory/supplier/list',
+    method: 'get'
+  });
+};
+
+/**
+ * 获取仓库列表
+ */
+export const getWarehouseList = (): AxiosPromise<any[]> => {
+  return request({
+    url: '/erp/saltprocess/inventory/warehouse/list',
+    method: 'get'
+  });
+};
+
+/**
+ * 查询物料库存列表
+ */
+export const listInventoryMaterial = (query?: any): AxiosPromise<any> => {
+  return request({
+    url: '/erp/saltprocess/inventory/material/list',
+    method: 'get',
+    params: query
+  });
+};
+
+/**
+ * 删除物料
+ */
+export const deleteInventoryMaterial = (materialIds: string | string[]): AxiosPromise<void> => {
+  return request({
+    url: `/erp/saltprocess/inventory/material/${materialIds}`,
+    method: 'delete'
+  });
+};
+
+/**
+ * 获取库存概览
+ */
+export const getInventoryOverview = (): AxiosPromise<any> => {
+  return request({
+    url: '/erp/saltprocess/inventory/overview',
+    method: 'get'
+  });
+};
+
 // 出入库管理接口
 
 /**

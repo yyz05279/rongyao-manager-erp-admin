@@ -26,10 +26,9 @@
         </template>
         <el-descriptions :column="3" border>
           <el-descriptions-item label="记录编码">{{ recordData.recordCode }}</el-descriptions-item>
-          <el-descriptions-item label="项目ID">
-            <div>
-              <div>{{ recordData.projectId }}</div>
-              <div class="project-info">{{ getProjectName(recordData.projectId) }}</div>
+          <el-descriptions-item label="项目名称">
+            <div class="project-name">
+              {{ getProjectName(recordData.projectId) }}
             </div>
           </el-descriptions-item>
           <el-descriptions-item label="记录日期">{{ recordData.recordDate }}</el-descriptions-item>
@@ -176,7 +175,7 @@ const editDialog = reactive({
 // 项目名称映射
 const getProjectName = (projectId: number): string => {
   const projectMap: Record<number, string> = {
-    101: '阿克塞化盐服项目',
+    101: '阿克塞化盐服务项目',
     102: '青海盐湖项目',
     103: '新疆化工项目'
   };

@@ -47,14 +47,16 @@
         </el-descriptions>
       </el-tab-pane>
 
+      <!-- TODO: 工艺配置标签页已临时隐藏 - 2025-9-16需求变更 -->
+      <!-- 恢复方法：移除 v-if="false" 和此注释即可 -->
       <!-- 工艺配置 -->
-      <el-tab-pane label="工艺配置" name="process">
+      <el-tab-pane label="工艺配置" name="process" v-if="false">
         <div v-if="projectData.processConfig">
           <el-card class="config-card" shadow="never">
             <template #header>
               <span class="card-title">{{ projectData.processConfig.configName }}</span>
             </template>
-            
+
             <!-- 预热配置 -->
             <el-collapse v-model="activeCollapse">
               <el-collapse-item title="预热配置" name="preheating">
@@ -93,7 +95,7 @@
                     {{ projectData.processConfig.saltmakingConfig.reactionTime }} 分钟
                   </el-descriptions-item>
                 </el-descriptions>
-                
+
                 <!-- 配比配置 -->
                 <div class="ratio-config">
                   <h4>配比配置</h4>
@@ -116,7 +118,7 @@
                     {{ projectData.processConfig.heatingConfig.holdingTime }} 分钟
                   </el-descriptions-item>
                 </el-descriptions>
-                
+
                 <!-- 提温阶段 -->
                 <div class="heating-stages">
                   <h4>提温阶段</h4>
@@ -135,8 +137,10 @@
         <el-empty v-else description="暂无工艺配置" />
       </el-tab-pane>
 
+      <!-- TODO: 质量标准标签页已临时隐藏 - 2025-9-16需求变更 -->
+      <!-- 恢复方法：移除 v-if="false" 和此注释即可 -->
       <!-- 质量标准 -->
-      <el-tab-pane label="质量标准" name="quality">
+      <el-tab-pane label="质量标准" name="quality" v-if="false">
         <div v-if="projectData.qualityStandards && projectData.qualityStandards.length > 0">
           <el-card
             v-for="standard in projectData.qualityStandards"
@@ -167,14 +171,16 @@
         <el-empty v-else description="暂无质量标准" />
       </el-tab-pane>
 
+      <!-- TODO: 资源计划标签页已临时隐藏 - 2025-9-16需求变更 -->
+      <!-- 恢复方法：移除 v-if="false" 和此注释即可 -->
       <!-- 资源计划 -->
-      <el-tab-pane label="资源计划" name="resource">
+      <el-tab-pane label="资源计划" name="resource" v-if="false">
         <div v-if="projectData.resourcePlan">
           <el-card class="resource-card" shadow="never">
             <template #header>
               <span class="card-title">{{ projectData.resourcePlan.planName }}</span>
             </template>
-            
+
             <!-- 人员计划 -->
             <div class="resource-section">
               <h4>人员计划</h4>
@@ -288,24 +294,53 @@ const loadProjectData = async () => {
   }
 };
 
-// 工具方法
-const getProjectTypeText = (type: string): string => {
-  const typeMap = {
-    'BINARY_SALT': '二元化盐',
-    'TERNARY_SALT': '三元化盐'
+// 工具方法 - 支持数字和字符串类型的枚举值
+const getProjectTypeText = (type: string | number): string => {
+  // 数字到字符串的映射（后端返回数字）
+  const numberToStringMap = {
+    1: 'BINARY_SALT',
+    2: 'TERNARY_SALT',
+    3: 'CUSTOM'
   };
-  return typeMap[type as keyof typeof typeMap] || type;
+
+  const stringType = typeof type === 'number' ? numberToStringMap[type as keyof typeof numberToStringMap] : type;
+
+  const typeMap = {
+    'BINARY_SALT': '二元化盐项目',
+    'TERNARY_SALT': '三元化盐项目',
+    'CUSTOM': '定制项目'
+  };
+  return typeMap[stringType as keyof typeof typeMap] || String(type);
 };
 
-const getProjectTypeTag = (type: string): string => {
+const getProjectTypeTag = (type: string | number): string => {
+  const numberToStringMap = {
+    1: 'BINARY_SALT',
+    2: 'TERNARY_SALT',
+    3: 'CUSTOM'
+  };
+
+  const stringType = typeof type === 'number' ? numberToStringMap[type as keyof typeof numberToStringMap] : type;
+
   const tagMap = {
     'BINARY_SALT': 'primary',
-    'TERNARY_SALT': 'success'
+    'TERNARY_SALT': 'success',
+    'CUSTOM': 'warning'
   };
-  return tagMap[type as keyof typeof tagMap] || '';
+  return tagMap[stringType as keyof typeof tagMap] || '';
 };
 
-const getStatusText = (status: string): string => {
+const getStatusText = (status: string | number): string => {
+  const numberToStringMap = {
+    1: 'PLANNING',
+    2: 'IN_PROGRESS',
+    3: 'COMPLETED',
+    4: 'SUSPENDED',
+    5: 'CANCELLED'
+  };
+
+  const stringStatus = typeof status === 'number' ? numberToStringMap[status as keyof typeof numberToStringMap] : status;
+
   const statusMap = {
     'PLANNING': '规划中',
     'IN_PROGRESS': '进行中',
@@ -313,10 +348,20 @@ const getStatusText = (status: string): string => {
     'SUSPENDED': '已暂停',
     'CANCELLED': '已取消'
   };
-  return statusMap[status as keyof typeof statusMap] || status;
+  return statusMap[stringStatus as keyof typeof statusMap] || String(status);
 };
 
-const getStatusTag = (status: string): string => {
+const getStatusTag = (status: string | number): string => {
+  const numberToStringMap = {
+    1: 'PLANNING',
+    2: 'IN_PROGRESS',
+    3: 'COMPLETED',
+    4: 'SUSPENDED',
+    5: 'CANCELLED'
+  };
+
+  const stringStatus = typeof status === 'number' ? numberToStringMap[status as keyof typeof numberToStringMap] : status;
+
   const tagMap = {
     'PLANNING': 'info',
     'IN_PROGRESS': 'primary',
@@ -324,7 +369,7 @@ const getStatusTag = (status: string): string => {
     'SUSPENDED': 'warning',
     'CANCELLED': 'danger'
   };
-  return tagMap[status as keyof typeof tagMap] || '';
+  return tagMap[stringStatus as keyof typeof tagMap] || '';
 };
 
 const getProgressStatus = (progress: number): string => {

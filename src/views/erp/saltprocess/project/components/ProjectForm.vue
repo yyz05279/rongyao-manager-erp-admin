@@ -66,7 +66,9 @@
             />
           </el-form-item>
         </el-col>
-        <el-col :span="12">
+        <!-- 临时隐藏工艺配置选择组件 - 2024年需求变更 -->
+        <!-- 恢复方法：移除 v-show="false" 和此注释即可 -->
+        <el-col :span="12" v-show="false">
           <el-form-item label="工艺配置" prop="processConfigId">
             <el-select v-model="form.processConfigId" placeholder="请选择工艺配置" style="width: 100%">
               <el-option
@@ -81,7 +83,9 @@
       </el-row>
 
       <el-row :gutter="20">
-        <el-col :span="12">
+        <!-- 临时隐藏质量标准选择组件 - 2024年需求变更 -->
+        <!-- 恢复方法：移除 v-show="false" 和此注释即可 -->
+        <el-col :span="12" v-show="false">
           <el-form-item label="质量标准" prop="qualityStandardId">
             <el-select v-model="form.qualityStandardId" placeholder="请选择质量标准" style="width: 100%">
               <el-option
@@ -93,7 +97,9 @@
             </el-select>
           </el-form-item>
         </el-col>
-        <el-col :span="12">
+        <!-- 临时隐藏资源计划选择组件 - 2024年需求变更 -->
+        <!-- 恢复方法：移除 v-show="false" 和此注释即可 -->
+        <el-col :span="12" v-show="false">
           <el-form-item label="资源计划" prop="resourcePlanId">
             <el-select v-model="form.resourcePlanId" placeholder="请选择资源计划" style="width: 100%">
               <el-option
@@ -214,10 +220,11 @@ const rules = {
 };
 
 // 监听项目类型变化，更新相关配置选项
+// 临时屏蔽API调用 - 2024年需求变更
 watch(() => form.projectType, (newType) => {
   if (newType) {
-    loadProcessConfigs(newType);
-    loadQualityStandards(newType);
+    // loadProcessConfigs(newType);
+    // loadQualityStandards(newType);
   }
 });
 
@@ -228,21 +235,25 @@ onMounted(() => {
 
 // 方法
 const initData = async () => {
+  // 临时屏蔽API调用 - 2024年需求变更
   await Promise.all([
-    loadManagerList(),
-    loadResourcePlans()
+    loadManagerList()
+    // loadResourcePlans()  // 临时屏蔽
   ]);
 
   if (props.projectId) {
     await loadProjectData();
   } else {
     // 新增时加载默认配置
+    // 临时屏蔽API调用 - 2024年需求变更
+    /*
     if (form.projectType) {
       await Promise.all([
         loadProcessConfigs(form.projectType),
         loadQualityStandards(form.projectType)
       ]);
     }
+    */
   }
 };
 
@@ -266,10 +277,13 @@ const loadProjectData = async () => {
     });
 
     // 加载相关配置
+    // 临时屏蔽API调用 - 2024年需求变更
+    /*
     await Promise.all([
       loadProcessConfigs(data.projectType),
       loadQualityStandards(data.projectType)
     ]);
+    */
   } catch (error) {
     console.error('加载项目数据失败:', error);
     ElMessage.error('加载项目数据失败');
@@ -287,6 +301,9 @@ const loadManagerList = async () => {
   ];
 };
 
+// 临时屏蔽工艺配置API调用 - 2024年需求变更
+// 恢复方法：取消注释以下代码块
+/*
 const loadProcessConfigs = async (projectType: string) => {
   try {
     const { data } = await getProcessConfigs(projectType);
@@ -295,7 +312,11 @@ const loadProcessConfigs = async (projectType: string) => {
     console.error('加载工艺配置失败:', error);
   }
 };
+*/
 
+// 临时屏蔽质量标准API调用 - 2024年需求变更
+// 恢复方法：取消注释以下代码块
+/*
 const loadQualityStandards = async (projectType: string) => {
   try {
     const { data } = await getQualityStandards(projectType);
@@ -304,7 +325,11 @@ const loadQualityStandards = async (projectType: string) => {
     console.error('加载质量标准失败:', error);
   }
 };
+*/
 
+// 临时屏蔽资源计划API调用 - 2024年需求变更
+// 恢复方法：取消注释以下代码块
+/*
 const loadResourcePlans = async () => {
   try {
     const { data } = await getResourcePlans();
@@ -313,20 +338,29 @@ const loadResourcePlans = async () => {
     console.error('加载资源计划失败:', error);
   }
 };
+*/
 
 const handleSubmit = async () => {
   if (!formRef.value) return;
-  
+
   const valid = await formRef.value.validate().catch(() => false);
   if (!valid) return;
 
   submitting.value = true;
   try {
-    if (form.id) {
-      await updateSaltProject(form);
+    // 准备提交数据，确保隐藏字段传空值 - 2024年需求变更
+    const submitData = {
+      ...form,
+      processConfigId: '', // 临时设为空值
+      qualityStandardId: '', // 临时设为空值
+      resourcePlanId: '' // 临时设为空值
+    };
+
+    if (submitData.id) {
+      await updateSaltProject(submitData);
       ElMessage.success('项目更新成功');
     } else {
-      await createSaltProject(form);
+      await createSaltProject(submitData);
       ElMessage.success('项目创建成功');
     }
     emit('success');

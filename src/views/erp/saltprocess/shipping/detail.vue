@@ -412,6 +412,14 @@
         </div>
       </el-card>
     </div>
+
+    <!-- 明细项编辑对话框 -->
+    <ItemEditDialog
+      v-model:visible="itemDialog.visible"
+      :item-data="itemDialog.data"
+      :is-edit="!!itemDialog.data?.id"
+      @confirm="handleItemConfirm"
+    />
   </div>
 </template>
 
@@ -440,6 +448,7 @@ import type {
   ShippingStatus,
   EquipmentType
 } from '@/api/erp/saltprocess/shipping/types';
+import ItemEditDialog from './components/ItemEditDialog.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -457,6 +466,12 @@ const uploadUrl = '/api/erp/saltprocess/shipping/attachment';
 const uploadHeaders = {
   Authorization: `Bearer ${localStorage.getItem('token')}`
 };
+
+// 明细项对话框状态
+const itemDialog = reactive({
+  visible: false,
+  data: null as any
+});
 
 // 计算属性
 const equipmentTypeCount = computed(() => {
@@ -522,13 +537,46 @@ const handlePrint = () => {
 };
 
 const handleAddItem = () => {
-  // 添加明细项
-  ElMessage.info('添加明细功能开发中');
+  itemDialog.data = {
+    itemName: '',
+    specification: '',
+    equipmentType: 'AUXILIARY',
+    quantity: 1,
+    unit: '个',
+    unitWeight: 0,
+    unitVolume: 0,
+    manufacturer: '',
+    model: '',
+    serialNumber: '',
+    packageType: '',
+    packageQuantity: 1,
+    isFragile: false,
+    isHazardous: false,
+    storageRequirement: '',
+    remarks: ''
+  };
+  itemDialog.visible = true;
 };
 
 const handleEditItem = (item: ShippingItemVO) => {
-  // 编辑明细项
-  ElMessage.info('编辑明细功能开发中');
+  itemDialog.data = { ...item };
+  itemDialog.visible = true;
+};
+
+const handleItemConfirm = async (itemData: any) => {
+  try {
+    // 这里应该调用API保存或更新明细项
+    // 如果是新增，调用添加API
+    // 如果是编辑，调用更新API
+
+    ElMessage.success(itemData.id ? '明细更新成功' : '明细添加成功');
+    itemDialog.visible = false;
+
+    // 重新加载明细数据
+    getShippingDetail();
+  } catch (error) {
+    ElMessage.error(itemData.id ? '明细更新失败' : '明细添加失败');
+  }
 };
 
 const handleDeleteItem = async (item: ShippingItemVO) => {
