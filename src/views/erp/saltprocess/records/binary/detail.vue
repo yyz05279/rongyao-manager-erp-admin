@@ -66,7 +66,7 @@
           </el-descriptions-item>
           <el-descriptions-item label="总计化盐(t)">
             <div class="total-weight-display">
-              {{ formatWeight(getTotalSaltWeight(recordData)) }}吨
+              {{ formatWeight(recordData.totalSaltWeight || (recordData.nano3ActualWeight + recordData.kno3ActualWeight)) }}吨
             </div>
           </el-descriptions-item>
         </el-descriptions>
@@ -145,6 +145,7 @@ interface RecordData {
   staffCount?: number;
   recorderName?: string;
   remarks?: string;
+  totalSaltWeight?: number; // 总计化盐量（后台计算的累积值）
 }
 
 // 响应式数据
@@ -189,31 +190,45 @@ const formatWeight = (weightInKg: number): string => {
 
 // 配比格式化函数
 const formatRatio = (nano3Weight: number, kno3Weight: number): string => {
-  const total = nano3Weight + kno3Weight;
+  // 处理undefined、null或NaN的情况
+  const nano3 = Number(nano3Weight) || 0;
+  const kno3 = Number(kno3Weight) || 0;
+
+  if (nano3 === 0 && kno3 === 0) return '0.0:0.0';
+  if (nano3 === 0) return `0.0:${(kno3 / 1000).toFixed(1)}`;
+  if (kno3 === 0) return `${(nano3 / 1000).toFixed(1)}:0.0`;
+
+  const total = nano3 + kno3;
   if (total === 0) return '0.0:0.0';
 
-  const nano3Ratio = (nano3Weight / total) * 10;
-  const kno3Ratio = (kno3Weight / total) * 10;
+  // 计算百分比
+  const nano3Percentage = (nano3 / total) * 100;
+  const kno3Percentage = (kno3 / total) * 100;
 
-  return `${nano3Ratio.toFixed(1)}:${kno3Ratio.toFixed(1)}`;
+  // 转换为6:4格式的比例（基于10的比例）
+  const nano3Ratio = (nano3Percentage / 10).toFixed(1);
+  const kno3Ratio = (kno3Percentage / 10).toFixed(1);
+
+  return `${nano3Ratio}:${kno3Ratio}`;
 };
 
-// 总重量计算函数
-const getTotalSaltWeight = (record: RecordData): number => {
-  return record.nano3ActualWeight + record.kno3ActualWeight;
-};
+// 移除前端累计计算逻辑，改为使用后台返回的totalSaltWeight字段
 
 // 配比颜色类名函数
 const getRatioClass = (record: RecordData): string => {
-  const total = record.nano3ActualWeight + record.kno3ActualWeight;
+  // 处理undefined、null或NaN的情况
+  const nano3Weight = Number(record.nano3ActualWeight) || 0;
+  const kno3Weight = Number(record.kno3ActualWeight) || 0;
+
+  const total = nano3Weight + kno3Weight;
   if (total === 0) return 'ratio-unknown';
 
-  const nano3Ratio = record.nano3ActualWeight / total;
+  const nano3Ratio = nano3Weight / total;
   const deviation = Math.abs(nano3Ratio - 0.6); // 目标60%
 
-  if (deviation <= 0.02) return 'ratio-normal';      // 偏差≤2% → 绿色
-  if (deviation <= 0.05) return 'ratio-warning';     // 偏差≤5% → 橙色
-  return 'ratio-danger';                              // 偏差>5% → 红色
+  // 根据用户要求：满足6:4配比使用绿色，不满足使用红色
+  if (deviation <= 0.02) return 'ratio-normal';      // 偏差≤2%认为满足6:4配比 → 绿色
+  return 'ratio-danger';                              // 不满足6:4配比 → 红色
 };
 
 // 生命周期

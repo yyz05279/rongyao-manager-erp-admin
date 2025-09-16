@@ -126,7 +126,7 @@
         </el-table-column>
         <el-table-column label="总计化盐(t)" width="110">
           <template #default="scope">
-            {{ formatWeight(getTotalSaltWeight(scope.row)) }}
+            {{ formatWeight(scope.row.totalSaltWeight || (scope.row.nano3ActualWeight + scope.row.kno3ActualWeight)) }}
           </template>
         </el-table-column>
         <el-table-column label="熔盐液位(m)" prop="moltenSaltLevel" width="110">
@@ -710,38 +710,40 @@ const formatWeight = (weight: number) => {
   return (weight / 1000).toFixed(2); // 将kg转换为吨，保留2位小数
 };
 
-// 新增：计算总化盐重量
-const getTotalSaltWeight = (row: any) => {
-  const nano3Weight = row.nano3ActualWeight || 0;
-  const kno3Weight = row.kno3ActualWeight || 0;
-  return nano3Weight + kno3Weight;
-};
+// 移除前端累计计算逻辑，改为使用后台返回的totalSaltWeight字段
 
 // 新增：格式化配比显示
 const formatRatio = (nano3Weight: number, kno3Weight: number) => {
-  if (!nano3Weight && !kno3Weight) return '-';
-  if (!nano3Weight) return `0:${(kno3Weight / 1000).toFixed(1)}`;
-  if (!kno3Weight) return `${(nano3Weight / 1000).toFixed(1)}:0`;
+  // 处理undefined、null或NaN的情况
+  const nano3 = Number(nano3Weight) || 0;
+  const kno3 = Number(kno3Weight) || 0;
 
-  // 计算比例并简化
-  const nano3Tons = nano3Weight / 1000;
-  const kno3Tons = kno3Weight / 1000;
-  const total = nano3Tons + kno3Tons;
+  if (nano3 === 0 && kno3 === 0) return '-';
+  if (nano3 === 0) return `0.0:${(kno3 / 1000).toFixed(1)}`;
+  if (kno3 === 0) return `${(nano3 / 1000).toFixed(1)}:0.0`;
 
+  // 计算比例并简化为6:4格式
+  const total = nano3 + kno3;
   if (total === 0) return '-';
 
-  const nano3Ratio = (nano3Tons / total * 10).toFixed(1);
-  const kno3Ratio = (kno3Tons / total * 10).toFixed(1);
+  // 计算百分比
+  const nano3Percentage = (nano3 / total) * 100;
+  const kno3Percentage = (kno3 / total) * 100;
+
+  // 转换为6:4格式的比例（基于10的比例）
+  const nano3Ratio = (nano3Percentage / 10).toFixed(1);
+  const kno3Ratio = (kno3Percentage / 10).toFixed(1);
 
   return `${nano3Ratio}:${kno3Ratio}`;
 };
 
 // 新增：获取配比样式类
 const getRatioClass = (row: any) => {
-  const nano3Weight = row.nano3ActualWeight || 0;
-  const kno3Weight = row.kno3ActualWeight || 0;
+  // 处理undefined、null或NaN的情况
+  const nano3Weight = Number(row.nano3ActualWeight) || 0;
+  const kno3Weight = Number(row.kno3ActualWeight) || 0;
 
-  if (!nano3Weight && !kno3Weight) return '';
+  if (nano3Weight === 0 && kno3Weight === 0) return '';
 
   const total = nano3Weight + kno3Weight;
   if (total === 0) return '';
@@ -750,9 +752,9 @@ const getRatioClass = (row: any) => {
   const targetRatio = 0.6; // 目标6:4配比中的6
   const deviation = Math.abs(nano3Ratio - targetRatio);
 
-  if (deviation <= 0.02) return 'text-success'; // 偏差在2%以内为绿色
-  if (deviation <= 0.05) return 'text-warning'; // 偏差在5%以内为橙色
-  return 'text-danger'; // 偏差超过5%为红色
+  // 根据用户要求：满足6:4配比使用绿色，不满足使用红色
+  if (deviation <= 0.02) return 'text-success'; // 偏差在2%以内认为满足6:4配比，使用绿色
+  return 'text-danger'; // 不满足6:4配比，使用红色
 };
 
 // 获取配比状态 - 用于筛选
