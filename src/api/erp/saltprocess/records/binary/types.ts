@@ -49,6 +49,7 @@ export interface BinaryRecordVO {
   // 配比偏差
   ratioDeviation: number; // 配比偏差(%)
   totalWeight: number; // 总重量(kg)
+  totalSaltWeight?: number; // 总计化盐量(kg) - 包含累积值，由后台计算
   
   // 工艺参数
   reactionTemperature: number; // 反应温度(°C)
