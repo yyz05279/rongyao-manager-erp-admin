@@ -67,7 +67,7 @@
             新增项目
           </el-button>
         </el-col>
-        <el-col :span="1.5">
+        <!-- <el-col :span="1.5">
           <el-button
             type="success"
             plain
@@ -78,7 +78,7 @@
           >
             修改
           </el-button>
-        </el-col>
+        </el-col> -->
         <el-col :span="1.5">
           <el-button
             type="danger"
@@ -233,7 +233,7 @@
 <script setup name="SaltProcessProject" lang="ts">
 import { ref, reactive, onMounted } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import { Search, Refresh, Plus, Edit, Delete, Download, View, CopyDocument } from '@element-plus/icons-vue';
+// import { Search, Refresh, Plus, Edit, Delete, Download, View, CopyDocument } from '@element-plus/icons-vue';
 import {
   listSaltProject,
   deleteSaltProject,
@@ -261,8 +261,8 @@ const queryParams = reactive<SaltProjectQuery>({
   pageSize: 10,
   projectName: '',
   projectCode: '',
-  status: '',
-  projectType: '',
+  status: undefined, // 修复类型错误：使用undefined而不是空字符串
+  projectType: undefined, // 修复类型错误：使用undefined而不是空字符串
   managerId: ''
 });
 
@@ -284,6 +284,7 @@ const projectFormRef = ref();
 
 // 生命周期
 onMounted(() => {
+  console.log('页面挂载，开始获取数据...');
   getList();
   getManagerList();
 });
@@ -292,11 +293,51 @@ onMounted(() => {
 const getList = async () => {
   loading.value = true;
   try {
-    const { data } = await listSaltProject(queryParams);
-    projectList.value = data.rows;
-    total.value = data.total;
+    const response = await listSaltProject(queryParams);
+    console.log('API响应完整数据:', response);
+
+    // 修复：API返回的数据结构是 {total: 4, rows: Array(4), code: 200, msg: '查询成功'}
+    // 数据直接在响应根级别，不是嵌套在data属性下
+    // 使用类型断言来处理实际的响应结构
+    const actualResponse = response as any;
+    console.log('API响应rows字段:', actualResponse.rows);
+    console.log('API响应total字段:', actualResponse.total);
+    console.log('API响应code字段:', actualResponse.code);
+    console.log('API响应msg字段:', actualResponse.msg);
+
+    // 检查第一条记录的详细结构
+    if (actualResponse.rows && Array.isArray(actualResponse.rows) && actualResponse.rows.length > 0) {
+      console.log('第一条记录详细结构:', actualResponse.rows[0]);
+      console.log('第一条记录的projectType:', actualResponse.rows[0].projectType, typeof actualResponse.rows[0].projectType);
+      console.log('第一条记录的status:', actualResponse.rows[0].status, typeof actualResponse.rows[0].status);
+    }
+
+    // 数据处理：确保字段不为null，并处理枚举值
+    const processedRows = (actualResponse.rows || []).map((item: any) => ({
+      ...item,
+      // 确保基本字段不为null
+      projectCode: item.projectCode || '',
+      projectName: item.projectName || '未命名项目',
+      managerName: item.managerName || '未分配',
+      currentPhase: item.currentPhase || '未开始',
+      progress: item.progress || 0,
+      // 处理日期字段
+      startDate: item.startDate || '',
+      endDate: item.endDate || '',
+      createTime: item.createTime || '',
+      // 枚举值保持原样，由显示函数处理
+      projectType: item.projectType,
+      status: item.status
+    }));
+
+    projectList.value = processedRows;
+    total.value = actualResponse.total || 0;
+
+    console.log('处理后的projectList:', projectList.value);
+    console.log('设置后的total:', total.value);
   } catch (error) {
     console.error('获取项目列表失败:', error);
+    ElMessage.error('获取项目列表失败');
   } finally {
     loading.value = false;
   }
@@ -415,24 +456,56 @@ const handleFormSuccess = () => {
   getList();
 };
 
-// 工具方法
-const getProjectTypeText = (type: string): string => {
-  const typeMap = {
-    'BINARY_SALT': '二元化盐',
-    'TERNARY_SALT': '三元化盐'
+// 工具方法 - 支持数字和字符串类型的枚举值
+const getProjectTypeText = (type: string | number): string => {
+  // 数字到字符串的映射（后端返回数字）
+  const numberToStringMap = {
+    1: 'BINARY_SALT',
+    2: 'TERNARY_SALT',
+    3: 'CUSTOM'
   };
-  return typeMap[type as keyof typeof typeMap] || type;
+
+  // 先转换数字为字符串枚举
+  const stringType = typeof type === 'number' ? numberToStringMap[type as keyof typeof numberToStringMap] : type;
+
+  const typeMap = {
+    'BINARY_SALT': '二元化盐项目',
+    'TERNARY_SALT': '三元化盐项目',
+    'CUSTOM': '定制项目'
+  };
+  return typeMap[stringType as keyof typeof typeMap] || String(type);
 };
 
-const getProjectTypeTag = (type: string): string => {
+const getProjectTypeTag = (type: string | number): string => {
+  // 数字到字符串的映射
+  const numberToStringMap = {
+    1: 'BINARY_SALT',
+    2: 'TERNARY_SALT',
+    3: 'CUSTOM'
+  };
+
+  const stringType = typeof type === 'number' ? numberToStringMap[type as keyof typeof numberToStringMap] : type;
+
   const tagMap = {
     'BINARY_SALT': 'primary',
-    'TERNARY_SALT': 'success'
+    'TERNARY_SALT': 'success',
+    'CUSTOM': 'warning'
   };
-  return tagMap[type as keyof typeof tagMap] || '';
+  return tagMap[stringType as keyof typeof tagMap] || '';
 };
 
-const getStatusText = (status: string): string => {
+const getStatusText = (status: string | number): string => {
+  // 数字到字符串的映射（后端返回数字）
+  const numberToStringMap = {
+    1: 'PLANNING',
+    2: 'IN_PROGRESS',
+    3: 'COMPLETED',
+    4: 'SUSPENDED',
+    5: 'CANCELLED'
+  };
+
+  const stringStatus = typeof status === 'number' ? numberToStringMap[status as keyof typeof numberToStringMap] : status;
+
   const statusMap = {
     'PLANNING': '规划中',
     'IN_PROGRESS': '进行中',
@@ -440,10 +513,21 @@ const getStatusText = (status: string): string => {
     'SUSPENDED': '已暂停',
     'CANCELLED': '已取消'
   };
-  return statusMap[status as keyof typeof statusMap] || status;
+  return statusMap[stringStatus as keyof typeof statusMap] || String(status);
 };
 
-const getStatusTag = (status: string): string => {
+const getStatusTag = (status: string | number): string => {
+  // 数字到字符串的映射
+  const numberToStringMap = {
+    1: 'PLANNING',
+    2: 'IN_PROGRESS',
+    3: 'COMPLETED',
+    4: 'SUSPENDED',
+    5: 'CANCELLED'
+  };
+
+  const stringStatus = typeof status === 'number' ? numberToStringMap[status as keyof typeof numberToStringMap] : status;
+
   const tagMap = {
     'PLANNING': 'info',
     'IN_PROGRESS': 'primary',
@@ -451,13 +535,13 @@ const getStatusTag = (status: string): string => {
     'SUSPENDED': 'warning',
     'CANCELLED': 'danger'
   };
-  return tagMap[status as keyof typeof tagMap] || '';
+  return tagMap[stringStatus as keyof typeof tagMap] || '';
 };
 
 const getProgressStatus = (progress: number): string => {
-  if (progress === 100) return 'success';
-  if (progress >= 80) return '';
-  if (progress >= 50) return 'warning';
+  if (progress >= 100) return 'success';
+  if (progress >= 80) return 'warning';
+  if (progress > 0) return '';
   return 'exception';
 };
 </script>

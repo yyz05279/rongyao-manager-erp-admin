@@ -191,7 +191,7 @@ const getRatioClass = (record: RecordData): string => {
 // 项目名称映射
 const getProjectName = (projectId: number): string => {
   const projectMap: Record<number, string> = {
-    101: '阿克塞化盐服项目',
+    101: '阿克塞化盐服务项目',
     102: '青海盐湖项目',
     103: '新疆化工项目'
   };
@@ -309,7 +309,7 @@ recordData.value = {
 - **配比显示**：6.0:4.0（绿色显示）✅
 - **总计化盐**：60.00吨 ✅
 - **班次显示**：蓝色标签"白班" ✅
-- **项目信息**：101 - 阿克塞化盐服项目 ✅
+- **项目信息**：101 - 阿克塞化盐服务项目 ✅
 
 ### 3. 计算逻辑一致性验证 ✅
 

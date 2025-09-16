@@ -61,7 +61,11 @@ const settingRef = ref(Settings);
 
 onMounted(() => {
   nextTick(() => {
-    navbarRef.value.initTenantList();
+    // 修复：租户功能已禁用，initTenantList方法不存在
+    // 添加安全检查避免运行时错误
+    if (navbarRef.value && typeof navbarRef.value.initTenantList === 'function') {
+      navbarRef.value.initTenantList();
+    }
   })
 })
 

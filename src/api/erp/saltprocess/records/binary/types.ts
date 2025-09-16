@@ -8,7 +8,8 @@ export interface BinaryRecordQuery {
   pageSize?: number;
   recordCode?: string;
   batchNumber?: string;
-  projectId?: number;
+  projectId?: number;          // 保留用于后端查询
+  projectName?: string;        // 新增项目名称字段用于前端筛选
   recordDate?: string;
   startDate?: string;
   endDate?: string;
@@ -97,6 +98,7 @@ export interface BinaryRecordForm {
   recordCode: string;
   batchNumber: string;
   projectId: number;
+  projectName?: string;  // 新增项目名称字段用于前端表单
   recordDate: string;
   startTime: string;
   endTime: string;
