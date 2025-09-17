@@ -7,6 +7,23 @@
       label-width="120px"
       v-loading="loading"
     >
+      <!-- 项目编号显示（仅编辑模式） -->
+      <el-row :gutter="20" v-if="form.id">
+        <el-col :span="12">
+          <el-form-item label="项目编号">
+            <el-input
+              v-model="form.projectCode"
+              readonly
+              placeholder="系统自动生成"
+              style="background-color: #f5f7fa;"
+            />
+          </el-form-item>
+        </el-col>
+        <el-col :span="12">
+          <!-- 占位列 -->
+        </el-col>
+      </el-row>
+
       <el-row :gutter="20">
         <el-col :span="12">
           <el-form-item label="项目名称" prop="projectName">
@@ -21,8 +38,12 @@
         <el-col :span="12">
           <el-form-item label="项目类型" prop="projectType">
             <el-select v-model="form.projectType" placeholder="请选择项目类型" style="width: 100%">
-              <el-option label="二元化盐" value="BINARY_SALT" />
-              <el-option label="三元化盐" value="TERNARY_SALT" />
+              <el-option
+                v-for="option in projectTypeOptions"
+                :key="option.value"
+                :label="option.label"
+                :value="option.value"
+              />
             </el-select>
           </el-form-item>
         </el-col>
@@ -146,6 +167,7 @@ import {
   getResourcePlans
 } from '@/api/erp/saltprocess/project';
 import type { SaltProjectForm } from '@/api/erp/saltprocess/project/types';
+import { getProjectTypeOptions } from '@/utils/project-type-converter';
 
 // Props
 interface Props {
@@ -157,23 +179,25 @@ const props = withDefaults(defineProps<Props>(), {
 });
 
 // Emits
-interface Emits {
+const emit = defineEmits<{
   success: [];
   cancel: [];
-}
-
-const emit = defineEmits<Emits>();
+}>();
 
 // 响应式数据
 const loading = ref(false);
 const submitting = ref(false);
 const formRef = ref();
 
+// 项目类型选项
+const projectTypeOptions = getProjectTypeOptions();
+
 // 表单数据
 const form = reactive<SaltProjectForm>({
   id: '',
+  projectCode: '', // 项目编号
   projectName: '',
-  projectType: 'BINARY_SALT',
+  projectType: 1, // 默认为二元化盐项目
   managerId: '',
   startDate: '',
   endDate: '',
@@ -259,12 +283,14 @@ const initData = async () => {
 
 const loadProjectData = async () => {
   if (!props.projectId) return;
-  
+
   loading.value = true;
   try {
     const { data } = await getSaltProject(props.projectId);
+    console.log('加载的项目数据:', data); // 调试日志
     Object.assign(form, {
       id: data.id,
+      projectCode: data.projectCode || '', // 确保包含项目编号
       projectName: data.projectName,
       projectType: data.projectType,
       managerId: data.managerId,
@@ -356,17 +382,41 @@ const handleSubmit = async () => {
       resourcePlanId: '' // 临时设为空值
     };
 
+    // 调试日志：打印提交的数据
+    console.log('提交的项目数据:', submitData);
+    console.log('项目编号 (projectCode):', submitData.projectCode);
+
+    // 数据完整性验证
+    if (submitData.id && !submitData.projectCode) {
+      console.warn('警告：编辑项目时缺少项目编号 (projectCode)');
+      ElMessage.warning('项目编号缺失，请刷新页面重试');
+      return;
+    }
+
     if (submitData.id) {
+      // 更新项目
+      console.log('执行项目更新操作，项目ID:', submitData.id);
       await updateSaltProject(submitData);
       ElMessage.success('项目更新成功');
     } else {
+      // 创建项目
+      console.log('执行项目创建操作');
       await createSaltProject(submitData);
       ElMessage.success('项目创建成功');
     }
     emit('success');
-  } catch (error) {
+  } catch (error: any) {
     console.error('保存项目失败:', error);
-    ElMessage.error('保存项目失败');
+
+    // 更详细的错误处理
+    let errorMessage = '保存项目失败';
+    if (error?.response?.data?.message) {
+      errorMessage = error.response.data.message;
+    } else if (error?.message) {
+      errorMessage = error.message;
+    }
+
+    ElMessage.error(errorMessage);
   } finally {
     submitting.value = false;
   }
