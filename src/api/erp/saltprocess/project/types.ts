@@ -40,8 +40,9 @@ export interface SaltProjectVO {
 // 项目表单数据
 export interface SaltProjectForm {
   id?: string;
+  projectCode?: string; // 项目编号（编辑时必需，新增时可选）
   projectName: string;
-  projectType: ProjectType;
+  projectType: ProjectType | number; // 支持数字类型（后端返回数字）
   managerId: string;
   startDate: string;
   endDate?: string;

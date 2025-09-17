@@ -177,7 +177,7 @@
                 v-hasPermi="['saltprocess:project:edit']"
               />
             </el-tooltip>
-            <el-tooltip content="复制" placement="top">
+            <!-- <el-tooltip content="复制" placement="top">
               <el-button
                 link
                 type="success"
@@ -185,7 +185,7 @@
                 @click.stop="handleCopy(scope.row)"
                 v-hasPermi="['saltprocess:project:add']"
               />
-            </el-tooltip>
+            </el-tooltip> -->
             <el-tooltip content="删除" placement="top">
               <el-button
                 link
@@ -242,6 +242,7 @@ import {
 } from '@/api/erp/saltprocess/project';
 import type { SaltProjectQuery, SaltProjectVO } from '@/api/erp/saltprocess/project/types';
 import { parseTime } from '@/utils/ruoyi';
+import { getProjectTypeText, getProjectTypeTag } from '@/utils/project-type-converter';
 import ProjectForm from './components/ProjectForm.vue';
 import ProjectDetail from './components/ProjectDetail.vue';
 
@@ -456,43 +457,7 @@ const handleFormSuccess = () => {
   getList();
 };
 
-// 工具方法 - 支持数字和字符串类型的枚举值
-const getProjectTypeText = (type: string | number): string => {
-  // 数字到字符串的映射（后端返回数字）
-  const numberToStringMap = {
-    1: 'BINARY_SALT',
-    2: 'TERNARY_SALT',
-    3: 'CUSTOM'
-  };
-
-  // 先转换数字为字符串枚举
-  const stringType = typeof type === 'number' ? numberToStringMap[type as keyof typeof numberToStringMap] : type;
-
-  const typeMap = {
-    'BINARY_SALT': '二元化盐项目',
-    'TERNARY_SALT': '三元化盐项目',
-    'CUSTOM': '定制项目'
-  };
-  return typeMap[stringType as keyof typeof typeMap] || String(type);
-};
-
-const getProjectTypeTag = (type: string | number): string => {
-  // 数字到字符串的映射
-  const numberToStringMap = {
-    1: 'BINARY_SALT',
-    2: 'TERNARY_SALT',
-    3: 'CUSTOM'
-  };
-
-  const stringType = typeof type === 'number' ? numberToStringMap[type as keyof typeof numberToStringMap] : type;
-
-  const tagMap = {
-    'BINARY_SALT': 'primary',
-    'TERNARY_SALT': 'success',
-    'CUSTOM': 'warning'
-  };
-  return tagMap[stringType as keyof typeof tagMap] || '';
-};
+// 工具方法 - 使用导入的转换函数
 
 const getStatusText = (status: string | number): string => {
   // 数字到字符串的映射（后端返回数字）

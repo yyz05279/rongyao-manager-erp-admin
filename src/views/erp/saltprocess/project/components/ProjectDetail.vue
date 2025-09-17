@@ -253,6 +253,7 @@ import { ElMessage } from 'element-plus';
 import { getSaltProject } from '@/api/erp/saltprocess/project';
 import type { SaltProjectVO } from '@/api/erp/saltprocess/project/types';
 import { parseTime } from '@/utils/ruoyi';
+import { getProjectTypeText, getProjectTypeTag } from '@/utils/project-type-converter';
 import ProjectProgress from './ProjectProgress.vue';
 
 // Props
@@ -263,11 +264,9 @@ interface Props {
 const props = defineProps<Props>();
 
 // Emits
-interface Emits {
+const emit = defineEmits<{
   close: [];
-}
-
-const emit = defineEmits<Emits>();
+}>();
 
 // 响应式数据
 const loading = ref(false);
@@ -294,41 +293,7 @@ const loadProjectData = async () => {
   }
 };
 
-// 工具方法 - 支持数字和字符串类型的枚举值
-const getProjectTypeText = (type: string | number): string => {
-  // 数字到字符串的映射（后端返回数字）
-  const numberToStringMap = {
-    1: 'BINARY_SALT',
-    2: 'TERNARY_SALT',
-    3: 'CUSTOM'
-  };
-
-  const stringType = typeof type === 'number' ? numberToStringMap[type as keyof typeof numberToStringMap] : type;
-
-  const typeMap = {
-    'BINARY_SALT': '二元化盐项目',
-    'TERNARY_SALT': '三元化盐项目',
-    'CUSTOM': '定制项目'
-  };
-  return typeMap[stringType as keyof typeof typeMap] || String(type);
-};
-
-const getProjectTypeTag = (type: string | number): string => {
-  const numberToStringMap = {
-    1: 'BINARY_SALT',
-    2: 'TERNARY_SALT',
-    3: 'CUSTOM'
-  };
-
-  const stringType = typeof type === 'number' ? numberToStringMap[type as keyof typeof numberToStringMap] : type;
-
-  const tagMap = {
-    'BINARY_SALT': 'primary',
-    'TERNARY_SALT': 'success',
-    'CUSTOM': 'warning'
-  };
-  return tagMap[stringType as keyof typeof tagMap] || '';
-};
+// 工具方法 - 使用导入的转换函数
 
 const getStatusText = (status: string | number): string => {
   const numberToStringMap = {
