@@ -37,6 +37,7 @@ export interface ProductVO {
   purchasePrice: number // 采购价格，单位：元
   salePrice: number // 销售价格，单位：元
   minPrice: number // 最低价格，单位：元
+  productionDate?: string // 生产日期
 }
 
 export interface ProductForm extends BaseEntity {
@@ -105,6 +106,11 @@ export interface ProductForm extends BaseEntity {
    */
   minPrice?: number;
 
+  /**
+   * 生产日期
+   */
+  productionDate?: string;
+
 }
 
 export interface ProductQuery extends PageQuery {
@@ -133,6 +139,21 @@ export interface ProductQuery extends PageQuery {
    * 产品状态
    */
   status?: number;
+
+  /**
+   * 生产日期
+   */
+  productionDate?: string;
+
+  /**
+   * 生产日期范围查询 - 开始日期
+   */
+  productionDateStart?: string;
+
+  /**
+   * 生产日期范围查询 - 结束日期
+   */
+  productionDateEnd?: string;
 
   /**
    * 日期范围参数

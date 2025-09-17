@@ -23,17 +23,17 @@
         </el-form-item>
         <el-form-item label="项目状态" prop="status">
           <el-select v-model="queryParams.status" placeholder="请选择状态" clearable style="width: 150px">
-            <el-option label="规划中" value="PLANNING" />
-            <el-option label="进行中" value="IN_PROGRESS" />
-            <el-option label="已完成" value="COMPLETED" />
-            <el-option label="已暂停" value="SUSPENDED" />
-            <el-option label="已取消" value="CANCELLED" />
+            <el-option label="规划中" value="1" />
+            <el-option label="进行中" value="2" />
+            <el-option label="已完成" value="3" />
+            <el-option label="已暂停" value="4" />
+            <el-option label="已取消" value="5" />
           </el-select>
         </el-form-item>
         <el-form-item label="项目类型" prop="projectType">
           <el-select v-model="queryParams.projectType" placeholder="请选择类型" clearable style="width: 150px">
-            <el-option label="二元化盐" value="BINARY_SALT" />
-            <el-option label="三元化盐" value="TERNARY_SALT" />
+            <el-option label="二元化盐" value="1" />
+            <el-option label="三元化盐" value="2" />
           </el-select>
         </el-form-item>
         <el-form-item label="负责人" prop="managerId">
@@ -91,7 +91,7 @@
             删除
           </el-button>
         </el-col>
-        <el-col :span="1.5">
+        <!-- <el-col :span="1.5">
           <el-button
             type="warning"
             plain
@@ -101,7 +101,7 @@
           >
             导出
           </el-button>
-        </el-col>
+        </el-col> -->
         <right-toolbar v-model:showSearch="showSearch" @queryTable="getList" />
       </el-row>
     </el-card>
@@ -115,7 +115,7 @@
         @row-click="handleRowClick"
       >
         <el-table-column type="selection" width="55" align="center" />
-        <el-table-column label="项目编码" prop="projectCode" width="120" />
+        <el-table-column label="项目编码" prop="projectCode" width="160" />
         <el-table-column label="项目名称" prop="projectName" min-width="200" show-overflow-tooltip />
         <el-table-column label="项目类型" prop="projectType" width="100" align="center">
           <template #default="scope">
