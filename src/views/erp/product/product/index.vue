@@ -19,6 +19,20 @@
               />
             </el-select>
           </el-form-item>
+          <el-form-item label="生产日期" prop="productionDateRange">
+            <el-date-picker
+              v-model="productionDateRange"
+              type="daterange"
+              range-separator="至"
+              start-placeholder="开始日期"
+              end-placeholder="结束日期"
+              format="YYYY-MM-DD"
+              value-format="YYYY-MM-DD"
+              style="width: 240px"
+              clearable
+              @change="handleProductionDateChange"
+            />
+          </el-form-item>
           <el-form-item>
             <el-button type="primary" icon="Search" @click="handleQuery">搜索</el-button>
             <el-button icon="Refresh" @click="resetQuery">重置</el-button>
@@ -64,6 +78,11 @@
           align="center"
           prop="minPrice"
         />
+        <el-table-column label="生产日期" align="center" prop="productionDate" width="120">
+          <template #default="scope">
+            <span>{{ scope.row.productionDate || '-' }}</span>
+          </template>
+        </el-table-column>
         <el-table-column label="产品状态" align="center" prop="status">
           <template #default="scope">
             <dict-tag :options="sys_normal_disable" :value="scope.row.status"/>
@@ -156,6 +175,22 @@
 
         <el-row>
           <el-col :span="12">
+            <el-form-item label="生产日期" prop="productionDate">
+              <el-date-picker
+                v-model="form.productionDate"
+                type="date"
+                placeholder="请选择生产日期"
+                format="YYYY-MM-DD"
+                value-format="YYYY-MM-DD"
+                style="width: 100%"
+                clearable
+              />
+            </el-form-item>
+          </el-col>
+        </el-row>
+
+        <el-row>
+          <el-col :span="12">
             <el-form-item label="基础重量" prop="weight">
               <el-input-number
                 v-model="form.weight"
@@ -235,6 +270,8 @@ const total = ref(0);
 const categoryOptions = ref<ProductCategoryVO[]>([]) // 产品分类列表
 const unitOptions = ref<ProductUnitVO[]>([]) // 产品单位列表
 
+// 生产日期范围查询
+const productionDateRange = ref<[string, string] | null>(null);
 
 const queryFormRef = ref<ElFormInstance>();
 const productFormRef = ref<ElFormInstance>();
@@ -258,6 +295,7 @@ const initFormData: ProductForm = {
   purchasePrice: undefined,
   salePrice: undefined,
   minPrice: undefined,
+  productionDate: undefined,
 }
 const data = reactive<PageData<ProductForm, ProductQuery>>({
   form: {...initFormData},
@@ -355,7 +393,21 @@ const handleQuery = () => {
 /** 重置按钮操作 */
 const resetQuery = () => {
   queryFormRef.value?.resetFields();
+  productionDateRange.value = null;
+  queryParams.value.productionDateStart = undefined;
+  queryParams.value.productionDateEnd = undefined;
   handleQuery();
+}
+
+/** 处理生产日期范围变化 */
+const handleProductionDateChange = (value: [string, string] | null) => {
+  if (value && value.length === 2) {
+    queryParams.value.productionDateStart = value[0];
+    queryParams.value.productionDateEnd = value[1];
+  } else {
+    queryParams.value.productionDateStart = undefined;
+    queryParams.value.productionDateEnd = undefined;
+  }
 }
 
 /** 多选框选中数据 */

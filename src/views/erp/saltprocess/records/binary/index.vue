@@ -86,7 +86,8 @@
         <el-col :span="1.5">
           <el-button type="warning" plain icon="Download" @click="handleExport">Excel导出</el-button>
         </el-col>
-        <el-col :span="1.5">
+        <!-- TODO 暂时隐藏统计分析 -->
+        <el-col :span="1.5" v-show="false">
           <el-button type="info" plain icon="TrendCharts" @click="handleStatistics">统计分析</el-button>
         </el-col>
         <right-toolbar v-model:showSearch="showSearch" @queryTable="getList" />
@@ -390,20 +391,15 @@ const loadProjectList = async () => {
   try {
     const response = await getProjectList();
     // 处理API响应数据
-    if (response && response.data) {
-      projectList.value = Array.isArray(response.data) ? response.data : [];
+    if (response && response.rows) {
+      projectList.value = Array.isArray(response.rows) ? response.rows : [];
     } else {
       projectList.value = [];
     }
     console.log('项目列表加载成功:', projectList.value);
   } catch (error) {
     console.error('加载项目列表失败:', error);
-    // 如果API失败，使用默认项目列表
-    projectList.value = [
-      { id: '101', projectName: '阿克塞化盐服务项目' },
-      { id: '102', projectName: '青海盐湖项目' },
-      { id: '103', projectName: '新疆化工项目' }
-    ];
+    ElMessage.error('加载项目列表失败');
   }
 };
 
