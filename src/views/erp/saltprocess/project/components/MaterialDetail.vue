@@ -1,0 +1,1101 @@
+<template>
+  <div class="material-detail">
+    <!-- 操作栏 -->
+    <el-card shadow="never" class="operation-card">
+      <el-row :gutter="10">
+        <el-col :span="12">
+          <el-upload
+            ref="uploadRef"
+            :auto-upload="false"
+            :on-change="handleFileChange"
+            :before-upload="beforeUpload"
+            accept=".xlsx,.xls"
+            :limit="1"
+            :show-file-list="false"
+          >
+            <el-button type="primary" icon="Upload">导入Excel</el-button>
+          </el-upload>
+        </el-col>
+        <el-col :span="12" style="text-align: right;">
+          <el-button icon="Download" @click="downloadTemplate">下载模板</el-button>
+          <el-button type="success" icon="Download" :disabled="materialData.length === 0" @click="handleExport"> 导出数据 </el-button>
+        </el-col>
+      </el-row>
+    </el-card>
+
+    <!-- 解析进度 -->
+    <el-card v-if="parsing" shadow="never" class="progress-card">
+      <el-progress :percentage="parseProgress" :status="parseStatus" :stroke-width="8">
+        <template #default="{ percentage }">
+          <span class="percentage-value">{{ percentage }}%</span>
+        </template>
+      </el-progress>
+      <p class="progress-text">{{ parseMessage }}</p>
+    </el-card>
+
+    <!-- 数据预览和编辑 -->
+    <el-card v-if="materialData.length > 0" shadow="never" class="preview-card">
+      <template #header>
+        <div class="card-header">
+          <span>数据预览 (共{{ materialData.length }}条记录)</span>
+          <div>
+            <el-button @click="validateData">验证数据</el-button>
+            <el-button type="primary" @click="submitData" :loading="submitting" icon="Upload"> 导入数据 </el-button>
+          </div>
+        </div>
+      </template>
+
+      <!-- 统计信息 -->
+      <div class="statistics-bar">
+        <el-tag type="info">总计: {{ materialData.length }}</el-tag>
+        <el-tag type="success">有效: {{ validCount }}</el-tag>
+        <el-tag type="warning" v-if="warningCount > 0">警告: {{ warningCount }}</el-tag>
+        <el-tag type="danger" v-if="errorCount > 0">错误: {{ errorCount }}</el-tag>
+      </div>
+
+      <!-- 按Sheet分组的数据展示 -->
+      <el-tabs
+        v-model="activeSheetTab"
+        type="card"
+        class="sheet-tabs"
+        @tab-change="handleSheetTabChange"
+        v-loading="sheetSwitching"
+        element-loading-text="加载中..."
+        element-loading-background="rgba(255, 255, 255, 0.8)"
+      >
+        <el-tab-pane
+          v-for="sheetGroup in sheetGroups"
+          :key="sheetGroup.sheetName"
+          :label="`${sheetGroup.sheetName} (${sheetGroup.materials.length})`"
+          :name="sheetGroup.sheetName"
+          :disabled="sheetSwitching"
+          lazy
+        >
+          <el-table
+            v-if="activeSheetTab === sheetGroup.sheetName"
+            :data="currentSheetData"
+            style="width: 100%"
+            :row-class-name="getRowClassName"
+            max-height="500"
+            border
+          >
+            <el-table-column type="index" label="序号" width="60" align="center" />
+            <el-table-column prop="materialName" label="物料名称" width="200" show-overflow-tooltip>
+              <template #default="{ row, $index }">
+                <el-input
+                  v-model="row.materialName"
+                  @change="validateRowBySheet($index)"
+                  :class="{ 'error-input': row.errors?.materialName }"
+                  size="small"
+                />
+                <div v-if="row.errors?.materialName" class="error-text">
+                  {{ row.errors.materialName }}
+                </div>
+              </template>
+            </el-table-column>
+            <el-table-column prop="specification" label="规格型号" width="180" show-overflow-tooltip>
+              <template #default="{ row, $index }">
+                <el-input v-model="row.specification" @change="validateRowBySheet($index)" size="small" />
+              </template>
+            </el-table-column>
+            <el-table-column prop="quantity" label="数量" width="120" align="center">
+              <template #default="{ row, $index }">
+                <el-input-number
+                  v-model="row.quantity"
+                  @change="validateRowBySheet($index)"
+                  :min="0"
+                  :precision="2"
+                  size="small"
+                  controls-position="right"
+                />
+              </template>
+            </el-table-column>
+            <el-table-column prop="unit" label="单位" width="100" align="center">
+              <template #default="{ row }">
+                <el-select v-model="row.unit" placeholder="选择单位" size="small">
+                  <el-option label="台" value="台" />
+                  <el-option label="套" value="套" />
+                  <el-option label="件" value="件" />
+                  <el-option label="个" value="个" />
+                  <el-option label="支" value="支" />
+                  <el-option label="根" value="根" />
+                  <el-option label="米" value="米" />
+                  <el-option label="kg" value="kg" />
+                </el-select>
+              </template>
+            </el-table-column>
+            <el-table-column prop="materialType" label="物料类型" width="120" align="center">
+              <template #default="{ row }">
+                <el-tag :type="getMaterialTypeTag(row.materialType)">
+                  {{ getMaterialTypeName(row.materialType) }}
+                </el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column prop="materialCategory" label="材质" width="100" show-overflow-tooltip />
+            <el-table-column prop="manufacturer" label="制造商" width="120" show-overflow-tooltip />
+            <el-table-column prop="remarks1" label="备注1" width="150" show-overflow-tooltip />
+            <el-table-column prop="remarks2" label="备注2" width="150" show-overflow-tooltip />
+            <el-table-column label="状态" width="80" align="center" fixed="right">
+              <template #default="{ row }">
+                <el-icon v-if="!row.hasErrors" color="green" size="20"><Check /></el-icon>
+                <el-icon v-else color="red" size="20"><Close /></el-icon>
+              </template>
+            </el-table-column>
+          </el-table>
+
+          <!-- 分页 -->
+          <pagination
+            v-if="currentSheetTotal > sheetPageSize"
+            v-model:page="currentSheetPage"
+            v-model:limit="sheetPageSize"
+            :total="currentSheetTotal"
+            @pagination="handleSheetPagination"
+          />
+        </el-tab-pane>
+      </el-tabs>
+    </el-card>
+
+    <!-- 物料列表（已导入的数据） -->
+    <el-card shadow="never" class="list-card">
+      <template #header>
+        <div class="card-header">
+          <span>物料清单</span>
+          <el-button icon="Refresh" @click="loadMaterialList">刷新</el-button>
+        </div>
+      </template>
+
+      <!-- 按Sheet分组展示已导入的物料 -->
+      <el-tabs
+        v-if="importedSheetGroups.length > 0"
+        v-model="activeImportedSheetTab"
+        type="border-card"
+        class="imported-sheet-tabs"
+        @tab-change="handleImportedTabChange"
+        v-loading="importedSheetSwitching"
+        element-loading-text="加载中..."
+        element-loading-background="rgba(255, 255, 255, 0.8)"
+      >
+        <el-tab-pane
+          v-for="group in importedSheetGroups"
+          :key="group.sheetName"
+          :label="`${group.sheetName || '未分组'} (${group.materials.length})`"
+          :name="group.sheetName || '未分组'"
+          :disabled="importedSheetSwitching"
+          lazy
+        >
+          <el-table
+            v-if="activeImportedSheetTab === (group.sheetName || '未分组')"
+            v-loading="loading"
+            :data="currentImportedSheetData"
+            style="width: 100%"
+            border
+          >
+            <el-table-column type="index" label="序号" width="60" align="center" />
+            <el-table-column prop="materialName" label="物料名称" min-width="180" show-overflow-tooltip />
+            <el-table-column prop="specification" label="规格型号" min-width="160" show-overflow-tooltip />
+            <el-table-column prop="quantity" label="数量" width="100" align="center" />
+            <el-table-column prop="unit" label="单位" width="80" align="center" />
+            <el-table-column prop="materialType" label="物料类型" width="120" align="center">
+              <template #default="{ row }">
+                <el-tag :type="getMaterialTypeTag(row.materialType)">
+                  {{ getMaterialTypeName(row.materialType) }}
+                </el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column prop="materialCategory" label="材质" width="100" show-overflow-tooltip />
+            <el-table-column prop="manufacturer" label="制造商" width="120" show-overflow-tooltip />
+            <el-table-column prop="remarks1" label="备注1" width="150" show-overflow-tooltip />
+            <el-table-column prop="createTime" label="创建时间" width="160" align="center">
+              <template #default="{ row }">
+                {{ parseTime(row.createTime) }}
+              </template>
+            </el-table-column>
+            <el-table-column label="操作" width="120" align="center" fixed="right">
+              <template #default="{ row }">
+                <el-button link type="danger" icon="Delete" @click="handleDelete(row)">删除</el-button>
+              </template>
+            </el-table-column>
+          </el-table>
+        </el-tab-pane>
+      </el-tabs>
+
+      <!-- 无数据时显示 -->
+      <el-empty v-else description="暂无物料数据" />
+    </el-card>
+
+    <!-- 导入结果对话框 -->
+    <el-dialog v-model="showResult" title="导入结果" width="800px">
+      <div v-if="importResult">
+        <el-result
+          :icon="importResult.success ? 'success' : 'error'"
+          :title="importResult.success ? '导入成功' : '导入失败'"
+          :sub-title="importResult.summary"
+        >
+          <template #extra>
+            <!-- 总体统计 -->
+            <div class="result-stats">
+              <el-descriptions :column="2" border>
+                <el-descriptions-item label="总记录数">
+                  {{ importResult.totalRecords }}
+                </el-descriptions-item>
+                <el-descriptions-item label="成功记录">
+                  <el-tag type="success">{{ importResult.successRecords }}</el-tag>
+                </el-descriptions-item>
+                <el-descriptions-item label="失败记录">
+                  <el-tag type="danger" v-if="importResult.failedRecords > 0">{{ importResult.failedRecords }}</el-tag>
+                  <span v-else>0</span>
+                </el-descriptions-item>
+                <el-descriptions-item label="新建产品">
+                  {{ importResult.newProductRecords }}
+                </el-descriptions-item>
+                <el-descriptions-item label="匹配产品">
+                  {{ importResult.matchedProductRecords }}
+                </el-descriptions-item>
+                <el-descriptions-item label="处理Sheet数">
+                  {{ importResult.sheetResults?.length || 0 }}
+                </el-descriptions-item>
+              </el-descriptions>
+            </div>
+
+            <!-- 各Sheet导入详情 -->
+            <div v-if="importResult.sheetResults && importResult.sheetResults.length > 0" class="sheet-results">
+              <h4>各Sheet导入详情：</h4>
+              <el-table :data="importResult.sheetResults" border size="small" style="margin-top: 10px;">
+                <el-table-column prop="sheetName" label="Sheet名称" min-width="120">
+                  <template #default="{ row }">
+                    <el-tag :type="getSheetResultTag(row.sheetName)" size="small">
+                      {{ row.sheetName }}
+                    </el-tag>
+                  </template>
+                </el-table-column>
+                <el-table-column prop="totalRecords" label="总记录数" width="90" align="center" />
+                <el-table-column prop="successRecords" label="成功" width="70" align="center">
+                  <template #default="{ row }">
+                    <el-tag type="success" size="small" v-if="row.successRecords > 0">
+                      {{ row.successRecords }}
+                    </el-tag>
+                    <span v-else>0</span>
+                  </template>
+                </el-table-column>
+                <el-table-column prop="failedRecords" label="失败" width="70" align="center">
+                  <template #default="{ row }">
+                    <el-tag type="danger" size="small" v-if="row.failedRecords > 0">
+                      {{ row.failedRecords }}
+                    </el-tag>
+                    <span v-else>0</span>
+                  </template>
+                </el-table-column>
+                <el-table-column prop="newProductRecords" label="新建产品" width="90" align="center" />
+                <el-table-column prop="matchedProductRecords" label="匹配产品" width="90" align="center" />
+                <el-table-column label="状态" width="80" align="center">
+                  <template #default="{ row }">
+                    <el-tag :type="row.success ? 'success' : 'danger'" size="small">
+                      {{ row.success ? '成功' : '失败' }}
+                    </el-tag>
+                  </template>
+                </el-table-column>
+              </el-table>
+            </div>
+
+            <!-- 错误信息 -->
+            <div v-if="importResult.errors && importResult.errors.length > 0" class="error-list">
+              <h4>错误信息：</h4>
+              <el-scrollbar max-height="200px">
+                <div v-for="(error, index) in importResult.errors" :key="index" class="error-item">
+                  <el-tag type="danger" size="small" v-if="error.rowNumber">第{{ error.rowNumber }}行</el-tag>
+                  <span v-if="error.materialName">{{ error.materialName }}: </span>
+                  {{ error.errorMessage }}
+                </div>
+              </el-scrollbar>
+            </div>
+          </template>
+        </el-result>
+      </div>
+    </el-dialog>
+  </div>
+</template>
+
+<script setup name="MaterialDetail" lang="ts">
+import { ref, computed, watch, onMounted } from 'vue';
+import { ElMessage, ElMessageBox } from 'element-plus';
+import { Check, Close } from '@element-plus/icons-vue';
+import * as XLSX from 'xlsx';
+import { saveAs } from 'file-saver';
+import { parseTime } from '@/utils/ruoyi';
+import { ExcelParser, MaterialDataValidator } from '@/utils/excel-parser';
+import {
+  listMaterial,
+  deleteMaterial,
+  importParsedMaterialData,
+  exportMaterialList
+} from '@/api/erp/saltprocess/material';
+import type { MaterialVO, MaterialQuery, MaterialImportBo } from '@/api/erp/saltprocess/material/types';
+
+// Props
+interface Props {
+  projectId: string;
+}
+
+const props = defineProps<Props>();
+
+// 响应式数据
+const uploadRef = ref();
+const loading = ref(false);
+// 使用 shallowRef 减少大数组的深层响应式开销
+const materialData = shallowRef<any[]>([]);
+const parsing = ref(false);
+const parseProgress = ref(0);
+const parseStatus = ref<'success' | 'exception' | 'warning' | ''>('');
+const parseMessage = ref('');
+const submitting = ref(false);
+const showResult = ref(false);
+const importResult = ref<any>(null);
+
+// Sheet分组相关
+const activeSheetTab = ref('');
+const sheetPageSize = ref(50);
+const sheetPageMap = ref<Record<string, number>>({});
+const activeImportedSheetTab = ref('');
+const currentSheetPage = ref(1);
+const currentSheetTotal = ref(0);
+// 使用 shallowRef 减少当前显示数据的响应式开销
+const currentSheetData = shallowRef<any[]>([]);
+const currentImportedSheetData = shallowRef<MaterialVO[]>([]);
+const sheetSwitching = ref(false); // 标签切换中
+const importedSheetSwitching = ref(false); // 已导入标签切换中
+
+// 物料列表 - 使用 shallowRef
+const materialList = shallowRef<MaterialVO[]>([]);
+const listTotal = ref(0);
+const listQuery = ref<MaterialQuery>({
+  pageNum: 1,
+  pageSize: 10,
+  projectId: props.projectId
+});
+
+// 计算属性
+const validCount = computed(() => {
+  return materialData.value.filter(item => !item.hasErrors).length;
+});
+
+const errorCount = computed(() => {
+  return materialData.value.filter(item => item.hasErrors).length;
+});
+
+const warningCount = computed(() => {
+  return materialData.value.filter(item => item.hasWarnings).length;
+});
+
+// 按Sheet分组的数据
+interface SheetGroup {
+  sheetName: string;
+  materials: any[];
+}
+
+// 使用优化的计算属性，减少不必要的重新计算
+const sheetGroups = computed<SheetGroup[]>(() => {
+  if (materialData.value.length === 0) return [];
+
+  const groups = new Map<string, any[]>();
+  const dataArray = materialData.value; // 缓存数组引用
+
+  // 使用 for 循环而不是 forEach，性能更好
+  for (let i = 0; i < dataArray.length; i++) {
+    const material = dataArray[i];
+    const sheetName = material.sheetName || '未命名';
+    if (!groups.has(sheetName)) {
+      groups.set(sheetName, []);
+    }
+    const sheetMaterials = groups.get(sheetName);
+    if (sheetMaterials) {
+      sheetMaterials.push(material);
+    }
+  }
+
+  // 优化：提前创建结果数组
+  const result: SheetGroup[] = [];
+  groups.forEach((materials, sheetName) => {
+    result.push({ sheetName, materials });
+  });
+
+  return result;
+});
+
+// 监听sheetGroups变化，初始化tab和分页
+watch(
+  sheetGroups,
+  (newGroups) => {
+    if (newGroups.length > 0) {
+      // 初始化分页映射
+      newGroups.forEach(group => {
+        if (!sheetPageMap.value[group.sheetName]) {
+          sheetPageMap.value[group.sheetName] = 1;
+        }
+      });
+
+      // 如果没有激活的tab或激活的tab不存在，设置第一个
+      if (!activeSheetTab.value || !newGroups.find(g => g.sheetName === activeSheetTab.value)) {
+        activeSheetTab.value = newGroups[0].sheetName;
+      }
+
+      // 更新当前显示的数据
+      updateCurrentSheetData();
+    }
+  },
+  { immediate: true }
+);
+
+// 按Sheet分组的已导入数据 - 优化版本
+const importedSheetGroups = computed<SheetGroup[]>(() => {
+  if (materialList.value.length === 0) return [];
+
+  const groups = new Map<string, MaterialVO[]>();
+  const dataArray = materialList.value; // 缓存数组引用
+
+  // 使用 for 循环优化性能
+  for (let i = 0; i < dataArray.length; i++) {
+    const material = dataArray[i];
+    const sheetName = material.sheetName || '未分组';
+    if (!groups.has(sheetName)) {
+      groups.set(sheetName, []);
+    }
+    const sheetMaterials = groups.get(sheetName);
+    if (sheetMaterials) {
+      sheetMaterials.push(material);
+    }
+  }
+
+  // 优化：提前创建结果数组
+  const result: SheetGroup[] = [];
+  groups.forEach((materials, sheetName) => {
+    result.push({ sheetName, materials });
+  });
+
+  return result;
+});
+
+// 监听importedSheetGroups变化，初始化tab
+watch(
+  importedSheetGroups,
+  (newGroups) => {
+    if (newGroups.length > 0) {
+      // 如果没有激活的tab或激活的tab不存在，设置第一个
+      if (!activeImportedSheetTab.value || !newGroups.find(g => g.sheetName === activeImportedSheetTab.value)) {
+        activeImportedSheetTab.value = newGroups[0].sheetName;
+      }
+      // 更新当前显示的数据
+      updateCurrentImportedSheetData();
+    }
+  },
+  { immediate: true }
+);
+
+// 监听activeSheetTab变化 - 使用异步更新避免阻塞UI
+watch(activeSheetTab, async () => {
+  // 先让Vue更新DOM（标签选中状态）
+  await nextTick();
+  // 然后再更新数据
+  updateCurrentSheetData();
+});
+
+// 监听activeImportedSheetTab变化 - 使用异步更新避免阻塞UI
+watch(activeImportedSheetTab, async () => {
+  // 先让Vue更新DOM（标签选中状态）
+  await nextTick();
+  // 然后再更新数据
+  updateCurrentImportedSheetData();
+});
+
+// 更新当前Sheet的显示数据
+const updateCurrentSheetData = () => {
+  // 使用 requestAnimationFrame 在下一帧更新数据，避免阻塞当前帧的渲染
+  requestAnimationFrame(() => {
+    const group = sheetGroups.value.find(g => g.sheetName === activeSheetTab.value);
+    if (!group) {
+      currentSheetData.value = [];
+      currentSheetTotal.value = 0;
+      currentSheetPage.value = 1;
+      return;
+    }
+
+    currentSheetTotal.value = group.materials.length;
+    const page = sheetPageMap.value[activeSheetTab.value] || 1;
+    currentSheetPage.value = page;
+
+    const start = (page - 1) * sheetPageSize.value;
+    const end = start + sheetPageSize.value;
+    // shallowRef 需要整体替换才能触发更新
+    const newData = group.materials.slice(start, end);
+    currentSheetData.value = newData;
+  });
+};
+
+// 更新当前已导入Sheet的显示数据
+const updateCurrentImportedSheetData = () => {
+  // 使用 requestAnimationFrame 在下一帧更新数据，避免阻塞当前帧的渲染
+  requestAnimationFrame(() => {
+    const group = importedSheetGroups.value.find(g => g.sheetName === activeImportedSheetTab.value);
+    if (!group) {
+      currentImportedSheetData.value = [];
+      return;
+    }
+    currentImportedSheetData.value = group.materials;
+  });
+};
+
+// 处理Sheet标签页切换
+const handleSheetTabChange = async (tabName: string) => {
+  if (sheetSwitching.value) return; // 防止重复切换
+
+  // 先更新UI状态，让标签立即切换
+  activeSheetTab.value = tabName;
+
+  // 立即开始显示加载动画
+  sheetSwitching.value = true;
+
+  // 等待DOM更新（标签选中状态变化）和数据处理完成
+  await nextTick();
+  // 再等待一次，确保数据更新完成
+  await nextTick();
+
+  // 使用setTimeout确保视觉效果（最小显示时间100ms）
+  setTimeout(() => {
+    sheetSwitching.value = false;
+  }, 100);
+};
+
+// 处理已导入Sheet标签页切换
+const handleImportedTabChange = async (tabName: string) => {
+  if (importedSheetSwitching.value) return; // 防止重复切换
+
+  // 先更新UI状态，让标签立即切换
+  activeImportedSheetTab.value = tabName;
+
+  // 立即开始显示加载动画
+  importedSheetSwitching.value = true;
+
+  // 等待DOM更新（标签选中状态变化）和数据处理完成
+  await nextTick();
+  // 再等待一次，确保数据更新完成
+  await nextTick();
+
+  // 使用setTimeout确保视觉效果（最小显示时间100ms）
+  setTimeout(() => {
+    importedSheetSwitching.value = false;
+  }, 100);
+};
+
+// 生命周期
+onMounted(() => {
+  loadMaterialList();
+});
+
+// 方法
+const loadMaterialList = async () => {
+  loading.value = true;
+  try {
+    const response: any = await listMaterial(listQuery.value);
+    materialList.value = response.rows || [];
+    listTotal.value = response.total || 0;
+  } catch (error) {
+    console.error('获取物料列表失败:', error);
+    ElMessage.error('获取物料列表失败');
+  } finally {
+    loading.value = false;
+  }
+};
+
+// 文件上传前验证
+const beforeUpload = (file: File) => {
+  const isExcel = file.type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ||
+    file.type === 'application/vnd.ms-excel';
+  const isLt50M = file.size / 1024 / 1024 < 50;
+
+  if (!isExcel) {
+    ElMessage.error('只支持Excel文件格式!');
+    return false;
+  }
+  if (!isLt50M) {
+    ElMessage.error('文件大小不能超过50MB!');
+    return false;
+  }
+  return false; // 阻止自动上传，手动处理
+};
+
+// 文件选择处理
+const handleFileChange = (file: any) => {
+  if (file.raw) {
+    parseExcelFile(file.raw);
+  }
+};
+
+// Excel文件解析
+const parseExcelFile = async (file: File) => {
+  parsing.value = true;
+  parseProgress.value = 0;
+  parseMessage.value = '正在读取文件...';
+  parseStatus.value = '';
+
+  try {
+    parseProgress.value = 20;
+    parseMessage.value = '正在解析Excel结构...';
+
+    // 使用工具类解析
+    const parsedMaterials = await ExcelParser.parseFile(file);
+
+    parseProgress.value = 90;
+    parseMessage.value = '正在验证数据...';
+
+    // 数据验证
+    materialData.value = MaterialDataValidator.validateMaterials(parsedMaterials);
+    MaterialDataValidator.checkDuplicates(materialData.value);
+
+    parseProgress.value = 100;
+    parseMessage.value = '解析完成!';
+    parseStatus.value = 'success';
+
+    setTimeout(() => {
+      parsing.value = false;
+    }, 1000);
+
+    ElMessage.success(`成功解析 ${materialData.value.length} 条记录`);
+  } catch (error: any) {
+    console.error('Excel解析失败:', error);
+    parseStatus.value = 'exception';
+    parseMessage.value = '解析失败: ' + error.message;
+    ElMessage.error('Excel文件解析失败: ' + error.message);
+
+    setTimeout(() => {
+      parsing.value = false;
+    }, 2000);
+  }
+};
+
+// 按Sheet验证行数据
+const validateRowBySheet = (index: number) => {
+  // 直接从当前显示的数据中获取
+  const material = currentSheetData.value[index];
+  if (material) {
+    MaterialDataValidator.validateMaterial(material);
+    // shallowRef 需要整体替换才能触发更新
+    currentSheetData.value = [...currentSheetData.value];
+  }
+};
+
+// Sheet分页处理
+const handleSheetPagination = () => {
+  // 更新当前sheet的分页页码
+  sheetPageMap.value[activeSheetTab.value] = currentSheetPage.value;
+  // 更新显示数据
+  updateCurrentSheetData();
+};
+
+// 验证所有数据
+const validateData = async () => {
+  try {
+    // 前端验证
+    materialData.value.forEach(material => {
+      MaterialDataValidator.validateMaterial(material);
+    });
+
+    // TODO: 后端验证（可选）
+    // const result: any = await validateParsedMaterialData({
+    //   projectId: props.projectId,
+    //   materialItems: materialData.value
+    // });
+
+    ElMessage.success('数据验证完成');
+  } catch (error) {
+    console.error('数据验证失败:', error);
+    ElMessage.error('数据验证失败');
+  }
+};
+
+// 提交数据 - 按Sheet分组上传
+const submitData = async () => {
+  // 检查是否有错误
+  if (errorCount.value > 0) {
+    try {
+      await ElMessageBox.confirm(
+        `检测到 ${errorCount.value} 条错误记录，是否继续导入有效数据？`,
+        '确认导入',
+        {
+          confirmButtonText: '继续导入',
+          cancelButtonText: '取消',
+          type: 'warning'
+        }
+      );
+    } catch {
+      return;
+    }
+  }
+
+  submitting.value = true;
+
+  try {
+    // 按Sheet分组导入
+    const batchNumber = new Date().getTime().toString();
+    const importResults: any[] = [];
+    let totalSuccess = 0;
+    let totalFailed = 0;
+    let totalNewProducts = 0;
+    let totalMatchedProducts = 0;
+
+    // 遍历每个Sheet分组
+    for (const group of sheetGroups.value) {
+      // 过滤该Sheet下的有效记录
+      const validMaterials = group.materials.filter(item => !item.hasErrors);
+
+      if (validMaterials.length === 0) {
+        continue; // 如果该Sheet没有有效数据，跳过
+      }
+
+      // 获取物料类型（从Sheet名称或第一条数据推断）
+      const materialType = inferMaterialType(group.sheetName, validMaterials[0]);
+
+      const importData: MaterialImportBo = {
+        projectId: props.projectId,
+        batchNumber: `${batchNumber}-${group.sheetName}`,
+        materialItems: validMaterials.map(item => ({
+          ...item,
+          materialType: materialType || item.materialType
+        })),
+        fileSource: `前端Excel解析导入-${group.sheetName}`,
+        remarks: `Sheet: ${group.sheetName}, 共${group.materials.length}条记录，有效${validMaterials.length}条`
+      };
+
+      try {
+        const result: any = await importParsedMaterialData(importData);
+
+        importResults.push({
+          sheetName: group.sheetName,
+          success: result.success,
+          totalRecords: group.materials.length,
+          successRecords: result.successRecords || 0,
+          failedRecords: result.failedRecords || 0,
+          newProductRecords: result.newProductRecords || 0,
+          matchedProductRecords: result.matchedProductRecords || 0,
+          errors: result.errors || []
+        });
+
+        if (result.success) {
+          totalSuccess += result.successRecords || 0;
+          totalNewProducts += result.newProductRecords || 0;
+          totalMatchedProducts += result.matchedProductRecords || 0;
+        } else {
+          totalFailed += result.failedRecords || 0;
+        }
+      } catch (error: any) {
+        importResults.push({
+          sheetName: group.sheetName,
+          success: false,
+          totalRecords: group.materials.length,
+          successRecords: 0,
+          failedRecords: group.materials.length,
+          newProductRecords: 0,
+          matchedProductRecords: 0,
+          errors: [{ errorMessage: error.message || '导入失败' }]
+        });
+        totalFailed += group.materials.length;
+      }
+    }
+
+    // 汇总结果
+    importResult.value = {
+      success: importResults.some(r => r.success),
+      summary: `共处理 ${sheetGroups.value.length} 个Sheet分组，成功 ${totalSuccess} 条，失败 ${totalFailed} 条`,
+      totalRecords: materialData.value.length,
+      successRecords: totalSuccess,
+      failedRecords: totalFailed,
+      newProductRecords: totalNewProducts,
+      matchedProductRecords: totalMatchedProducts,
+      sheetResults: importResults, // 新增：每个Sheet的详细结果
+      errors: importResults.flatMap(r => r.errors)
+    };
+
+    showResult.value = true;
+
+    if (importResult.value.success) {
+      ElMessage.success('数据导入成功!');
+      // 清空数据
+      materialData.value = [];
+      uploadRef.value?.clearFiles();
+      // 刷新列表
+      loadMaterialList();
+    } else {
+      ElMessage.error('部分或全部数据导入失败，请查看详细信息');
+    }
+  } catch (error: any) {
+    console.error('数据导入失败:', error);
+    ElMessage.error('数据导入失败: ' + (error.message || '未知错误'));
+  } finally {
+    submitting.value = false;
+  }
+};
+
+// 根据Sheet名称和数据推断物料类型
+const inferMaterialType = (sheetName: string, sampleMaterial: any): string => {
+  const name = sheetName.toLowerCase();
+
+  // 根据Sheet名称判断
+  if (name.includes('电控')) return 'ELECTRICAL';
+  if (name.includes('机械')) return 'MECHANICAL';
+  if (name.includes('发货') || name.includes('装车')) return 'SHIPPING_INFO';
+
+  // 如果无法从Sheet名称判断，使用原有的物料类型
+  return sampleMaterial?.materialType || 'GENERAL';
+};
+
+// 下载模板
+const downloadTemplate = () => {
+  try {
+    const wb = ExcelParser.createTemplate();
+    const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+    const blob = new Blob([wbout], { type: 'application/octet-stream' });
+    saveAs(blob, '物料清单导入模板.xlsx');
+
+    ElMessage.success('模板下载成功');
+  } catch (error: any) {
+    console.error('模板下载失败:', error);
+    ElMessage.error('模板下载失败: ' + error.message);
+  }
+};
+
+// 导出数据
+const handleExport = async () => {
+  try {
+    await exportMaterialList(listQuery.value);
+    ElMessage.success('导出成功');
+  } catch (error) {
+    console.error('导出失败:', error);
+    ElMessage.error('导出失败');
+  }
+};
+
+// 删除物料
+const handleDelete = async (row: MaterialVO) => {
+  try {
+    await ElMessageBox.confirm(
+      `是否确认删除物料"${row.materialName}"？`,
+      '警告',
+      {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }
+    );
+
+    if (row.id) {
+      await deleteMaterial(row.id);
+      ElMessage.success('删除成功');
+      loadMaterialList();
+    }
+  } catch (error: any) {
+    if (error !== 'cancel') {
+      console.error('删除失败:', error);
+      ElMessage.error('删除失败');
+    }
+  }
+};
+
+// 获取物料类型标签样式
+const getMaterialTypeTag = (type: string) => {
+  const tagMap: Record<string, any> = {
+    GENERAL: '',
+    MECHANICAL: 'success',
+    ELECTRICAL: 'warning',
+    SHIPPING_INFO: 'info'
+  };
+  return tagMap[type] || '';
+};
+
+// 获取物料类型名称
+const getMaterialTypeName = (type: string) => {
+  const nameMap: Record<string, string> = {
+    GENERAL: '通用物料',
+    MECHANICAL: '机械设备',
+    ELECTRICAL: '电控设备',
+    SHIPPING_INFO: '发货信息'
+  };
+  return nameMap[type] || '未知类型';
+};
+
+// 获取行样式
+const getRowClassName = ({ row }: { row: any }) => {
+  if (row.hasErrors) return 'error-row';
+  if (row.hasWarnings) return 'warning-row';
+  return '';
+};
+
+// 获取Sheet结果标签类型
+const getSheetResultTag = (sheetName: string) => {
+  const name = sheetName.toLowerCase();
+  if (name.includes('电控')) return 'warning';
+  if (name.includes('机械')) return 'success';
+  if (name.includes('发货') || name.includes('装车')) return 'info';
+  return '';
+};
+</script>
+
+<style scoped lang="scss">
+.material-detail {
+  .operation-card,
+  .progress-card,
+  .preview-card,
+  .list-card {
+    margin-bottom: 20px;
+  }
+
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-weight: 600;
+  }
+
+  .progress-card {
+    text-align: center;
+  }
+
+  .progress-text {
+    margin-top: 10px;
+    color: #666;
+  }
+
+  .percentage-value {
+    font-weight: bold;
+  }
+
+  .statistics-bar {
+    margin-bottom: 15px;
+
+    .el-tag {
+      margin-right: 10px;
+    }
+  }
+
+  .error-input {
+    :deep(.el-input__wrapper) {
+      border-color: #f56c6c !important;
+    }
+  }
+
+  .error-text {
+    color: #f56c6c;
+    font-size: 12px;
+    margin-top: 2px;
+  }
+
+  :deep(.error-row) {
+    background-color: #fef0f0;
+  }
+
+  :deep(.warning-row) {
+    background-color: #fdf6ec;
+  }
+
+  .result-stats {
+    margin: 20px 0;
+  }
+
+  .sheet-results {
+    margin-top: 20px;
+    text-align: left;
+
+    h4 {
+      margin-bottom: 10px;
+      font-size: 14px;
+      color: #303133;
+      font-weight: 600;
+    }
+
+    :deep(.el-table) {
+      font-size: 13px;
+    }
+  }
+
+  .error-list {
+    margin-top: 20px;
+    text-align: left;
+
+    h4 {
+      margin-bottom: 10px;
+      font-size: 14px;
+      color: #303133;
+    }
+  }
+
+  .error-item {
+    margin-bottom: 8px;
+    padding: 8px;
+    background-color: #fef0f0;
+    border-radius: 4px;
+    font-size: 13px;
+  }
+
+  // Sheet分组标签页样式
+  .sheet-tabs {
+    margin-top: 15px;
+    position: relative;
+    min-height: 300px;
+
+    // 加载状态下禁用指针事件样式优化
+    &:has(.el-loading-mask) {
+      :deep(.el-tabs__item) {
+        cursor: not-allowed;
+        opacity: 0.6;
+
+        &:not(.is-active) {
+          pointer-events: none;
+        }
+      }
+    }
+
+    :deep(.el-tabs__header) {
+      margin-bottom: 15px;
+    }
+
+    :deep(.el-tabs__item) {
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    :deep(.el-tabs__content) {
+      overflow: visible;
+    }
+  }
+
+  .imported-sheet-tabs {
+    position: relative;
+    min-height: 300px;
+
+    // 加载状态下禁用指针事件样式优化
+    &:has(.el-loading-mask) {
+      :deep(.el-tabs__item) {
+        cursor: not-allowed;
+        opacity: 0.6;
+
+        &:not(.is-active) {
+          pointer-events: none;
+        }
+      }
+    }
+
+    :deep(.el-tabs__header) {
+      margin-bottom: 15px;
+      background-color: #f5f7fa;
+      padding: 10px;
+      border-radius: 4px;
+    }
+
+    :deep(.el-tabs__item) {
+      font-size: 14px;
+      padding: 8px 20px;
+
+      &.is-active {
+        background-color: #fff;
+      }
+    }
+  }
+}
+</style>

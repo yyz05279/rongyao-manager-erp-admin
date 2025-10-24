@@ -243,6 +243,11 @@
       <el-tab-pane label="项目进度" name="progress">
         <project-progress :project-id="projectId" />
       </el-tab-pane>
+
+      <!-- 物料明细 -->
+      <el-tab-pane label="物料明细" name="material">
+        <material-detail :project-id="projectId" />
+      </el-tab-pane>
     </el-tabs>
   </div>
 </template>
@@ -255,6 +260,7 @@ import type { SaltProjectVO } from '@/api/erp/saltprocess/project/types';
 import { parseTime } from '@/utils/ruoyi';
 import { getProjectTypeText, getProjectTypeTag } from '@/utils/project-type-converter';
 import ProjectProgress from './ProjectProgress.vue';
+import MaterialDetail from './MaterialDetail.vue';
 
 // Props
 interface Props {
