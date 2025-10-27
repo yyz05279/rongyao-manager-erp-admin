@@ -81,6 +81,13 @@
             border
           >
             <el-table-column type="index" label="序号" width="60" align="center" />
+            <el-table-column label="状态" width="80" align="center">
+              <template #default="{ row }">
+                <el-tag v-if="row.imported" type="success" size="small">已导入</el-tag>
+                <el-tag v-else-if="row.hasErrors" type="danger" size="small">错误</el-tag>
+                <el-tag v-else type="warning" size="small">待导入</el-tag>
+              </template>
+            </el-table-column>
             <el-table-column prop="materialName" label="物料名称" width="200" show-overflow-tooltip>
               <template #default="{ row, $index }">
                 <el-input
@@ -217,7 +224,6 @@
               </template>
             </el-table-column>
           </el-table>
-
         </el-tab-pane>
       </el-tabs>
 
@@ -234,6 +240,9 @@
         style="margin-top: 20px;"
       />
     </el-card>
+
+    <!-- 导入配置弹窗 -->
+    <MaterialImportConfigDialog v-model:visible="importConfigDialog" :sheet-groups="sheetGroups" @confirm="handleImportConfigConfirm" />
 
     <!-- 导入结果对话框 -->
     <el-dialog v-model="showResult" title="导入结果" width="800px">
@@ -355,6 +364,7 @@ import {
   exportMaterialList
 } from '@/api/erp/saltprocess/material';
 import type { MaterialVO, MaterialQuery, MaterialImportBo } from '@/api/erp/saltprocess/material/types';
+import MaterialImportConfigDialog from './MaterialImportConfigDialog.vue';
 
 // Props
 interface Props {
@@ -375,6 +385,9 @@ const parseMessage = ref('');
 const submitting = ref(false);
 const showResult = ref(false);
 const importResult = ref<any>(null);
+
+// 导入配置弹窗
+const importConfigDialog = ref(false);
 
 // Sheet分组相关
 const activeSheetTab = ref('');
@@ -411,6 +424,16 @@ const errorCount = computed(() => {
 
 const warningCount = computed(() => {
   return materialData.value.filter(item => item.hasWarnings).length;
+});
+
+// 待导入数量
+const pendingCount = computed(() => {
+  return materialData.value.filter(item => !(item as any).imported && !item.hasErrors).length;
+});
+
+// 已导入数量
+const importedCount = computed(() => {
+  return materialData.value.filter(item => (item as any).imported).length;
 });
 
 // 按Sheet分组的数据
@@ -734,6 +757,38 @@ const handleSheetPagination = () => {
 // 物料列表分页处理
 const handleMaterialPagination = () => {
   loadMaterialList();
+};
+
+// 打开导入配置弹窗
+const openImportConfig = () => {
+  if (errorCount.value > 0) {
+    ElMessage.warning('请先修复所有错误数据后再导入');
+    return;
+  }
+
+  if (pendingCount.value === 0) {
+    ElMessage.info('没有待导入的数据，所有数据已导入完成');
+    return;
+  }
+
+  importConfigDialog.value = true;
+};
+
+// 处理导入配置确认
+const handleImportConfigConfirm = async (config: any) => {
+  console.log('导入配置:', config);
+  importConfigDialog.value = false;
+
+  // 转换配置格式
+  const processConfig = {
+    selectedSheets: config.sheets.map((s: any) => s.sheetName),
+    batchSizeMap: config.sheets.reduce((map: any, s: any) => {
+      map[s.sheetName] = s.batchSize;
+      return map;
+    }, {})
+  };
+
+  await submitDataWithConfig(processConfig);
 };
 
 // 验证所有数据
@@ -1081,6 +1136,151 @@ const submitData = async () => {
   }
 };
 
+// 使用配置提交数据 - 支持Sheet选择和自定义批次大小
+const submitDataWithConfig = async (config: any) => {
+  submitting.value = true;
+
+  try {
+    const { selectedSheets, batchSizeMap } = config;
+    const batchNumber = new Date().getTime().toString();
+    const importResults: any[] = [];
+    let totalSuccess = 0;
+    let totalFailed = 0;
+    let totalNewProducts = 0;
+    let totalMatchedProducts = 0;
+    let totalSkipped = 0;
+
+    // 过滤选中的Sheet
+    const selectedGroups = sheetGroups.value.filter(group =>
+      selectedSheets.includes(group.sheetName)
+    );
+
+    for (const group of selectedGroups) {
+      const materialType = inferMaterialType(group.sheetName, group.materials[0]);
+      const batchSize = batchSizeMap[group.sheetName] || 50; // 使用该Sheet配置的批次大小
+
+      // 过滤：1. 非发货清单 2. 未导入 3. 无错误
+      const validMaterials = group.materials.filter((item) => {
+        const itemType = item.materialType || materialType;
+        return itemType !== 'SHIPPING_INFO' &&
+               !(item as any).imported &&
+               !item.hasErrors;
+      });
+
+      if (validMaterials.length === 0) {
+        console.info(`Sheet ${group.sheetName} 无待导入数据`);
+        continue;
+      }
+
+      const totalBatches = Math.ceil(validMaterials.length / batchSize);
+      console.info(`Sheet ${group.sheetName}: 共${validMaterials.length}条待导入数据，分${totalBatches}批上传，每批${batchSize}条`);
+
+      let sheetSuccessCount = 0;
+      let sheetFailedCount = 0;
+      let sheetNewProducts = 0;
+      let sheetMatchedProducts = 0;
+      const sheetErrors: any[] = [];
+
+      // 分批上传
+      for (let batchIndex = 0; batchIndex < totalBatches; batchIndex++) {
+        const start = batchIndex * batchSize;
+        const end = Math.min(start + batchSize, validMaterials.length);
+        const batchMaterials = validMaterials.slice(start, end);
+
+        console.info(`正在上传第 ${batchIndex + 1}/${totalBatches} 批，共${batchMaterials.length}条数据...`);
+
+        // 构造导入数据
+        const importData: MaterialImportBo = {
+          projectId: props.projectId,
+          batchNumber: `${batchNumber}_${group.sheetName}_${batchIndex + 1}`,
+          materialItems: batchMaterials.map((item) => ({
+            ...item,
+            materialType: item.materialType || materialType,
+            sheetName: group.sheetName
+          }))
+        };
+
+        try {
+          const response: any = await importParsedMaterialData(importData);
+          const result = response.data || response;
+
+          if (result && result.success) {
+            const batchSuccess = result.successCount || batchMaterials.length;
+            sheetSuccessCount += batchSuccess;
+            sheetNewProducts += result.newProductCount || 0;
+            sheetMatchedProducts += result.matchedProductCount || 0;
+
+            // 标记已导入
+            batchMaterials.forEach(material => {
+              (material as any).imported = true;
+            });
+
+            console.info(`✅ Sheet ${group.sheetName} 第${batchIndex + 1}批上传成功: ${batchSuccess}条`);
+          } else {
+            sheetFailedCount += batchMaterials.length;
+            sheetErrors.push(...(result.errors || []));
+            console.error(`❌ Sheet ${group.sheetName} 第${batchIndex + 1}批上传失败`);
+          }
+        } catch (error: any) {
+          sheetFailedCount += batchMaterials.length;
+          sheetErrors.push({
+            batchIndex: batchIndex + 1,
+            errorMessage: error.message || '网络请求失败'
+          });
+          console.error(`❌ Sheet ${group.sheetName} 第${batchIndex + 1}批上传异常:`, error);
+        }
+      }
+
+      totalSuccess += sheetSuccessCount;
+      totalFailed += sheetFailedCount;
+      totalNewProducts += sheetNewProducts;
+      totalMatchedProducts += sheetMatchedProducts;
+
+      importResults.push({
+        sheetName: group.sheetName,
+        success: sheetSuccessCount > 0,
+        totalRecords: validMaterials.length,
+        successRecords: sheetSuccessCount,
+        failedRecords: sheetFailedCount,
+        newProductRecords: sheetNewProducts,
+        matchedProductRecords: sheetMatchedProducts,
+        batchCount: totalBatches,
+        errors: sheetErrors
+      });
+    }
+
+    // 显示导入结果
+    importResult.value = {
+      success: totalSuccess > 0,
+      summary: `成功导入 ${totalSuccess} 条，失败 ${totalFailed} 条`,
+      details: {
+        totalSuccess,
+        totalFailed,
+        totalNewProducts,
+        totalMatchedProducts,
+        totalSkipped
+      },
+      sheetResults: importResults,
+      errors: importResults.flatMap(r => r.errors)
+    };
+    showResult.value = true;
+
+    // 刷新物料列表
+    if (totalSuccess > 0) {
+      await loadMaterialList();
+      ElMessage.success(`成功导入 ${totalSuccess} 条数据!`);
+    } else {
+      ElMessage.error('导入失败，请查看详细信息');
+    }
+
+  } catch (error) {
+    console.error('导入失败:', error);
+    ElMessage.error('导入失败');
+  } finally {
+    submitting.value = false;
+  }
+};
+
 // 根据Sheet名称和数据推断物料类型
 const inferMaterialType = (sheetName: string, sampleMaterial: any): string => {
   const name = sheetName.toLowerCase();
@@ -1172,6 +1372,7 @@ const getMaterialTypeName = (type: string) => {
 const getRowClassName = ({ row }: { row: any }) => {
   if (row.hasErrors) return 'error-row';
   if (row.hasWarnings) return 'warning-row';
+  if ((row as any).imported) return 'imported-row';
   return '';
 };
 
@@ -1240,6 +1441,15 @@ const getSheetResultTag = (sheetName: string) => {
 
   :deep(.warning-row) {
     background-color: #fdf6ec;
+  }
+
+  :deep(.imported-row) {
+    background-color: #f0f9ff;
+    opacity: 0.7;
+
+    td {
+      color: #909399 !important;
+    }
   }
 
   .result-stats {

@@ -162,7 +162,14 @@
   </el-dialog>
 </template>
 
-<script setup lang="ts" name="MaterialImportConfigDialog">
+<script lang="ts">
+import { defineComponent } from 'vue';
+export default defineComponent({
+  name: 'MaterialImportConfigDialog'
+});
+</script>
+
+<script setup lang="ts">
 import { ref, computed, watch } from 'vue';
 import { ElMessage } from 'element-plus';
 
