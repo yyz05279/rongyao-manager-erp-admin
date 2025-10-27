@@ -46,8 +46,37 @@
         </el-form>
       </el-card>
 
+      <!-- 导入进度 -->
+      <el-card v-if="importing" shadow="never" style="margin-bottom: 20px;">
+        <template #header>
+          <span class="card-title">导入进度</span>
+        </template>
+        <div class="import-progress">
+          <el-progress
+            :percentage="progressPercentage"
+            :status="progressStatus"
+            :stroke-width="20"
+          >
+            <template #default="{ percentage }">
+              <span class="percentage-text">{{ percentage }}%</span>
+            </template>
+          </el-progress>
+          <div class="progress-info">
+            <el-descriptions :column="2" border size="small" style="margin-top: 15px;">
+              <el-descriptions-item label="当前Sheet">{{ currentSheet }}</el-descriptions-item>
+              <el-descriptions-item label="当前批次">{{ currentBatch }} / {{ totalBatches }}</el-descriptions-item>
+              <el-descriptions-item label="已导入">{{ importedCount }}条</el-descriptions-item>
+              <el-descriptions-item label="总计">{{ totalCount }}条</el-descriptions-item>
+            </el-descriptions>
+            <div class="progress-message" style="margin-top: 10px; color: #606266;">
+              {{ progressMessage }}
+            </div>
+          </div>
+        </div>
+      </el-card>
+
       <!-- Sheet列表配置 -->
-      <el-card shadow="never">
+      <el-card v-if="!importing" shadow="never">
         <template #header>
           <div class="card-header">
             <span class="card-title">Sheet导入配置</span>
@@ -149,13 +178,17 @@
 
     <template #footer>
       <div class="dialog-footer">
-        <el-button @click="handleClose">取消</el-button>
+        <el-button v-if="!importing" @click="handleClose">取消</el-button>
         <el-button
+          v-if="!importing"
           type="primary"
           @click="handleConfirm"
           :disabled="selectedCount === 0 || totalPendingCount === 0"
         >
           开始导入 ({{ totalPendingCount }}条)
+        </el-button>
+        <el-button v-if="importing && progressPercentage === 100" type="primary" @click="handleClose">
+          完成
         </el-button>
       </div>
     </template>
@@ -180,6 +213,15 @@ interface Props {
     sheetName: string;
     materials: any[];
   }>;
+  importing?: boolean;
+  progressPercentage?: number;
+  progressStatus?: 'success' | 'exception' | 'warning' | '';
+  currentSheet?: string;
+  currentBatch?: number;
+  totalBatches?: number;
+  importedCount?: number;
+  totalCount?: number;
+  progressMessage?: string;
 }
 
 interface Emits {
@@ -395,6 +437,24 @@ const handleConfirm = () => {
   display: flex;
   justify-content: flex-end;
   gap: 12px;
+}
+
+.import-progress {
+  .percentage-text {
+    font-weight: bold;
+    font-size: 16px;
+  }
+
+  .progress-info {
+    margin-top: 20px;
+  }
+
+  .progress-message {
+    padding: 10px;
+    background-color: #f5f7fa;
+    border-radius: 4px;
+    font-size: 13px;
+  }
 }
 </style>
 

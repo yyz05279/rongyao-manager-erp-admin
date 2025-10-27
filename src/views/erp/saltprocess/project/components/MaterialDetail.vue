@@ -242,7 +242,20 @@
     </el-card>
 
     <!-- 导入配置弹窗 -->
-    <MaterialImportConfigDialog v-model:visible="importConfigDialog" :sheet-groups="sheetGroups" @confirm="handleImportConfigConfirm" />
+    <MaterialImportConfigDialog
+      v-model:visible="importConfigDialog"
+      :sheet-groups="sheetGroups"
+      :importing="importing"
+      :progress-percentage="importProgress.percentage"
+      :progress-status="importProgress.status"
+      :current-sheet="importProgress.currentSheet"
+      :current-batch="importProgress.currentBatch"
+      :total-batches="importProgress.totalBatches"
+      :imported-count="importProgress.importedCount"
+      :total-count="importProgress.totalCount"
+      :progress-message="importProgress.message"
+      @confirm="handleImportConfigConfirm"
+    />
 
     <!-- 导入结果对话框 -->
     <el-dialog v-model="showResult" title="导入结果" width="800px">
@@ -388,6 +401,17 @@ const importResult = ref<any>(null);
 
 // 导入配置弹窗
 const importConfigDialog = ref(false);
+const importing = ref(false);
+const importProgress = ref({
+  percentage: 0,
+  status: '' as 'success' | 'exception' | 'warning' | '',
+  currentSheet: '',
+  currentBatch: 0,
+  totalBatches: 0,
+  importedCount: 0,
+  totalCount: 0,
+  message: ''
+});
 
 // Sheet分组相关
 const activeSheetTab = ref('');
@@ -823,7 +847,8 @@ const openImportConfig = () => {
 // 处理导入配置确认
 const handleImportConfigConfirm = async (config: any) => {
   console.log('导入配置:', config);
-  importConfigDialog.value = false;
+  // 不关闭弹窗，开始导入流程
+  importing.value = true;
 
   // 转换配置格式
   const processConfig = {
@@ -835,6 +860,9 @@ const handleImportConfigConfirm = async (config: any) => {
   };
 
   await submitDataWithConfig(processConfig);
+
+  // 导入完成后，设置状态
+  importing.value = false;
 };
 
 // 验证所有数据
@@ -1216,6 +1244,33 @@ const submitDataWithConfig = async (config: any) => {
       selectedSheets.includes(group.sheetName)
     );
 
+    // 计算总数和总批次数
+    let totalMaterialCount = 0;
+    let totalBatchCount = 0;
+    selectedGroups.forEach(group => {
+      const batchSize = batchSizeMap[group.sheetName] || 50;
+      const validMaterials = group.materials.filter((item) => {
+        const itemSheetName = (item.sheetName || '').toLowerCase();
+        return !itemSheetName.includes('发货') && !itemSheetName.includes('装车') && !(item as any).imported && !item.hasErrors;
+      });
+      totalMaterialCount += validMaterials.length;
+      totalBatchCount += Math.ceil(validMaterials.length / batchSize);
+    });
+
+    // 初始化进度
+    importProgress.value = {
+      percentage: 0,
+      status: '',
+      currentSheet: '',
+      currentBatch: 0,
+      totalBatches: totalBatchCount,
+      importedCount: 0,
+      totalCount: totalMaterialCount,
+      message: '准备开始导入...'
+    };
+
+    let currentGlobalBatch = 0; // 全局批次计数器
+
     for (const group of selectedGroups) {
       // 双重检查：确保不处理发货清单
       const lowerSheetName = group.sheetName.toLowerCase();
@@ -1269,6 +1324,12 @@ const submitDataWithConfig = async (config: any) => {
         const start = batchIndex * batchSize;
         const end = Math.min(start + batchSize, validMaterials.length);
         const batchMaterials = validMaterials.slice(start, end);
+
+        // 更新进度信息
+        currentGlobalBatch++;
+        importProgress.value.currentSheet = group.sheetName;
+        importProgress.value.currentBatch = currentGlobalBatch;
+        importProgress.value.message = `正在导入 ${group.sheetName} - 第 ${batchIndex + 1}/${totalBatches} 批，共 ${batchMaterials.length} 条数据...`;
 
         console.info(`正在上传第 ${batchIndex + 1}/${totalBatches} 批，共${batchMaterials.length}条数据...`);
 
@@ -1345,6 +1406,12 @@ const submitDataWithConfig = async (config: any) => {
               (material as any).imported = true;
             });
 
+            // 更新进度
+            totalSuccess += batchSuccess;
+            importProgress.value.importedCount = totalSuccess;
+            importProgress.value.percentage = Math.round((currentGlobalBatch / totalBatchCount) * 100);
+            importProgress.value.message = `✅ ${group.sheetName} 第${batchIndex + 1}批上传成功，已导入 ${totalSuccess}/${totalMaterialCount} 条`;
+
             console.info(`✅ Sheet ${group.sheetName} 第${batchIndex + 1}批上传成功: ${batchSuccess}条`);
           } else {
             sheetFailedCount += batchMaterials.length;
@@ -1379,6 +1446,13 @@ const submitDataWithConfig = async (config: any) => {
       });
     }
 
+    // 设置最终进度
+    importProgress.value.percentage = 100;
+    importProgress.value.status = totalSuccess > 0 ? 'success' : 'exception';
+    importProgress.value.message = totalSuccess > 0
+      ? `🎉 导入完成！成功导入 ${totalSuccess} 条，失败 ${totalFailed} 条`
+      : '❌ 导入失败，请查看详细信息';
+
     // 显示导入结果
     importResult.value = {
       success: totalSuccess > 0,
@@ -1406,6 +1480,10 @@ const submitDataWithConfig = async (config: any) => {
   } catch (error) {
     console.error('导入失败:', error);
     ElMessage.error('导入失败');
+    // 设置错误状态
+    importProgress.value.percentage = 100;
+    importProgress.value.status = 'exception';
+    importProgress.value.message = '❌ 导入过程中发生错误';
   } finally {
     submitting.value = false;
   }
