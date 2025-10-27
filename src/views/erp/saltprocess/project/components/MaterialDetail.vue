@@ -37,7 +37,7 @@
     <el-card v-if="materialData.length > 0" shadow="never" class="preview-card">
       <template #header>
         <div class="card-header">
-          <span>数据预览 (共{{ materialData.length }}条记录)</span>
+          <span>数据预览 (共{{ totalCountExcludingShipping }}条物料记录)</span>
           <div>
             <el-button @click="validateData">验证数据</el-button>
             <el-button type="primary" @click="openImportConfig" :loading="submitting" icon="Upload"> 配置并导入 </el-button>
@@ -47,7 +47,7 @@
 
       <!-- 统计信息 -->
       <div class="statistics-bar">
-        <el-tag type="info">总计: {{ materialData.length }}</el-tag>
+        <el-tag type="info">总计: {{ totalCountExcludingShipping }}</el-tag>
         <el-tag type="success">有效: {{ validCount }}</el-tag>
         <el-tag type="warning">待导入: {{ pendingCount }}</el-tag>
         <el-tag type="primary">已导入: {{ importedCount }}</el-tag>
@@ -414,26 +414,54 @@ const listQuery = ref<MaterialQuery>({
 });
 
 // 计算属性
+// 排除发货清单后的总数
+const totalCountExcludingShipping = computed(() => {
+  return materialData.value.filter(item => {
+    const sheetName = (item.sheetName || '').toLowerCase();
+    return !sheetName.includes('发货') && !sheetName.includes('装车');
+  }).length;
+});
+
 const validCount = computed(() => {
-  return materialData.value.filter(item => !item.hasErrors).length;
+  return materialData.value.filter(item => {
+    const sheetName = (item.sheetName || '').toLowerCase();
+    const isShippingList = sheetName.includes('发货') || sheetName.includes('装车');
+    return !item.hasErrors && !isShippingList;
+  }).length;
 });
 
 const errorCount = computed(() => {
-  return materialData.value.filter(item => item.hasErrors).length;
+  return materialData.value.filter(item => {
+    const sheetName = (item.sheetName || '').toLowerCase();
+    const isShippingList = sheetName.includes('发货') || sheetName.includes('装车');
+    return item.hasErrors && !isShippingList;
+  }).length;
 });
 
 const warningCount = computed(() => {
-  return materialData.value.filter(item => item.hasWarnings).length;
+  return materialData.value.filter(item => {
+    const sheetName = (item.sheetName || '').toLowerCase();
+    const isShippingList = sheetName.includes('发货') || sheetName.includes('装车');
+    return item.hasWarnings && !isShippingList;
+  }).length;
 });
 
-// 待导入数量
+// 待导入数量（排除发货清单）
 const pendingCount = computed(() => {
-  return materialData.value.filter(item => !(item as any).imported && !item.hasErrors).length;
+  return materialData.value.filter(item => {
+    const sheetName = (item.sheetName || '').toLowerCase();
+    const isShippingList = sheetName.includes('发货') || sheetName.includes('装车');
+    return !(item as any).imported && !item.hasErrors && !isShippingList;
+  }).length;
 });
 
-// 已导入数量
+// 已导入数量（排除发货清单）
 const importedCount = computed(() => {
-  return materialData.value.filter(item => (item as any).imported).length;
+  return materialData.value.filter(item => {
+    const sheetName = (item.sheetName || '').toLowerCase();
+    const isShippingList = sheetName.includes('发货') || sheetName.includes('装车');
+    return (item as any).imported && !isShippingList;
+  }).length;
 });
 
 // 按Sheet分组的数据
@@ -453,6 +481,13 @@ const sheetGroups = computed<SheetGroup[]>(() => {
   for (let i = 0; i < dataArray.length; i++) {
     const material = dataArray[i];
     const sheetName = material.sheetName || '未命名';
+
+    // 过滤发货清单：根据Sheet名称判断
+    const lowerSheetName = sheetName.toLowerCase();
+    if (lowerSheetName.includes('发货') || lowerSheetName.includes('装车')) {
+      continue; // 跳过发货清单
+    }
+
     if (!groups.has(sheetName)) {
       groups.set(sheetName, []);
     }
@@ -722,7 +757,18 @@ const parseExcelFile = async (file: File) => {
       parsing.value = false;
     }, 1000);
 
-    ElMessage.success(`成功解析 ${materialData.value.length} 条记录`);
+    // 统计发货清单和物料清单数量
+    const shippingCount = materialData.value.filter(item => {
+      const sheetName = (item.sheetName || '').toLowerCase();
+      return sheetName.includes('发货') || sheetName.includes('装车');
+    }).length;
+    const materialCount = materialData.value.length - shippingCount;
+
+    if (shippingCount > 0) {
+      ElMessage.success(`成功解析 ${materialCount} 条物料记录（已自动过滤 ${shippingCount} 条发货清单）`);
+    } else {
+      ElMessage.success(`成功解析 ${materialCount} 条物料记录`);
+    }
   } catch (error: any) {
     console.error('Excel解析失败:', error);
     parseStatus.value = 'exception';
@@ -854,11 +900,26 @@ const submitData = async () => {
         console.info(`⚠ 用户已取消上传，停止处理剩余Sheet`);
         break;
       }
+
+      // 双重检查：确保不处理发货清单
+      const lowerSheetName = group.sheetName.toLowerCase();
+      if (lowerSheetName.includes('发货') || lowerSheetName.includes('装车')) {
+        console.warn(`跳过发货清单Sheet: ${group.sheetName}`);
+        totalSkipped += group.materials.length;
+        continue;
+      }
+
       // 获取物料类型（从Sheet名称或第一条数据推断）
       const materialType = inferMaterialType(group.sheetName, group.materials[0]);
 
       // 【关键】过滤发货清单：只保留非SHIPPING_INFO类型的物料
       const filteredMaterials = group.materials.filter((item) => {
+        // 基于Sheet名称的额外检查
+        const itemSheetName = (item.sheetName || '').toLowerCase();
+        if (itemSheetName.includes('发货') || itemSheetName.includes('装车')) {
+          return false; // 排除发货清单数据
+        }
+
         const itemType = item.materialType || materialType;
         return itemType !== 'SHIPPING_INFO';
       });
@@ -1156,15 +1217,37 @@ const submitDataWithConfig = async (config: any) => {
     );
 
     for (const group of selectedGroups) {
+      // 双重检查：确保不处理发货清单
+      const lowerSheetName = group.sheetName.toLowerCase();
+      if (lowerSheetName.includes('发货') || lowerSheetName.includes('装车')) {
+        console.warn(`跳过发货清单Sheet: ${group.sheetName}`);
+        continue;
+      }
+
       const materialType = inferMaterialType(group.sheetName, group.materials[0]);
       const batchSize = batchSizeMap[group.sheetName] || 50; // 使用该Sheet配置的批次大小
 
-      // 过滤：1. 非发货清单 2. 未导入 3. 无错误
+      // 过滤：1. 必须是当前Sheet 2. 非发货清单 3. 未导入 4. 无错误
       const validMaterials = group.materials.filter((item) => {
+        // 严格检查：必须属于当前Sheet
+        if (item.sheetName !== group.sheetName) {
+          console.warn(`⚠️ 数据Sheet不匹配: 预期 ${group.sheetName}, 实际 ${item.sheetName}`);
+          return false;
+        }
+
+        // 基于Sheet名称的额外检查
+        const itemSheetName = (item.sheetName || '').toLowerCase();
+        if (itemSheetName.includes('发货') || itemSheetName.includes('装车')) {
+          console.warn(`⚠️ 排除发货清单数据: ${item.sheetName}`);
+          return false; // 排除发货清单数据
+        }
+
         const itemType = item.materialType || materialType;
-        return itemType !== 'SHIPPING_INFO' &&
+        const isValid = itemType !== 'SHIPPING_INFO' &&
                !(item as any).imported &&
                !item.hasErrors;
+
+        return isValid;
       });
 
       if (validMaterials.length === 0) {
@@ -1189,16 +1272,63 @@ const submitDataWithConfig = async (config: any) => {
 
         console.info(`正在上传第 ${batchIndex + 1}/${totalBatches} 批，共${batchMaterials.length}条数据...`);
 
-        // 构造导入数据
+        // 构造导入数据 - 最后一次安全检查，并只提取物料清单需要的字段
+        const safeMaterialItems = batchMaterials
+          .filter((item) => {
+            const itemSheetName = (item.sheetName || '').toLowerCase();
+            const isSafe = !itemSheetName.includes('发货') && !itemSheetName.includes('装车');
+            if (!isSafe) {
+              console.error(`🚫 最后检查发现发货清单数据！Sheet: ${item.sheetName}, 物料: ${item.materialName}`);
+            }
+            return isSafe;
+          })
+          .map((item) => ({
+            // 只提取物料清单需要的字段，不包含发货相关字段
+            sequenceNumber: item.sequenceNumber,
+            materialType: item.materialType || materialType,
+            materialName: item.materialName,
+            specification: item.specification,
+            quantity: item.quantity,
+            unit: item.unit,
+            materialCategory: item.materialCategory,
+            manufacturer: item.manufacturer,
+            model: item.model,
+            remarks1: item.remarks1,
+            remarks2: item.remarks2,
+            unitWeight: item.unitWeight,
+            totalWeight: item.totalWeight,
+            unitVolume: item.unitVolume,
+            totalVolume: item.totalVolume,
+            packageType: item.packageType,
+            packageQuantity: item.packageQuantity,
+            isFragile: item.isFragile,
+            isHazardous: item.isHazardous,
+            storageRequirement: item.storageRequirement,
+            fileSource: item.fileSource,
+            sheetName: group.sheetName,
+            rowNumber: item.rowNumber,
+            hasErrors: item.hasErrors || false,
+            hasWarnings: item.hasWarnings || false
+          }));
+
+        // 如果过滤后没有数据，跳过此批次
+        if (safeMaterialItems.length === 0) {
+          console.warn(`⚠️ 批次 ${batchIndex + 1} 过滤后无数据，跳过`);
+          continue;
+        }
+
         const importData: MaterialImportBo = {
           projectId: props.projectId,
           batchNumber: `${batchNumber}_${group.sheetName}_${batchIndex + 1}`,
-          materialItems: batchMaterials.map((item) => ({
-            ...item,
-            materialType: item.materialType || materialType,
-            sheetName: group.sheetName
-          }))
+          fileSource: '前端Excel解析-物料清单批量导入',
+          remarks: `Sheet: ${group.sheetName}, 批次: ${batchIndex + 1}`,
+          materialItems: safeMaterialItems
         };
+
+        // 调试日志：确认没有发货清单数据
+        console.log(`📦 导入数据检查 - Sheet: ${group.sheetName}, 批次: ${batchIndex + 1}, 数量: ${importData.materialItems.length}`);
+        console.log(`📋 完整导入数据结构:`, JSON.parse(JSON.stringify(importData)));
+        console.log(`📋 第一条物料数据:`, importData.materialItems[0]);
 
         try {
           const response: any = await importParsedMaterialData(importData);
