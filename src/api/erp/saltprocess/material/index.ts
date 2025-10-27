@@ -1,13 +1,6 @@
 import request from '@/utils/request';
 import type { AxiosPromise } from 'axios';
-import type {
-  MaterialQuery,
-  MaterialVO,
-  MaterialImportBo,
-  MaterialImportResultVo,
-  ProductMatchRequest,
-  ProductMatchResponse
-} from './types';
+import type { MaterialQuery, MaterialVO, MaterialImportBo, MaterialImportResultVo, ProductMatchRequest, ProductMatchResponse } from './types';
 
 /**
  * 查询物料列表
