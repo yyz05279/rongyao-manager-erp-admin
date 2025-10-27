@@ -245,6 +245,10 @@
                   <el-tag type="danger" v-if="importResult.failedRecords > 0">{{ importResult.failedRecords }}</el-tag>
                   <span v-else>0</span>
                 </el-descriptions-item>
+                <el-descriptions-item label="跳过记录">
+                  <el-tag type="info" v-if="importResult.skippedRecords > 0">{{ importResult.skippedRecords }}</el-tag>
+                  <span v-else>0</span>
+                </el-descriptions-item>
                 <el-descriptions-item label="新建产品">
                   {{ importResult.newProductRecords }}
                 </el-descriptions-item>
@@ -269,6 +273,14 @@
                   </template>
                 </el-table-column>
                 <el-table-column prop="totalRecords" label="总记录数" width="90" align="center" />
+                <el-table-column prop="batchCount" label="批次数" width="80" align="center">
+                  <template #default="{ row }">
+                    <el-tag v-if="row.batchCount > 0" type="primary" size="small">
+                      {{ row.batchCount }}
+                    </el-tag>
+                    <span v-else>-</span>
+                  </template>
+                </el-table-column>
                 <el-table-column prop="successRecords" label="成功" width="70" align="center">
                   <template #default="{ row }">
                     <el-tag type="success" size="small" v-if="row.successRecords > 0">
@@ -287,9 +299,10 @@
                 </el-table-column>
                 <el-table-column prop="newProductRecords" label="新建产品" width="90" align="center" />
                 <el-table-column prop="matchedProductRecords" label="匹配产品" width="90" align="center" />
-                <el-table-column label="状态" width="80" align="center">
+                <el-table-column label="状态" width="100" align="center">
                   <template #default="{ row }">
-                    <el-tag :type="row.success ? 'success' : 'danger'" size="small">
+                    <el-tag v-if="row.skipped" type="info" size="small">已跳过</el-tag>
+                    <el-tag v-else :type="row.success ? 'success' : 'danger'" size="small">
                       {{ row.success ? '成功' : '失败' }}
                     </el-tag>
                   </template>
@@ -316,7 +329,7 @@
 </template>
 
 <script setup name="MaterialDetail" lang="ts">
-import { ref, computed, watch, onMounted } from 'vue';
+import { ref, computed, watch, onMounted, nextTick, shallowRef } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { Check, Close } from '@element-plus/icons-vue';
 import * as XLSX from 'xlsx';
@@ -711,7 +724,7 @@ const validateData = async () => {
   }
 };
 
-// 提交数据 - 按Sheet分组上传
+// 提交数据 - 按Sheet分组分批上传（每批10条，过滤发货清单）
 const submitData = async () => {
   // 检查是否有错误
   if (errorCount.value > 0) {
@@ -735,87 +748,287 @@ const submitData = async () => {
   try {
     // 按Sheet分组导入
     const batchNumber = new Date().getTime().toString();
+    const currentDate = new Date().toISOString().split('T')[0]; // YYYY-MM-DD格式
+    const BATCH_SIZE = 20; // 每批上传20条数据
+    const IS_DEV_MODE = import.meta.env.MODE === 'development'; // 开发模式判断
     const importResults: any[] = [];
     let totalSuccess = 0;
     let totalFailed = 0;
     let totalNewProducts = 0;
     let totalMatchedProducts = 0;
+    let totalSkipped = 0; // 跳过的发货清单数量
+    let userCancelled = false; // 用户取消标志
 
     // 遍历每个Sheet分组
     for (const group of sheetGroups.value) {
-      // 过滤该Sheet下的有效记录
-      const validMaterials = group.materials.filter(item => !item.hasErrors);
-
-      if (validMaterials.length === 0) {
-        continue; // 如果该Sheet没有有效数据，跳过
+      // 如果用户已取消，停止处理后续Sheet
+      if (userCancelled) {
+        console.info(`⚠ 用户已取消上传，停止处理剩余Sheet`);
+        break;
       }
-
       // 获取物料类型（从Sheet名称或第一条数据推断）
-      const materialType = inferMaterialType(group.sheetName, validMaterials[0]);
+      const materialType = inferMaterialType(group.sheetName, group.materials[0]);
 
-      const importData: MaterialImportBo = {
-        projectId: props.projectId,
-        batchNumber: `${batchNumber}-${group.sheetName}`,
-        materialItems: validMaterials.map(item => ({
-          ...item,
-          materialType: materialType || item.materialType
-        })),
-        fileSource: `前端Excel解析导入-${group.sheetName}`,
-        remarks: `Sheet: ${group.sheetName}, 共${group.materials.length}条记录，有效${validMaterials.length}条`
-      };
+      // 【关键】过滤发货清单：只保留非SHIPPING_INFO类型的物料
+      const filteredMaterials = group.materials.filter((item) => {
+        const itemType = item.materialType || materialType;
+        return itemType !== 'SHIPPING_INFO';
+      });
 
-      try {
-        const result: any = await importParsedMaterialData(importData);
-
+      // 如果过滤后没有数据，记录跳过信息
+      if (filteredMaterials.length === 0) {
+        const skippedCount = group.materials.length;
+        totalSkipped += skippedCount;
+        console.info(`跳过发货清单Sheet: ${group.sheetName}，共${skippedCount}条记录`);
         importResults.push({
           sheetName: group.sheetName,
-          success: result.success,
-          totalRecords: group.materials.length,
-          successRecords: result.successRecords || 0,
-          failedRecords: result.failedRecords || 0,
-          newProductRecords: result.newProductRecords || 0,
-          matchedProductRecords: result.matchedProductRecords || 0,
-          errors: result.errors || []
-        });
-
-        if (result.success) {
-          totalSuccess += result.successRecords || 0;
-          totalNewProducts += result.newProductRecords || 0;
-          totalMatchedProducts += result.matchedProductRecords || 0;
-        } else {
-          totalFailed += result.failedRecords || 0;
-        }
-      } catch (error: any) {
-        importResults.push({
-          sheetName: group.sheetName,
-          success: false,
-          totalRecords: group.materials.length,
+          success: true,
+          totalRecords: skippedCount,
           successRecords: 0,
-          failedRecords: group.materials.length,
+          failedRecords: 0,
           newProductRecords: 0,
           matchedProductRecords: 0,
-          errors: [{ errorMessage: error.message || '导入失败' }]
+          batchCount: 0,
+          skipped: true,
+          skipReason: '发货清单数据已过滤（数据不完整）',
+          errors: []
         });
-        totalFailed += group.materials.length;
+        continue;
       }
+
+      // 再次过滤：只保留有效记录（没有错误的）
+      const validMaterials = filteredMaterials.filter((item) => !item.hasErrors);
+
+      if (validMaterials.length === 0) {
+        console.warn(`Sheet ${group.sheetName} 过滤后无有效数据`);
+        continue;
+      }
+
+      // 【核心】分批处理：将数据分成每批20条
+      const totalBatches = Math.ceil(validMaterials.length / BATCH_SIZE);
+      console.info(`Sheet ${group.sheetName}: 共${validMaterials.length}条数据，分${totalBatches}批上传，每批${BATCH_SIZE}条`);
+
+      let sheetSuccessCount = 0;
+      let sheetFailedCount = 0;
+      let sheetNewProducts = 0;
+      let sheetMatchedProducts = 0;
+      const sheetErrors: any[] = [];
+
+      // 分批上传
+      for (let batchIndex = 0; batchIndex < totalBatches; batchIndex++) {
+        const start = batchIndex * BATCH_SIZE;
+        const end = Math.min(start + BATCH_SIZE, validMaterials.length);
+        const batchMaterials = validMaterials.slice(start, end);
+
+        console.info(`正在上传第 ${batchIndex + 1}/${totalBatches} 批，共${batchMaterials.length}条数据...`);
+
+        // 【开发模式】如果不是第一批，弹出确认框
+        if (IS_DEV_MODE && batchIndex > 0) {
+          try {
+            await ElMessageBox.confirm(
+              `第 ${batchIndex} 批已上传完成！\n\n` +
+                `当前Sheet: ${group.sheetName}\n` +
+                `成功: ${sheetSuccessCount} 条\n` +
+                `失败: ${sheetFailedCount} 条\n\n` +
+                `是否继续上传第 ${batchIndex + 1} 批？`,
+              '开发模式 - 批次确认',
+              {
+                confirmButtonText: '继续上传',
+                cancelButtonText: '停止上传',
+                type: 'info',
+                distinguishCancelAndClose: true
+              }
+            );
+            console.info(`✓ 用户确认，继续上传第 ${batchIndex + 1} 批`);
+          } catch (action) {
+            // 用户点击取消、关闭按钮或按ESC键
+            console.warn(`⚠ 用户取消上传，已完成 ${batchIndex} 批，停止所有上传操作`);
+            ElMessage({
+              type: 'warning',
+              message:
+                `上传已停止！\n` +
+                `当前Sheet: ${group.sheetName}\n` +
+                `已完成: ${batchIndex}/${totalBatches} 批\n` +
+                `成功: ${sheetSuccessCount} 条，失败: ${sheetFailedCount} 条`,
+              duration: 5000,
+              showClose: true
+            });
+            userCancelled = true; // 设置取消标志
+            break; // 跳出当前Sheet的批次循环
+          }
+        }
+
+        // 构建分批导入请求参数
+        const importData: MaterialImportBo = {
+          // 项目信息
+          projectId: props.projectId,
+          projectName: undefined,
+
+          // 批次信息（包含批次编号）
+          batchNumber: `${batchNumber}-${group.sheetName}-Batch${batchIndex + 1}`,
+
+          // 负责人信息（可选）
+          responsiblePerson: undefined,
+          responsiblePersonId: undefined,
+
+          // 发货日期信息
+          shippingDate: currentDate,
+          expectedDeliveryDate: undefined,
+
+          // 发货方式和车辆信息（可选）
+          shippingMethod: undefined,
+          vehicleInfo: undefined,
+          driverInfo: undefined,
+
+          // 备注和来源
+          fileSource: `前端Excel解析-${group.sheetName}`,
+          remarks: `Sheet: ${group.sheetName}, 第${batchIndex + 1}/${totalBatches}批, 本批${batchMaterials.length}条`,
+
+          // 物料明细列表
+          materialItems: batchMaterials.map((item) => ({
+            // 基本信息
+            sequenceNumber: item.sequenceNumber,
+            materialType: materialType || item.materialType,
+            materialName: item.materialName,
+            specification: item.specification,
+            quantity: item.quantity,
+            unit: item.unit,
+
+            // 材质和制造商信息
+            materialCategory: item.materialCategory,
+            manufacturer: item.manufacturer,
+            model: item.model,
+
+            // 备注信息
+            remarks1: item.remarks1,
+            remarks2: item.remarks2,
+
+            // 重量和体积信息
+            unitWeight: item.unitWeight,
+            totalWeight: item.totalWeight,
+            unitVolume: item.unitVolume,
+            totalVolume: item.totalVolume,
+
+            // 包装信息
+            packageType: item.packageType,
+            packageQuantity: item.packageQuantity,
+
+            // 特殊属性
+            isFragile: item.isFragile || false,
+            isHazardous: item.isHazardous || false,
+            storageRequirement: item.storageRequirement,
+
+            // 来源和位置信息
+            fileSource: item.fileSource,
+            sheetName: item.sheetName || group.sheetName,
+            rowNumber: item.rowNumber,
+
+            // 验证状态
+            hasErrors: item.hasErrors || false,
+            hasWarnings: item.hasWarnings || false
+          }))
+        };
+
+        try {
+          const result: any = await importParsedMaterialData(importData);
+
+          if (result.success) {
+            sheetSuccessCount += result.successRecords || 0;
+            sheetNewProducts += result.newProductRecords || 0;
+            sheetMatchedProducts += result.matchedProductRecords || 0;
+            console.info(
+              `✓ 第${batchIndex + 1}批上传成功: ${result.successRecords}条 ` +
+                `(累计成功: ${sheetSuccessCount}/${validMaterials.length})`
+            );
+          } else {
+            sheetFailedCount += result.failedRecords || 0;
+            if (result.errors) {
+              sheetErrors.push(...result.errors);
+            }
+            console.warn(`✗ 第${batchIndex + 1}批上传失败: ${result.failedRecords}条`);
+          }
+
+          // 【非开发模式】添加小延迟，避免请求过快
+          // 【开发模式】由确认框控制节奏，不需要额外延迟
+          if (!IS_DEV_MODE && batchIndex < totalBatches - 1) {
+            await new Promise((resolve) => setTimeout(resolve, 200));
+          }
+        } catch (error: any) {
+          sheetFailedCount += batchMaterials.length;
+          sheetErrors.push({
+            errorMessage: `第${batchIndex + 1}批上传失败: ${error.message || '未知错误'}`
+          });
+          console.error(`✗ 第${batchIndex + 1}批上传异常:`, error);
+        }
+      }
+
+      // 汇总该Sheet的结果
+      importResults.push({
+        sheetName: group.sheetName,
+        success: sheetSuccessCount > 0,
+        totalRecords: group.materials.length,
+        filteredRecords: filteredMaterials.length,
+        successRecords: sheetSuccessCount,
+        failedRecords: sheetFailedCount,
+        newProductRecords: sheetNewProducts,
+        matchedProductRecords: sheetMatchedProducts,
+        batchCount: totalBatches,
+        skipped: false,
+        errors: sheetErrors
+      });
+
+      totalSuccess += sheetSuccessCount;
+      totalFailed += sheetFailedCount;
+      totalNewProducts += sheetNewProducts;
+      totalMatchedProducts += sheetMatchedProducts;
     }
 
     // 汇总结果
+    const processedSheets = sheetGroups.value.length;
+    const validSheets = importResults.filter((r) => !r.skipped).length;
+    const totalBatches = importResults.reduce((sum, r) => sum + (r.batchCount || 0), 0);
+
+    // 构建汇总信息
+    let summaryText = `共处理 ${processedSheets} 个Sheet(${totalBatches}批次)，有效${validSheets}个，跳过${totalSkipped}条发货清单记录，成功导入 ${totalSuccess} 条物料，失败 ${totalFailed} 条`;
+
+    // 如果用户取消了上传，添加提示
+    if (userCancelled) {
+      summaryText += `（用户主动停止上传）`;
+    }
+
     importResult.value = {
-      success: importResults.some(r => r.success),
-      summary: `共处理 ${sheetGroups.value.length} 个Sheet分组，成功 ${totalSuccess} 条，失败 ${totalFailed} 条`,
-      totalRecords: materialData.value.length,
+      success: importResults.some((r) => r.success),
+      summary: summaryText,
+      totalRecords: materialData.value.length - totalSkipped,
       successRecords: totalSuccess,
       failedRecords: totalFailed,
+      skippedRecords: totalSkipped,
       newProductRecords: totalNewProducts,
       matchedProductRecords: totalMatchedProducts,
-      sheetResults: importResults, // 新增：每个Sheet的详细结果
-      errors: importResults.flatMap(r => r.errors)
+      sheetResults: importResults,
+      errors: importResults.flatMap((r) => r.errors),
+      userCancelled: userCancelled // 添加取消标志
     };
 
     showResult.value = true;
 
-    if (importResult.value.success) {
+    if (userCancelled) {
+      // 用户取消上传
+      if (totalSuccess > 0) {
+        ElMessage({
+          type: 'warning',
+          message: `上传已停止！已成功导入 ${totalSuccess} 条数据`,
+          duration: 5000,
+          showClose: true
+        });
+      } else {
+        ElMessage.info('上传已取消，未导入任何数据');
+      }
+      // 如果有部分数据导入成功，刷新列表
+      if (totalSuccess > 0) {
+        loadMaterialList();
+      }
+    } else if (importResult.value.success) {
       ElMessage.success('数据导入成功!');
       // 清空数据
       materialData.value = [];
