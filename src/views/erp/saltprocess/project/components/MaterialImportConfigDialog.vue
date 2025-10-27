@@ -249,23 +249,29 @@ const totalBatchCount = computed(() => {
 
 // 方法
 const initSheetConfigs = () => {
-  sheetConfigs.value = props.sheetGroups.map(group => {
-    const totalCount = group.materials.length;
-    const importedCount = group.materials.filter((m: any) => m.imported).length;
-    const pendingCount = totalCount - importedCount;
-    const isFullyImported = pendingCount === 0;
+  sheetConfigs.value = props.sheetGroups
+    .filter(group => {
+      // 过滤发货清单：根据Sheet名称判断
+      const lowerSheetName = group.sheetName.toLowerCase();
+      return !lowerSheetName.includes('发货') && !lowerSheetName.includes('装车');
+    })
+    .map(group => {
+      const totalCount = group.materials.length;
+      const importedCount = group.materials.filter((m: any) => m.imported).length;
+      const pendingCount = totalCount - importedCount;
+      const isFullyImported = pendingCount === 0;
 
-    return {
-      sheetName: group.sheetName,
-      materialType: inferMaterialType(group.sheetName, group.materials[0]),
-      totalCount,
-      pendingCount,
-      importedCount,
-      selected: !isFullyImported, // 默认选中未完全导入的Sheet
-      batchSize: 50,
-      isFullyImported
-    };
-  });
+      return {
+        sheetName: group.sheetName,
+        materialType: inferMaterialType(group.sheetName, group.materials[0]),
+        totalCount,
+        pendingCount,
+        importedCount,
+        selected: !isFullyImported, // 默认选中未完全导入的Sheet
+        batchSize: 50,
+        isFullyImported
+      };
+    });
 };
 
 const inferMaterialType = (sheetName: string, sampleMaterial: any): string => {
