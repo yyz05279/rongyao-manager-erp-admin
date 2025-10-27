@@ -246,14 +246,18 @@
 
       <!-- 物料明细 -->
       <el-tab-pane label="物料明细" name="material">
-        <material-detail :project-id="projectId" />
+        <material-detail
+          ref="materialDetailRef"
+          :project-id="projectId"
+          :sheet-names="projectData.sheetNames || []"
+        />
       </el-tab-pane>
     </el-tabs>
   </div>
 </template>
 
 <script setup name="ProjectDetail" lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, watch } from 'vue';
 import { ElMessage } from 'element-plus';
 import { getSaltProject } from '@/api/erp/saltprocess/project';
 import type { SaltProjectVO } from '@/api/erp/saltprocess/project/types';
@@ -279,6 +283,20 @@ const loading = ref(false);
 const activeTab = ref('basic');
 const activeCollapse = ref(['preheating', 'saltmaking', 'heating']);
 const projectData = ref<SaltProjectVO>({} as SaltProjectVO);
+const materialDetailRef = ref();
+
+// 监听标签切换
+watch(activeTab, (newTab, oldTab) => {
+  // 当切换到物料明细标签时，触发数据加载
+  if (newTab === 'material' && oldTab !== 'material') {
+    // 等待组件渲染完成后再调用加载方法
+    setTimeout(() => {
+      if (materialDetailRef.value && typeof materialDetailRef.value.initializeData === 'function') {
+        materialDetailRef.value.initializeData();
+      }
+    }, 100);
+  }
+});
 
 // 生命周期
 onMounted(() => {

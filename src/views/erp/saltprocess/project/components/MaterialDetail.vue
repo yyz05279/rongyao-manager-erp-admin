@@ -168,36 +168,30 @@
       <template #header>
         <div class="card-header">
           <span>物料清单</span>
-          <el-button icon="Refresh" @click="loadMaterialList">刷新</el-button>
+          <el-button icon="Refresh" @click="handleRefreshMaterialList">刷新</el-button>
         </div>
       </template>
 
-      <!-- 按Sheet分组展示已导入的物料 -->
+      <!-- 按Sheet分组展示已导入的物料 - 使用项目的sheetNames -->
       <el-tabs
-        v-if="importedSheetGroups.length > 0"
+        v-if="sheetNames.length > 0"
         v-model="activeImportedSheetTab"
         type="border-card"
         class="imported-sheet-tabs"
         @tab-change="handleImportedTabChange"
-        v-loading="importedSheetSwitching"
+        v-loading="loading"
         element-loading-text="加载中..."
         element-loading-background="rgba(255, 255, 255, 0.8)"
       >
         <el-tab-pane
-          v-for="group in importedSheetGroups"
-          :key="group.sheetName"
-          :label="`${group.sheetName || '未分组'} (${group.materials.length})`"
-          :name="group.sheetName || '未分组'"
-          :disabled="importedSheetSwitching"
+          v-for="sheetName in sheetNames"
+          :key="sheetName"
+          :label="`${sheetName} (${getSheetMaterialCount(sheetName)})`"
+          :name="sheetName"
+          :disabled="loading"
           lazy
         >
-          <el-table
-            v-if="activeImportedSheetTab === (group.sheetName || '未分组')"
-            v-loading="loading"
-            :data="currentImportedSheetData"
-            style="width: 100%"
-            border
-          >
+          <el-table v-if="activeImportedSheetTab === sheetName" :data="materialList" style="width: 100%" border>
             <el-table-column type="index" label="序号" width="60" align="center" />
             <el-table-column prop="materialName" label="物料名称" min-width="180" show-overflow-tooltip />
             <el-table-column prop="specification" label="规格型号" min-width="160" show-overflow-tooltip />
@@ -228,11 +222,11 @@
       </el-tabs>
 
       <!-- 无数据时显示 -->
-      <el-empty v-else description="暂无物料数据" />
+      <el-empty v-else description="暂无物料数据，请先选择工作表" />
 
-      <!-- 全局分页（所有Sheet的数据） -->
+      <!-- 分页 -->
       <pagination
-        v-if="importedSheetGroups.length > 0"
+        v-if="sheetNames.length > 0 && listTotal > 0"
         v-model:page="listQuery.pageNum"
         v-model:limit="listQuery.pageSize"
         :total="listTotal"
@@ -382,9 +376,12 @@ import MaterialImportConfigDialog from './MaterialImportConfigDialog.vue';
 // Props
 interface Props {
   projectId: string;
+  sheetNames?: string[]; // 项目的工作表名称列表
 }
 
-const props = defineProps<Props>();
+const props = withDefaults(defineProps<Props>(), {
+  sheetNames: () => []
+});
 
 // 响应式数据
 const uploadRef = ref();
@@ -422,9 +419,7 @@ const currentSheetPage = ref(1);
 const currentSheetTotal = ref(0);
 // 使用 shallowRef 减少当前显示数据的响应式开销
 const currentSheetData = shallowRef<any[]>([]);
-const currentImportedSheetData = shallowRef<MaterialVO[]>([]);
 const sheetSwitching = ref(false); // 标签切换中
-const importedSheetSwitching = ref(false); // 已导入标签切换中
 
 // 移除前端分页相关变量（改用后端分页）
 
@@ -554,46 +549,17 @@ watch(
   { immediate: true }
 );
 
-// 按Sheet分组的已导入数据 - 优化版本
-const importedSheetGroups = computed<SheetGroup[]>(() => {
-  if (materialList.value.length === 0) return [];
+// importedSheetGroups 已移除，改用 sheetNames prop 和后端分页
 
-  const groups = new Map<string, MaterialVO[]>();
-  const dataArray = materialList.value; // 缓存数组引用
-
-  // 使用 for 循环优化性能
-  for (let i = 0; i < dataArray.length; i++) {
-    const material = dataArray[i];
-    const sheetName = material.sheetName || '未分组';
-    if (!groups.has(sheetName)) {
-      groups.set(sheetName, []);
-    }
-    const sheetMaterials = groups.get(sheetName);
-    if (sheetMaterials) {
-      sheetMaterials.push(material);
-    }
-  }
-
-  // 优化：提前创建结果数组
-  const result: SheetGroup[] = [];
-  groups.forEach((materials, sheetName) => {
-    result.push({ sheetName, materials });
-  });
-
-  return result;
-});
-
-// 监听importedSheetGroups变化，初始化tab
+// 监听 sheetNames 变化，初始化 activeImportedSheetTab
 watch(
-  importedSheetGroups,
-  (newGroups) => {
-    if (newGroups.length > 0) {
+  () => props.sheetNames,
+  (newSheetNames) => {
+    if (newSheetNames && newSheetNames.length > 0) {
       // 如果没有激活的tab或激活的tab不存在，设置第一个
-      if (!activeImportedSheetTab.value || !newGroups.find(g => g.sheetName === activeImportedSheetTab.value)) {
-        activeImportedSheetTab.value = newGroups[0].sheetName;
+      if (!activeImportedSheetTab.value || !newSheetNames.includes(activeImportedSheetTab.value)) {
+        activeImportedSheetTab.value = newSheetNames[0];
       }
-      // 更新当前显示的数据
-      updateCurrentImportedSheetData();
     }
   },
   { immediate: true }
@@ -607,13 +573,7 @@ watch(activeSheetTab, async () => {
   updateCurrentSheetData();
 });
 
-// 监听activeImportedSheetTab变化 - 使用异步更新避免阻塞UI
-watch(activeImportedSheetTab, async () => {
-  // 先让Vue更新DOM（标签选中状态）
-  await nextTick();
-  // 然后再更新数据
-  updateCurrentImportedSheetData();
-});
+// activeImportedSheetTab 的变化由 handleImportedTabChange 处理，不需要额外的 watch
 
 // 更新当前Sheet的显示数据
 const updateCurrentSheetData = () => {
@@ -639,19 +599,52 @@ const updateCurrentSheetData = () => {
   });
 };
 
-// 更新当前已导入Sheet的显示数据（直接显示全部，不分页）
-const updateCurrentImportedSheetData = () => {
-  // 使用 requestAnimationFrame 在下一帧更新数据，避免阻塞当前帧的渲染
-  requestAnimationFrame(() => {
-    const group = importedSheetGroups.value.find(g => g.sheetName === activeImportedSheetTab.value);
-    if (!group) {
-      currentImportedSheetData.value = [];
-      return;
-    }
-    // 直接显示该Sheet的所有数据
-    currentImportedSheetData.value = group.materials;
-  });
+/**
+ * 初始化数据加载（由父组件调用）
+ * 当切换到物料明细标签时调用此方法
+ */
+const initializeData = () => {
+  console.log('初始化物料明细数据');
+  console.log('sheetNames:', props.sheetNames);
+
+  // 如果有 sheetNames，使用第一个 sheetName 加载数据
+  if (props.sheetNames && props.sheetNames.length > 0) {
+    activeImportedSheetTab.value = props.sheetNames[0];
+    loadMaterialList(props.sheetNames[0]);
+  } else {
+    ElMessage.warning('项目暂无物料清单工作表');
+  }
 };
+
+/**
+ * 获取指定 sheet 的物料数量（用于标签显示）
+ * @param sheetName 工作表名称
+ */
+const getSheetMaterialCount = (sheetName: string): number => {
+  // 如果当前激活的标签就是这个 sheet，返回当前的 total
+  if (activeImportedSheetTab.value === sheetName) {
+    return listTotal.value;
+  }
+  // 否则返回 0 或者可以考虑缓存各个 sheet 的数量
+  return 0;
+};
+
+/**
+ * 刷新当前选中的物料列表
+ */
+const handleRefreshMaterialList = () => {
+  if (activeImportedSheetTab.value) {
+    listQuery.value.pageNum = 1; // 重置到第一页
+    loadMaterialList(activeImportedSheetTab.value);
+  } else {
+    initializeData();
+  }
+};
+
+// 暴露方法给父组件
+defineExpose({
+  initializeData
+});
 
 // 处理Sheet标签页切换
 const handleSheetTabChange = async (tabName: string) => {
@@ -676,38 +669,42 @@ const handleSheetTabChange = async (tabName: string) => {
 
 // 处理已导入Sheet标签页切换
 const handleImportedTabChange = async (tabName: string) => {
-  if (importedSheetSwitching.value) return; // 防止重复切换
+  if (loading.value) return; // 防止重复切换
 
   // 先更新UI状态，让标签立即切换
   activeImportedSheetTab.value = tabName;
 
-  // 立即开始显示加载动画
-  importedSheetSwitching.value = true;
+  // 重置分页
+  listQuery.value.pageNum = 1;
 
-  // 等待DOM更新（标签选中状态变化）和数据处理完成
-  await nextTick();
-  // 再等待一次，确保数据更新完成
-  await nextTick();
-
-  // 使用setTimeout确保视觉效果（最小显示时间100ms）
-  setTimeout(() => {
-    importedSheetSwitching.value = false;
-  }, 100);
+  // 调用接口，传入选中的 sheetName
+  await loadMaterialList(tabName);
 };
 
 // 生命周期
 onMounted(() => {
-  loadMaterialList();
+  // 移除自动加载，改为由父组件在标签切换时触发
 });
 
 // 方法
-const loadMaterialList = async () => {
+/**
+ * 加载物料列表
+ * @param sheetName 可选的工作表名称，用于过滤数据
+ */
+const loadMaterialList = async (sheetName?: string) => {
   loading.value = true;
   try {
-    const response: any = await listMaterial(listQuery.value);
+    // 构建查询参数，如果提供了 sheetName 则添加到查询条件中
+    const query: MaterialQuery = {
+      ...listQuery.value,
+      sheetName: sheetName || undefined
+    };
+
+    const response: any = await listMaterial(query);
 
     // 调试日志 - 查看物料列表API响应
     console.log('=== 物料列表API响应 ===');
+    console.log('查询参数:', query);
     console.log('完整响应:', response);
     console.log('响应数据:', response.data);
     console.log('rows数据:', response.data?.rows || response.rows);
@@ -859,10 +856,13 @@ const handleImportConfigConfirm = async (config: any) => {
     }, {})
   };
 
-  await submitDataWithConfig(processConfig);
-
-  // 导入完成后，设置状态
-  importing.value = false;
+  try {
+    await submitDataWithConfig(processConfig);
+  } finally {
+    // 导入完成后，设置状态并关闭弹窗
+    importing.value = false;
+    importConfigDialog.value = false;
+  }
 };
 
 // 验证所有数据
@@ -1406,11 +1406,10 @@ const submitDataWithConfig = async (config: any) => {
               (material as any).imported = true;
             });
 
-            // 更新进度
-            totalSuccess += batchSuccess;
-            importProgress.value.importedCount = totalSuccess;
+            // 更新进度 - 使用 sheetSuccessCount 而不是直接累加到 totalSuccess
+            importProgress.value.importedCount += batchSuccess;
             importProgress.value.percentage = Math.round((currentGlobalBatch / totalBatchCount) * 100);
-            importProgress.value.message = `✅ ${group.sheetName} 第${batchIndex + 1}批上传成功，已导入 ${totalSuccess}/${totalMaterialCount} 条`;
+            importProgress.value.message = `✅ ${group.sheetName} 第${batchIndex + 1}批上传成功，已导入 ${importProgress.value.importedCount}/${totalMaterialCount} 条`;
 
             console.info(`✅ Sheet ${group.sheetName} 第${batchIndex + 1}批上传成功: ${batchSuccess}条`);
           } else {
@@ -1428,6 +1427,7 @@ const submitDataWithConfig = async (config: any) => {
         }
       }
 
+      // 累加每个Sheet的统计结果到总计
       totalSuccess += sheetSuccessCount;
       totalFailed += sheetFailedCount;
       totalNewProducts += sheetNewProducts;
@@ -1457,13 +1457,12 @@ const submitDataWithConfig = async (config: any) => {
     importResult.value = {
       success: totalSuccess > 0,
       summary: `成功导入 ${totalSuccess} 条，失败 ${totalFailed} 条`,
-      details: {
-        totalSuccess,
-        totalFailed,
-        totalNewProducts,
-        totalMatchedProducts,
-        totalSkipped
-      },
+      totalRecords: totalSuccess + totalFailed, // 总记录数 = 成功 + 失败
+      successRecords: totalSuccess,
+      failedRecords: totalFailed,
+      skippedRecords: totalSkipped,
+      newProductRecords: totalNewProducts,
+      matchedProductRecords: totalMatchedProducts,
       sheetResults: importResults,
       errors: importResults.flatMap(r => r.errors)
     };
