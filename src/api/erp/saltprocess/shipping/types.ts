@@ -34,30 +34,35 @@ export enum ShippingMethod {
 
 // 发货清单主表
 export interface ShippingListVO {
-  id: string;
+  id?: string;                        // 前端映射字段
+  shippingListId?: string;            // 后端返回字段
   listCode: string;                   // 清单编号
   projectId: string;                  // 项目ID
   projectName: string;                // 项目名称
   batchNumber: string;                // 批次号（如：第一车、第二车）
   responsiblePerson: string;          // 负责人
-  responsiblePersonId: string;        // 负责人ID
+  responsiblePersonId?: string;       // 负责人ID
   shippingDate: string;               // 发货日期
   expectedDeliveryDate?: string;      // 预计送达日期
   actualDeliveryDate?: string;        // 实际送达日期
-  status: ShippingStatus;             // 发货状态
-  shippingMethod: ShippingMethod;     // 发货方式
+  status: ShippingStatus | string;    // 发货状态
+  statusName?: string;                // 状态名称（中文）
+  shippingMethod: ShippingMethod | string; // 发货方式
+  shippingMethodName?: string;        // 发货方式名称（中文）
   vehicleInfo?: string;               // 车辆信息
   driverInfo?: string;                // 司机信息
   totalItems: number;                 // 总件数
-  totalWeight: number;                // 总重量(kg)
-  totalVolume?: number;               // 总体积(m³)
+  totalWeight: number | string;       // 总重量(kg)
+  totalVolume?: number | string;      // 总体积(m³)
   packingListPath?: string;           // 装箱清单文件路径
   photoPath?: string;                 // 发货照片路径
   remarks?: string;                   // 备注
   createTime: string;
   updateTime: string;
-  createBy: string;
+  createBy?: string;
   updateBy?: string;
+  materialItems?: any;                // 物料明细
+  statistics?: any;                   // 统计信息
 }
 
 // 发货清单明细表

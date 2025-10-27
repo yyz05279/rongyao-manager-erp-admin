@@ -1,18 +1,5 @@
 <template>
   <div class="shipping-management">
-    <!-- 开发环境提示 -->
-    <el-alert
-      v-if="API_CONFIG.useMockData"
-      title="开发模式"
-      type="info"
-      :closable="false"
-      show-icon
-      style="margin-bottom: 16px;"
-    >
-      <template #default>
-        当前使用Mock数据进行开发测试，所有操作均为模拟操作，不会影响真实数据。
-      </template>
-    </el-alert>
 
     <!-- 搜索区域 -->
     <el-card class="search-card" shadow="never">
@@ -32,7 +19,7 @@
             @keyup.enter="handleQuery"
           />
         </el-form-item>
-        
+
         <el-form-item label="清单编号" prop="listCode">
           <el-input
             v-model="queryParams.listCode"
@@ -42,7 +29,7 @@
             @keyup.enter="handleQuery"
           />
         </el-form-item>
-        
+
         <el-form-item label="批次号" prop="batchNumber">
           <el-input
             v-model="queryParams.batchNumber"
@@ -52,7 +39,7 @@
             @keyup.enter="handleQuery"
           />
         </el-form-item>
-        
+
         <el-form-item label="负责人" prop="responsiblePerson">
           <el-input
             v-model="queryParams.responsiblePerson"
@@ -62,7 +49,7 @@
             @keyup.enter="handleQuery"
           />
         </el-form-item>
-        
+
         <el-form-item label="发货状态" prop="status">
           <el-select
             v-model="queryParams.status"
@@ -78,7 +65,7 @@
             />
           </el-select>
         </el-form-item>
-        
+
         <el-form-item label="设备类型" prop="equipmentType">
           <el-select
             v-model="queryParams.equipmentType"
@@ -94,7 +81,7 @@
             />
           </el-select>
         </el-form-item>
-        
+
         <el-form-item label="发货日期">
           <el-date-picker
             v-model="dateRange"
@@ -107,7 +94,7 @@
             style="width: 240px"
           />
         </el-form-item>
-        
+
         <el-form-item>
           <el-button type="primary" icon="Search" @click="handleQuery">搜索</el-button>
           <el-button icon="Refresh" @click="resetQuery">重置</el-button>
@@ -127,7 +114,7 @@
           >
             新增发货清单
           </el-button>
-          
+
           <el-button
             type="success"
             icon="Upload"
@@ -136,7 +123,7 @@
           >
             Excel导入
           </el-button>
-          
+
           <el-button
             type="warning"
             icon="Download"
@@ -145,7 +132,7 @@
           >
             导出数据
           </el-button>
-          
+
           <el-button
             type="danger"
             icon="Delete"
@@ -156,12 +143,12 @@
             批量删除
           </el-button>
         </div>
-        
+
         <div class="operation-right">
           <el-tooltip content="刷新" placement="top">
             <el-button circle icon="Refresh" @click="getList" />
           </el-tooltip>
-          
+
           <el-tooltip content="显示/隐藏搜索" placement="top">
             <el-button circle icon="Search" @click="showSearch = !showSearch" />
           </el-tooltip>
@@ -182,7 +169,7 @@
         border
       >
         <el-table-column type="selection" width="50" align="center" />
-        
+
         <el-table-column
           label="清单编号"
           prop="listCode"
@@ -199,28 +186,28 @@
             </el-link>
           </template>
         </el-table-column>
-        
+
         <el-table-column
           label="项目名称"
           prop="projectName"
           min-width="150"
           show-overflow-tooltip
         />
-        
+
         <el-table-column
           label="批次号"
           prop="batchNumber"
           width="100"
           align="center"
         />
-        
+
         <el-table-column
           label="负责人"
           prop="responsiblePerson"
           width="100"
           align="center"
         />
-        
+
         <el-table-column
           label="发货日期"
           prop="shippingDate"
@@ -228,7 +215,7 @@
           align="center"
           sortable="custom"
         />
-        
+
         <el-table-column
           label="发货状态"
           prop="status"
@@ -240,18 +227,18 @@
               :type="getStatusTagType(row.status)"
               size="small"
             >
-              {{ getStatusLabel(row.status) }}
+              {{ row.statusName || getStatusLabel(row.status) }}
             </el-tag>
           </template>
         </el-table-column>
-        
+
         <el-table-column
           label="总件数"
           prop="totalItems"
           width="80"
           align="center"
         />
-        
+
         <el-table-column
           label="总重量(kg)"
           prop="totalWeight"
@@ -259,10 +246,10 @@
           align="center"
         >
           <template #default="{ row }">
-            {{ row.totalWeight?.toFixed(2) || '0.00' }}
+            {{ typeof row.totalWeight === 'number' ? row.totalWeight.toFixed(2) : row.totalWeight || '0.00' }}
           </template>
         </el-table-column>
-        
+
         <el-table-column
           label="发货方式"
           prop="shippingMethod"
@@ -270,10 +257,10 @@
           align="center"
         >
           <template #default="{ row }">
-            {{ getShippingMethodLabel(row.shippingMethod) }}
+            {{ row.shippingMethodName || getShippingMethodLabel(row.shippingMethod) }}
           </template>
         </el-table-column>
-        
+
         <el-table-column
           label="创建时间"
           prop="createTime"
@@ -281,7 +268,7 @@
           align="center"
           sortable="custom"
         />
-        
+
         <el-table-column
           label="操作"
           width="200"
@@ -298,7 +285,7 @@
             >
               详情
             </el-button>
-            
+
             <el-button
               type="primary"
               link
@@ -308,7 +295,7 @@
             >
               编辑
             </el-button>
-            
+
             <el-button
               type="primary"
               link
@@ -321,7 +308,7 @@
           </template>
         </el-table-column>
       </el-table>
-      
+
       <!-- 分页 -->
       <pagination
         v-show="total > 0"
@@ -475,12 +462,11 @@ import { ref, reactive, onMounted, computed, getCurrentInstance } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { useRouter } from 'vue-router';
 import type { ComponentInternalInstance } from 'vue';
-// 根据环境配置自动选择API
+// 直接使用真实API接口
 import {
   listShippingList,
-  delShippingList,
-  API_CONFIG
-} from '@/api/erp/saltprocess/shipping/api-config';
+  delShippingList
+} from '@/api/erp/saltprocess/shipping/index';
 import type {
   ShippingListVO,
   ShippingListQuery,
@@ -576,9 +562,35 @@ const getList = async () => {
       shippingDateEnd: dateRange.value?.[1]
     };
     const response = await listShippingList(params);
-    shippingList.value = response.data.records;
-    total.value = response.data.total;
+
+    // 调试日志 - 查看原始响应数据
+    console.log('=== 发货清单API响应 ===');
+    console.log('完整响应:', response);
+    console.log('响应数据:', response.data);
+
+    // 处理接口返回的数据结构
+    const responseData: any = response.data;
+    const data = responseData.rows || [];
+
+    console.log('提取的rows数据:', data);
+    console.log('数据条数:', data.length);
+
+    // 映射字段：shippingListId -> id
+    shippingList.value = data.map((item: any) => {
+      const mappedItem = {
+        ...item,
+        id: item.shippingListId || item.id
+      };
+      console.log('映射后的单条数据:', mappedItem);
+      return mappedItem;
+    });
+
+    total.value = responseData.total || 0;
+
+    console.log('最终shippingList:', shippingList.value);
+    console.log('总数:', total.value);
   } catch (error) {
+    console.error('获取发货清单列表失败:', error);
     ElMessage.error('获取发货清单列表失败');
   } finally {
     loading.value = false;
@@ -597,7 +609,7 @@ const resetQuery = () => {
 };
 
 const handleSelectionChange = (selection: ShippingListVO[]) => {
-  ids.value = selection.map(item => item.id);
+  ids.value = selection.map(item => item.id || item.shippingListId).filter((id): id is string => !!id);
   single.value = selection.length !== 1;
   multiple.value = !selection.length;
 };
@@ -620,11 +632,11 @@ const handleDetail = (row: ShippingListVO) => {
 };
 
 const handleDelete = async (row?: ShippingListVO) => {
-  const deleteIds = row ? [row.id] : ids.value;
+  const deleteIds = row ? [(row.id || row.shippingListId)!] : ids.value;
   const names = row ? [row.listCode] : shippingList.value
-    .filter(item => deleteIds.includes(item.id))
+    .filter(item => deleteIds.includes((item.id || item.shippingListId)!))
     .map(item => item.listCode);
-  
+
   try {
     await ElMessageBox.confirm(
       `是否确认删除发货清单"${names.join('、')}"？`,
@@ -635,7 +647,7 @@ const handleDelete = async (row?: ShippingListVO) => {
         type: 'warning'
       }
     );
-    
+
     await delShippingList(deleteIds);
     ElMessage.success('删除成功');
     getList();
