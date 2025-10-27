@@ -8,6 +8,7 @@ export interface MaterialQuery {
   materialName?: string;
   materialType?: string;
   batchNumber?: string;
+  sheetName?: string; // 工作表名称（精确匹配）
 }
 
 /**

@@ -31,6 +31,7 @@ export interface SaltProjectVO {
   processConfig?: ProcessConfig;
   qualityStandards?: QualityStandard[];
   resourcePlan?: ResourcePlan;
+  sheetNames?: string[]; // 项目关联的物料清单工作表名称列表
   createTime: string;
   updateTime: string;
   createBy: string;
