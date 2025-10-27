@@ -40,7 +40,7 @@
           <span>数据预览 (共{{ materialData.length }}条记录)</span>
           <div>
             <el-button @click="validateData">验证数据</el-button>
-            <el-button type="primary" @click="submitData" :loading="submitting" icon="Upload"> 导入数据 </el-button>
+            <el-button type="primary" @click="openImportConfig" :loading="submitting" icon="Upload"> 配置并导入 </el-button>
           </div>
         </div>
       </template>
@@ -49,7 +49,8 @@
       <div class="statistics-bar">
         <el-tag type="info">总计: {{ materialData.length }}</el-tag>
         <el-tag type="success">有效: {{ validCount }}</el-tag>
-        <el-tag type="warning" v-if="warningCount > 0">警告: {{ warningCount }}</el-tag>
+        <el-tag type="warning">待导入: {{ pendingCount }}</el-tag>
+        <el-tag type="primary">已导入: {{ importedCount }}</el-tag>
         <el-tag type="danger" v-if="errorCount > 0">错误: {{ errorCount }}</el-tag>
       </div>
 
@@ -216,11 +217,22 @@
               </template>
             </el-table-column>
           </el-table>
+
         </el-tab-pane>
       </el-tabs>
 
       <!-- 无数据时显示 -->
       <el-empty v-else description="暂无物料数据" />
+
+      <!-- 全局分页（所有Sheet的数据） -->
+      <pagination
+        v-if="importedSheetGroups.length > 0"
+        v-model:page="listQuery.pageNum"
+        v-model:limit="listQuery.pageSize"
+        :total="listTotal"
+        @pagination="handleMaterialPagination"
+        style="margin-top: 20px;"
+      />
     </el-card>
 
     <!-- 导入结果对话框 -->
@@ -377,12 +389,14 @@ const currentImportedSheetData = shallowRef<MaterialVO[]>([]);
 const sheetSwitching = ref(false); // 标签切换中
 const importedSheetSwitching = ref(false); // 已导入标签切换中
 
+// 移除前端分页相关变量（改用后端分页）
+
 // 物料列表 - 使用 shallowRef
 const materialList = shallowRef<MaterialVO[]>([]);
 const listTotal = ref(0);
 const listQuery = ref<MaterialQuery>({
   pageNum: 1,
-  pageSize: 10,
+  pageSize: 50, // 使用后端分页，每页50条
   projectId: props.projectId
 });
 
@@ -543,7 +557,7 @@ const updateCurrentSheetData = () => {
   });
 };
 
-// 更新当前已导入Sheet的显示数据
+// 更新当前已导入Sheet的显示数据（直接显示全部，不分页）
 const updateCurrentImportedSheetData = () => {
   // 使用 requestAnimationFrame 在下一帧更新数据，避免阻塞当前帧的渲染
   requestAnimationFrame(() => {
@@ -552,6 +566,7 @@ const updateCurrentImportedSheetData = () => {
       currentImportedSheetData.value = [];
       return;
     }
+    // 直接显示该Sheet的所有数据
     currentImportedSheetData.value = group.materials;
   });
 };
@@ -608,8 +623,21 @@ const loadMaterialList = async () => {
   loading.value = true;
   try {
     const response: any = await listMaterial(listQuery.value);
-    materialList.value = response.rows || [];
-    listTotal.value = response.total || 0;
+
+    // 调试日志 - 查看物料列表API响应
+    console.log('=== 物料列表API响应 ===');
+    console.log('完整响应:', response);
+    console.log('响应数据:', response.data);
+    console.log('rows数据:', response.data?.rows || response.rows);
+    console.log('total:', response.data?.total || response.total);
+
+    // 兼容两种数据结构
+    const data = response.data || response;
+    materialList.value = data.rows || [];
+    listTotal.value = data.total || 0;
+
+    console.log('最终materialList:', materialList.value);
+    console.log('数据条数:', materialList.value.length);
   } catch (error) {
     console.error('获取物料列表失败:', error);
     ElMessage.error('获取物料列表失败');
@@ -701,6 +729,11 @@ const handleSheetPagination = () => {
   sheetPageMap.value[activeSheetTab.value] = currentSheetPage.value;
   // 更新显示数据
   updateCurrentSheetData();
+};
+
+// 物料列表分页处理
+const handleMaterialPagination = () => {
+  loadMaterialList();
 };
 
 // 验证所有数据
@@ -930,7 +963,9 @@ const submitData = async () => {
         };
 
         try {
-          const result: any = await importParsedMaterialData(importData);
+          const response: any = await importParsedMaterialData(importData);
+          // 后端返回结构：{ code: 200, data: { success: true, ... } }
+          const result = response.data || response;
 
           if (result.success) {
             sheetSuccessCount += result.successRecords || 0;
