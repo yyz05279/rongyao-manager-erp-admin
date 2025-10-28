@@ -146,13 +146,13 @@ export const downloadShippingTemplate = (templateType: string): AxiosPromise<Blo
  * Excel数据导入
  */
 export const importShippingExcel = (
-  file: File, 
+  file: File,
   config: ShippingExcelImportConfig
 ): AxiosPromise<ShippingExcelImportResult> => {
   const formData = new FormData();
   formData.append('file', file);
   formData.append('config', JSON.stringify(config));
-  
+
   return request({
     url: '/erp/saltprocess/shipping/import',
     method: 'post',
@@ -204,8 +204,8 @@ export const exportShippingItemsSummary = (query?: ShippingItemsExportParams): A
  * 获取发货统计数据
  */
 export const getShippingStatistics = (
-  startDate?: string, 
-  endDate?: string, 
+  startDate?: string,
+  endDate?: string,
   projectId?: string
 ): AxiosPromise<ShippingStatistics> => {
   return request({
@@ -254,14 +254,14 @@ export const getShippingAttachments = (shippingListId: string): AxiosPromise<Shi
  * 上传发货清单附件
  */
 export const uploadShippingAttachment = (
-  shippingListId: string, 
-  file: File, 
+  shippingListId: string,
+  file: File,
   attachmentType: string
 ): AxiosPromise<ShippingAttachment> => {
   const formData = new FormData();
   formData.append('file', file);
   formData.append('attachmentType', attachmentType);
-  
+
   return request({
     url: `/erp/saltprocess/shipping/${shippingListId}/attachment`,
     method: 'post',

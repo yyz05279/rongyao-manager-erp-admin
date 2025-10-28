@@ -360,16 +360,30 @@
 
         <!-- 重复物料明细（v2.0新结构：分组展示） -->
         <div v-if="importResult.skippedRecords > 0" class="duplicate-list">
-          <h4>
-            <el-icon style="vertical-align: middle; margin-right: 5px;"><WarningFilled /></el-icon>
-            重复物料明细（共 {{ importResult.skippedRecords || 0 }} 条重复）
-          </h4>
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+            <h4 style="margin: 0;">
+              <el-icon style="vertical-align: middle; margin-right: 5px;"><WarningFilled /></el-icon>
+              重复物料明细（共 {{ importResult.skippedRecords || 0 }} 条重复）
+            </h4>
+            <el-button type="primary" @click="handleBatchSyncDuplicates" :loading="batchSyncing">
+              <el-icon><Upload /></el-icon>
+              合并同步
+            </el-button>
+          </div>
           <el-alert
             title="💡 这些物料因为在系统中已存在相同的「物料名称+规格」组合而被跳过，避免重复导入"
             type="warning"
             :closable="false"
             style="margin-bottom: 15px;"
           />
+          <el-alert type="info" :closable="false" style="margin-bottom: 15px;">
+            <template #title>
+              <div style="display: flex; align-items: center;">
+                <el-icon style="margin-right: 5px;"><InfoFilled /></el-icon>
+                <span>点击"合并同步"按钮，将批量更新所有重复物料的数量（共 {{ calculateTotalDuplicatesCount() }} 条），累加到数据库现有数量</span>
+              </div>
+            </template>
+          </el-alert>
 
           <!-- 嵌套展示：已存在物料 + 重复项 -->
           <template v-if="importResult.existedItems && importResult.existedItems.length > 0">
@@ -390,7 +404,12 @@
 
               <!-- 换行缩进：重复项列表 -->
               <div class="duplicate-items-list">
-                <el-table :data="existedItemVo.duplicateItems" border size="small" style="margin-left: 40px; margin-top: 8px;">
+                <el-table
+                  :data="existedItemVo.duplicateItems"
+                  border
+                  size="small"
+                  style="margin-left: 40px; margin-top: 8px; max-width: calc(100% - 40px);"
+                >
                   <el-table-column type="index" label="重复序号" width="80" align="center">
                     <template #default="{ $index }">
                       <el-tag size="small" type="warning">第 {{ $index + 1 }} 次</el-tag>
@@ -407,6 +426,18 @@
                       <el-tag size="small" type="info">第 {{ row.rowNumber }} 行</el-tag>
                     </template>
                   </el-table-column>
+                  <el-table-column label="操作" width="80" align="center">
+                    <template #default="{ row }">
+                      <el-button
+                        type="primary"
+                        size="small"
+                        :disabled="isItemUpdated(existedItemVo.existedItem.id)"
+                        @click="handleUpdateSingleItem(existedItemVo.existedItem, row)"
+                      >
+                        {{ isItemUpdated(existedItemVo.existedItem.id) ? '已更新' : '更新' }}
+                      </el-button>
+                    </template>
+                  </el-table-column>
                 </el-table>
 
                 <!-- 累加提示 -->
@@ -418,6 +449,17 @@
                     ）累加到数据库现有数量，更新为
                     <strong>{{ calculateAccumulatedQuantity(existedItemVo) }} {{ existedItemVo.existedItem.unit }}</strong>
                   </span>
+                  <!-- 全部更新按钮（仅在有多条重复数据时显示） -->
+                  <el-button
+                    v-if="existedItemVo.duplicateItems.length > 1"
+                    type="success"
+                    size="small"
+                    :disabled="isItemUpdated(existedItemVo.existedItem.id)"
+                    @click="handleUpdateAllDuplicates(existedItemVo)"
+                    style="margin-left: 10px;"
+                  >
+                    {{ isItemUpdated(existedItemVo.existedItem.id) ? '已更新' : '全部更新' }}
+                  </el-button>
                 </div>
               </div>
             </div>
@@ -455,7 +497,7 @@
 <script setup name="MaterialDetail" lang="ts">
 import { ref, computed, watch, onMounted, nextTick, shallowRef } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import { Check, Close, WarningFilled, CircleCloseFilled, InfoFilled } from '@element-plus/icons-vue';
+import { Check, Close, WarningFilled, CircleCloseFilled, InfoFilled, Upload } from '@element-plus/icons-vue';
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
 import { parseTime } from '@/utils/ruoyi';
@@ -464,7 +506,9 @@ import {
   listMaterial,
   deleteMaterial,
   importParsedMaterialData,
-  exportMaterialList
+  exportMaterialList,
+  updateMaterialItem,
+  batchUpdateMaterialItems
 } from '@/api/erp/saltprocess/material';
 import type { MaterialVO, MaterialQuery, MaterialImportBo } from '@/api/erp/saltprocess/material/types';
 import MaterialImportConfigDialog from './MaterialImportConfigDialog.vue';
@@ -491,6 +535,8 @@ const parseMessage = ref('');
 const submitting = ref(false);
 const showResult = ref(false);
 const importResult = ref<any>(null);
+const batchSyncing = ref(false); // 批量同步状态
+const updatedItemIds = ref<Set<number>>(new Set()); // 已更新的物料ID集合
 
 // 导入配置弹窗
 const importConfigDialog = ref(false);
@@ -751,6 +797,172 @@ const calculateAccumulatedQuantity = (existedItemVo: any): number => {
   const existingQuantity = existedItemVo.existedItem.quantity || 0;
   const duplicateTotal = calculateTotalDuplicateQuantity(existedItemVo.duplicateItems);
   return existingQuantity + duplicateTotal;
+};
+
+/**
+ * 计算所有重复项的总条数
+ */
+const calculateTotalDuplicatesCount = (): number => {
+  if (!importResult.value?.existedItems) return 0;
+  return importResult.value.existedItems.reduce((total: number, item: any) => {
+    return total + (item.duplicateItems?.length || 0);
+  }, 0);
+};
+
+/**
+ * 批量合并同步所有重复物料
+ */
+const handleBatchSyncDuplicates = async () => {
+  if (!importResult.value?.existedItems || importResult.value.existedItems.length === 0) {
+    ElMessage.warning('没有需要同步的重复物料');
+    return;
+  }
+
+  try {
+    // 确认操作
+    await ElMessageBox.confirm(
+      `确定要批量同步所有重复物料吗？将更新 ${importResult.value.existedItems.length} 个物料的数量。`,
+      '批量同步确认',
+      {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }
+    );
+
+    batchSyncing.value = true;
+
+    // 构建批量更新数据
+    const updateItems = importResult.value.existedItems.map((existedItemVo: any) => {
+      const accumulatedQuantity = calculateAccumulatedQuantity(existedItemVo);
+      return {
+        id: existedItemVo.existedItem.id,
+        materialName: existedItemVo.existedItem.materialName,
+        specification: existedItemVo.existedItem.specification,
+        quantity: accumulatedQuantity,
+        unit: existedItemVo.existedItem.unit,
+        version: existedItemVo.existedItem.version || 1
+      };
+    });
+
+    // 调用批量更新接口
+    await batchUpdateMaterialItems(updateItems);
+
+    ElMessage.success('批量同步成功');
+
+    // 清空已更新集合
+    updatedItemIds.value.clear();
+
+    // 关闭结果弹窗
+    showResult.value = false;
+
+    // 刷新数据列表
+    await initializeData();
+  } catch (error: any) {
+    if (error !== 'cancel') {
+      console.error('批量同步失败:', error);
+      ElMessage.error('批量同步失败：' + (error.message || '未知错误'));
+    }
+  } finally {
+    batchSyncing.value = false;
+  }
+};
+
+/**
+ * 检查物料是否已更新
+ */
+const isItemUpdated = (itemId: number): boolean => {
+  return updatedItemIds.value.has(itemId);
+};
+
+/**
+ * 全部更新（将所有重复数据的数量累加后更新）
+ */
+const handleUpdateAllDuplicates = async (existedItemVo: any) => {
+  try {
+    const accumulatedQuantity = calculateAccumulatedQuantity(existedItemVo);
+
+    // 确认操作
+    await ElMessageBox.confirm(
+      `确定要将所有 ${existedItemVo.duplicateItems.length} 次重复上传的数量（共 ${calculateTotalDuplicateQuantity(existedItemVo.duplicateItems)} ${existedItemVo.existedItem.unit}）累加到现有数量吗？更新后将为 ${accumulatedQuantity} ${existedItemVo.existedItem.unit}`,
+      '全部更新确认',
+      {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }
+    );
+
+    // 构建更新数据
+    const updateData = {
+      id: existedItemVo.existedItem.id,
+      materialName: existedItemVo.existedItem.materialName,
+      specification: existedItemVo.existedItem.specification,
+      quantity: accumulatedQuantity,
+      unit: existedItemVo.existedItem.unit,
+      version: existedItemVo.existedItem.version || 1
+    };
+
+    // 调用单个更新接口
+    await updateMaterialItem(updateData);
+
+    // 标记为已更新
+    updatedItemIds.value.add(existedItemVo.existedItem.id);
+
+    ElMessage.success('全部更新成功');
+
+    // 刷新数据列表
+    await initializeData();
+  } catch (error: any) {
+    if (error !== 'cancel') {
+      console.error('全部更新失败:', error);
+      ElMessage.error('全部更新失败：' + (error.message || '未知错误'));
+    }
+  }
+};
+
+/**
+ * 更新单个物料明细
+ */
+const handleUpdateSingleItem = async (existedItem: any, duplicateItem: any) => {
+  try {
+    // 确认操作
+    await ElMessageBox.confirm(
+      `确定要将数量 ${duplicateItem.quantity} ${duplicateItem.unit} 累加到现有数量吗？更新后将为 ${existedItem.quantity + duplicateItem.quantity} ${existedItem.unit}`,
+      '更新确认',
+      {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'info'
+      }
+    );
+
+    // 构建更新数据
+    const updateData = {
+      id: existedItem.id,
+      materialName: existedItem.materialName,
+      specification: existedItem.specification,
+      quantity: existedItem.quantity + duplicateItem.quantity,
+      unit: existedItem.unit,
+      version: existedItem.version || 1
+    };
+
+    // 调用单个更新接口
+    await updateMaterialItem(updateData);
+
+    // 标记为已更新
+    updatedItemIds.value.add(existedItem.id);
+
+    ElMessage.success('更新成功');
+
+    // 刷新数据列表
+    await initializeData();
+  } catch (error: any) {
+    if (error !== 'cancel') {
+      console.error('更新失败:', error);
+      ElMessage.error('更新失败：' + (error.message || '未知错误'));
+    }
+  }
 };
 
 // 暴露方法给父组件
@@ -1303,6 +1515,9 @@ const submitData = async () => {
       userCancelled: userCancelled // 添加取消标志
     };
 
+    // 清空已更新集合（每次显示新的导入结果时）
+    updatedItemIds.value.clear();
+
     showResult.value = true;
 
     if (userCancelled) {
@@ -1686,6 +1901,9 @@ const submitDataWithConfig = async (config: any) => {
     console.log('🔍 importResult.value.existedItems:', importResult.value.existedItems);
     console.log('🔍 importResult.value.existedItems.length:', importResult.value.existedItems?.length);
     console.log('✅ 产品统计 - 新建产品:', importResult.value.newProductRecords, '| 匹配产品:', importResult.value.matchedProductRecords);
+
+    // 清空已更新集合（每次显示新的导入结果时）
+    updatedItemIds.value.clear();
 
     showResult.value = true;
 
