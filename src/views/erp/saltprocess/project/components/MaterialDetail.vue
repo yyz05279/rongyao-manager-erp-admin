@@ -37,7 +37,10 @@
     <el-card v-if="materialData.length > 0" shadow="never" class="preview-card">
       <template #header>
         <div class="card-header">
-          <span>数据预览 (共{{ totalCountExcludingShipping }}条物料记录)</span>
+          <div>
+            <span>数据预览 (共{{ totalCountExcludingShipping }}条物料记录)</span>
+            <el-tag type="info" size="small" style="margin-left: 10px;">导入后会自动合并相同物料的数量</el-tag>
+          </div>
           <div>
             <el-button @click="validateData">验证数据</el-button>
             <el-button type="primary" @click="openImportConfig" :loading="submitting" icon="Upload"> 配置并导入 </el-button>
@@ -163,11 +166,14 @@
       </el-tabs>
     </el-card>
 
-    <!-- 物料列表（已导入的数据） -->
+    <!-- 物料汇总（不区分批次的汇总数据） -->
     <el-card shadow="never" class="list-card">
       <template #header>
         <div class="card-header">
-          <span>物料清单</span>
+          <div>
+            <span>物料汇总统计</span>
+            <el-tag type="success" size="small" style="margin-left: 10px;">不区分批次，相同物料自动合并</el-tag>
+          </div>
           <el-button icon="Refresh" @click="handleRefreshMaterialList">刷新</el-button>
         </div>
       </template>
@@ -193,30 +199,22 @@
         >
           <el-table v-if="activeImportedSheetTab === sheetName" :data="materialList" style="width: 100%" border>
             <el-table-column type="index" label="序号" width="60" align="center" />
-            <el-table-column prop="materialName" label="物料名称" min-width="180" show-overflow-tooltip />
+            <el-table-column prop="itemName" label="物料名称" min-width="180" show-overflow-tooltip />
             <el-table-column prop="specification" label="规格型号" min-width="160" show-overflow-tooltip />
-            <el-table-column prop="quantity" label="数量" width="100" align="center" />
-            <el-table-column prop="unit" label="单位" width="80" align="center" />
-            <el-table-column prop="materialType" label="物料类型" width="120" align="center">
+            <el-table-column prop="quantity" label="汇总数量" width="120" align="center">
               <template #default="{ row }">
-                <el-tag :type="getMaterialTypeTag(row.materialType)">
-                  {{ getMaterialTypeName(row.materialType) }}
-                </el-tag>
+                <el-tag type="success" size="large">{{ row.quantity }} {{ row.unit }}</el-tag>
               </template>
             </el-table-column>
+            <el-table-column prop="batchCount" label="批次数" width="100" align="center">
+              <template #default="{ row }">
+                <el-tag type="info" size="small">{{ row.batchCount }}</el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column prop="equipmentType" label="设备类型" width="120" align="center" show-overflow-tooltip />
             <el-table-column prop="materialCategory" label="材质" width="100" show-overflow-tooltip />
             <el-table-column prop="manufacturer" label="制造商" width="120" show-overflow-tooltip />
-            <el-table-column prop="remarks1" label="备注1" width="150" show-overflow-tooltip />
-            <el-table-column prop="createTime" label="创建时间" width="160" align="center">
-              <template #default="{ row }">
-                {{ parseTime(row.createTime) }}
-              </template>
-            </el-table-column>
-            <el-table-column label="操作" width="120" align="center" fixed="right">
-              <template #default="{ row }">
-                <el-button link type="danger" icon="Delete" @click="handleDelete(row)">删除</el-button>
-              </template>
-            </el-table-column>
+            <!-- <el-table-column prop="model" label="型号" width="120" show-overflow-tooltip /> -->
           </el-table>
         </el-tab-pane>
       </el-tabs>
@@ -349,130 +347,16 @@
           </el-table>
         </div>
 
-        <!-- 🔍 调试信息 -->
-        <el-alert type="info" :closable="false" style="margin-top: 20px;">
-          <div>调试信息：</div>
-          <div>skippedRecords: {{ importResult.skippedRecords }}</div>
-          <div>existedItems: {{ importResult.existedItems ? '存在' : '不存在' }}</div>
-          <div>existedItems.length: {{ importResult.existedItems?.length }}</div>
-          <div>条件判断: {{ importResult.skippedRecords > 0 ? '通过' : '未通过' }}</div>
-        </el-alert>
-
-        <!-- 重复物料明细（v2.0新结构：分组展示） -->
-        <div v-if="importResult.skippedRecords > 0" class="duplicate-list">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-            <h4 style="margin: 0;">
-              <el-icon style="vertical-align: middle; margin-right: 5px;"><WarningFilled /></el-icon>
-              重复物料明细（共 {{ importResult.skippedRecords || 0 }} 条重复）
-            </h4>
-            <el-button type="primary" @click="handleBatchSyncDuplicates" :loading="batchSyncing">
-              <el-icon><Upload /></el-icon>
-              合并同步
-            </el-button>
-          </div>
-          <el-alert
-            title="💡 这些物料因为在系统中已存在相同的「物料名称+规格」组合而被跳过，避免重复导入"
-            type="warning"
-            :closable="false"
-            style="margin-bottom: 15px;"
-          />
-          <el-alert type="info" :closable="false" style="margin-bottom: 15px;">
+        <!-- 重复物料提示（已隐藏详细列表，会自动合并） -->
+        <div v-if="importResult.skippedRecords > 0" style="margin-top: 20px;">
+          <el-alert type="success" :closable="false">
             <template #title>
               <div style="display: flex; align-items: center;">
                 <el-icon style="margin-right: 5px;"><InfoFilled /></el-icon>
-                <span>点击"合并同步"按钮，将批量更新所有重复物料的数量（共 {{ calculateTotalDuplicatesCount() }} 条），累加到数据库现有数量</span>
+                <span>检测到 {{ importResult.skippedRecords }} 条重复物料，系统已自动合并相同物料的数量</span>
               </div>
             </template>
           </el-alert>
-
-          <!-- 嵌套展示：已存在物料 + 重复项 -->
-          <template v-if="importResult.existedItems && importResult.existedItems.length > 0">
-            <div v-for="(existedItemVo, index) in importResult.existedItems" :key="index" class="existed-item-group">
-              <!-- 第一行：已存在的物料信息 -->
-              <div class="existed-item-header">
-                <el-tag type="info" size="small" style="margin-right: 8px;">{{ index + 1 }}</el-tag>
-                <el-tag type="success" effect="plain" size="small" style="margin-right: 8px;">已存在</el-tag>
-                <span class="material-name">{{ existedItemVo.existedItem.materialName }}</span>
-                <span class="material-spec" v-if="existedItemVo.existedItem.specification"> （{{ existedItemVo.existedItem.specification }}） </span>
-                <span class="material-info">
-                  - 数据库数量：
-                  <el-tag type="info" size="small">{{ existedItemVo.existedItem.quantity }} {{ existedItemVo.existedItem.unit }}</el-tag>
-                </span>
-                <span class="material-info" v-if="existedItemVo.existedItem.itemCode">- 物品编码：{{ existedItemVo.existedItem.itemCode }}</span>
-                <span class="duplicate-count">（本次重复上传 {{ existedItemVo.duplicateItems.length }} 次）</span>
-              </div>
-
-              <!-- 换行缩进：重复项列表 -->
-              <div class="duplicate-items-list">
-                <el-table
-                  :data="existedItemVo.duplicateItems"
-                  border
-                  size="small"
-                  style="margin-left: 40px; margin-top: 8px; max-width: calc(100% - 40px);"
-                >
-                  <el-table-column type="index" label="重复序号" width="80" align="center">
-                    <template #default="{ $index }">
-                      <el-tag size="small" type="warning">第 {{ $index + 1 }} 次</el-tag>
-                    </template>
-                  </el-table-column>
-                  <el-table-column prop="quantity" label="上传数量" width="100" align="center">
-                    <template #default="{ row }">
-                      <span style="font-weight: 600;">{{ row.quantity }} {{ row.unit }}</span>
-                    </template>
-                  </el-table-column>
-                  <el-table-column prop="sheetName" label="来源Sheet" min-width="120" align="center" show-overflow-tooltip />
-                  <el-table-column prop="rowNumber" label="Excel行号" width="100" align="center">
-                    <template #default="{ row }">
-                      <el-tag size="small" type="info">第 {{ row.rowNumber }} 行</el-tag>
-                    </template>
-                  </el-table-column>
-                  <el-table-column label="操作" width="80" align="center">
-                    <template #default="{ row }">
-                      <el-button
-                        type="primary"
-                        size="small"
-                        :disabled="isItemUpdated(existedItemVo.existedItem.id)"
-                        @click="handleUpdateSingleItem(existedItemVo.existedItem, row)"
-                      >
-                        {{ isItemUpdated(existedItemVo.existedItem.id) ? '已更新' : '更新' }}
-                      </el-button>
-                    </template>
-                  </el-table-column>
-                </el-table>
-
-                <!-- 累加提示 -->
-                <div class="accumulate-tip">
-                  <el-icon><InfoFilled /></el-icon>
-                  <span>
-                    建议操作：将这 {{ existedItemVo.duplicateItems.length }} 次上传的数量（共
-                    <strong>{{ calculateTotalDuplicateQuantity(existedItemVo.duplicateItems) }} {{ existedItemVo.existedItem.unit }}</strong>
-                    ）累加到数据库现有数量，更新为
-                    <strong>{{ calculateAccumulatedQuantity(existedItemVo) }} {{ existedItemVo.existedItem.unit }}</strong>
-                  </span>
-                  <!-- 全部更新按钮（仅在有多条重复数据时显示） -->
-                  <el-button
-                    v-if="existedItemVo.duplicateItems.length > 1"
-                    type="success"
-                    size="small"
-                    :disabled="isItemUpdated(existedItemVo.existedItem.id)"
-                    @click="handleUpdateAllDuplicates(existedItemVo)"
-                    style="margin-left: 10px;"
-                  >
-                    {{ isItemUpdated(existedItemVo.existedItem.id) ? '已更新' : '全部更新' }}
-                  </el-button>
-                </div>
-              </div>
-            </div>
-          </template>
-
-          <!-- 兜底显示：有重复但没有详细数据 -->
-          <template v-else>
-            <el-empty description="暂无重复物料的详细信息">
-              <template #extra>
-                <el-button type="primary" size="small" @click="console.log('重复数据调试:', importResult)">查看调试信息</el-button>
-              </template>
-            </el-empty>
-          </template>
         </div>
 
         <!-- 错误信息 -->
@@ -497,20 +381,16 @@
 <script setup name="MaterialDetail" lang="ts">
 import { ref, computed, watch, onMounted, nextTick, shallowRef } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import { Check, Close, WarningFilled, CircleCloseFilled, InfoFilled, Upload } from '@element-plus/icons-vue';
+import { Check, Close, CircleCloseFilled, InfoFilled } from '@element-plus/icons-vue';
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
-import { parseTime } from '@/utils/ruoyi';
 import { ExcelParser, MaterialDataValidator } from '@/utils/excel-parser';
 import {
-  listMaterial,
-  deleteMaterial,
+  listMaterialSummary,
   importParsedMaterialData,
-  exportMaterialList,
-  updateMaterialItem,
-  batchUpdateMaterialItems
+  exportMaterialList
 } from '@/api/erp/saltprocess/material';
-import type { MaterialVO, MaterialQuery, MaterialImportBo } from '@/api/erp/saltprocess/material/types';
+import type { MaterialImportBo, MaterialSummaryQuery, MaterialSummaryVO } from '@/api/erp/saltprocess/material/types';
 import MaterialImportConfigDialog from './MaterialImportConfigDialog.vue';
 
 // Props
@@ -535,8 +415,6 @@ const parseMessage = ref('');
 const submitting = ref(false);
 const showResult = ref(false);
 const importResult = ref<any>(null);
-const batchSyncing = ref(false); // 批量同步状态
-const updatedItemIds = ref<Set<number>>(new Set()); // 已更新的物料ID集合
 
 // 导入配置弹窗
 const importConfigDialog = ref(false);
@@ -565,13 +443,13 @@ const sheetSwitching = ref(false); // 标签切换中
 
 // 移除前端分页相关变量（改用后端分页）
 
-// 物料列表 - 使用 shallowRef
-const materialList = shallowRef<MaterialVO[]>([]);
+// 物料列表 - 使用 shallowRef，改为汇总数据
+const materialList = shallowRef<MaterialSummaryVO[]>([]);
 const listTotal = ref(0);
-const listQuery = ref<MaterialQuery>({
+const listQuery = ref<MaterialSummaryQuery>({
   pageNum: 1,
   pageSize: 50, // 使用后端分页，每页50条
-  projectId: props.projectId
+  projectId: Number(props.projectId)
 });
 
 // 计算属性
@@ -783,187 +661,6 @@ const handleRefreshMaterialList = () => {
   }
 };
 
-/**
- * 计算重复项的总数量
- */
-const calculateTotalDuplicateQuantity = (duplicateItems: any[]): number => {
-  return duplicateItems.reduce((sum: number, item: any) => sum + (item.quantity || 0), 0);
-};
-
-/**
- * 计算累加后的数量
- */
-const calculateAccumulatedQuantity = (existedItemVo: any): number => {
-  const existingQuantity = existedItemVo.existedItem.quantity || 0;
-  const duplicateTotal = calculateTotalDuplicateQuantity(existedItemVo.duplicateItems);
-  return existingQuantity + duplicateTotal;
-};
-
-/**
- * 计算所有重复项的总条数
- */
-const calculateTotalDuplicatesCount = (): number => {
-  if (!importResult.value?.existedItems) return 0;
-  return importResult.value.existedItems.reduce((total: number, item: any) => {
-    return total + (item.duplicateItems?.length || 0);
-  }, 0);
-};
-
-/**
- * 批量合并同步所有重复物料
- */
-const handleBatchSyncDuplicates = async () => {
-  if (!importResult.value?.existedItems || importResult.value.existedItems.length === 0) {
-    ElMessage.warning('没有需要同步的重复物料');
-    return;
-  }
-
-  try {
-    // 确认操作
-    await ElMessageBox.confirm(
-      `确定要批量同步所有重复物料吗？将更新 ${importResult.value.existedItems.length} 个物料的数量。`,
-      '批量同步确认',
-      {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        type: 'warning'
-      }
-    );
-
-    batchSyncing.value = true;
-
-    // 构建批量更新数据
-    const updateItems = importResult.value.existedItems.map((existedItemVo: any) => {
-      const accumulatedQuantity = calculateAccumulatedQuantity(existedItemVo);
-      return {
-        id: existedItemVo.existedItem.id,
-        materialName: existedItemVo.existedItem.materialName,
-        specification: existedItemVo.existedItem.specification,
-        quantity: accumulatedQuantity,
-        unit: existedItemVo.existedItem.unit,
-        version: existedItemVo.existedItem.version || 1
-      };
-    });
-
-    // 调用批量更新接口
-    await batchUpdateMaterialItems(updateItems);
-
-    ElMessage.success('批量同步成功');
-
-    // 清空已更新集合
-    updatedItemIds.value.clear();
-
-    // 关闭结果弹窗
-    showResult.value = false;
-
-    // 刷新数据列表
-    await initializeData();
-  } catch (error: any) {
-    if (error !== 'cancel') {
-      console.error('批量同步失败:', error);
-      ElMessage.error('批量同步失败：' + (error.message || '未知错误'));
-    }
-  } finally {
-    batchSyncing.value = false;
-  }
-};
-
-/**
- * 检查物料是否已更新
- */
-const isItemUpdated = (itemId: number): boolean => {
-  return updatedItemIds.value.has(itemId);
-};
-
-/**
- * 全部更新（将所有重复数据的数量累加后更新）
- */
-const handleUpdateAllDuplicates = async (existedItemVo: any) => {
-  try {
-    const accumulatedQuantity = calculateAccumulatedQuantity(existedItemVo);
-
-    // 确认操作
-    await ElMessageBox.confirm(
-      `确定要将所有 ${existedItemVo.duplicateItems.length} 次重复上传的数量（共 ${calculateTotalDuplicateQuantity(existedItemVo.duplicateItems)} ${existedItemVo.existedItem.unit}）累加到现有数量吗？更新后将为 ${accumulatedQuantity} ${existedItemVo.existedItem.unit}`,
-      '全部更新确认',
-      {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        type: 'warning'
-      }
-    );
-
-    // 构建更新数据
-    const updateData = {
-      id: existedItemVo.existedItem.id,
-      materialName: existedItemVo.existedItem.materialName,
-      specification: existedItemVo.existedItem.specification,
-      quantity: accumulatedQuantity,
-      unit: existedItemVo.existedItem.unit,
-      version: existedItemVo.existedItem.version || 1
-    };
-
-    // 调用单个更新接口
-    await updateMaterialItem(updateData);
-
-    // 标记为已更新
-    updatedItemIds.value.add(existedItemVo.existedItem.id);
-
-    ElMessage.success('全部更新成功');
-
-    // 刷新数据列表
-    await initializeData();
-  } catch (error: any) {
-    if (error !== 'cancel') {
-      console.error('全部更新失败:', error);
-      ElMessage.error('全部更新失败：' + (error.message || '未知错误'));
-    }
-  }
-};
-
-/**
- * 更新单个物料明细
- */
-const handleUpdateSingleItem = async (existedItem: any, duplicateItem: any) => {
-  try {
-    // 确认操作
-    await ElMessageBox.confirm(
-      `确定要将数量 ${duplicateItem.quantity} ${duplicateItem.unit} 累加到现有数量吗？更新后将为 ${existedItem.quantity + duplicateItem.quantity} ${existedItem.unit}`,
-      '更新确认',
-      {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        type: 'info'
-      }
-    );
-
-    // 构建更新数据
-    const updateData = {
-      id: existedItem.id,
-      materialName: existedItem.materialName,
-      specification: existedItem.specification,
-      quantity: existedItem.quantity + duplicateItem.quantity,
-      unit: existedItem.unit,
-      version: existedItem.version || 1
-    };
-
-    // 调用单个更新接口
-    await updateMaterialItem(updateData);
-
-    // 标记为已更新
-    updatedItemIds.value.add(existedItem.id);
-
-    ElMessage.success('更新成功');
-
-    // 刷新数据列表
-    await initializeData();
-  } catch (error: any) {
-    if (error !== 'cancel') {
-      console.error('更新失败:', error);
-      ElMessage.error('更新失败：' + (error.message || '未知错误'));
-    }
-  }
-};
 
 // 暴露方法给父组件
 defineExpose({
@@ -1012,22 +709,22 @@ onMounted(() => {
 
 // 方法
 /**
- * 加载物料列表
+ * 加载物料汇总列表
  * @param sheetName 可选的工作表名称，用于过滤数据
  */
 const loadMaterialList = async (sheetName?: string) => {
   loading.value = true;
   try {
     // 构建查询参数，如果提供了 sheetName 则添加到查询条件中
-    const query: MaterialQuery = {
+    const query: MaterialSummaryQuery = {
       ...listQuery.value,
       sheetName: sheetName || undefined
     };
 
-    const response: any = await listMaterial(query);
+    const response: any = await listMaterialSummary(query);
 
-    // 调试日志 - 查看物料列表API响应
-    console.log('=== 物料列表API响应 ===');
+    // 调试日志 - 查看物料汇总API响应
+    console.log('=== 物料汇总API响应 ===');
     console.log('查询参数:', query);
     console.log('完整响应:', response);
     console.log('响应数据:', response.data);
@@ -1039,11 +736,11 @@ const loadMaterialList = async (sheetName?: string) => {
     materialList.value = data.rows || [];
     listTotal.value = data.total || 0;
 
-    console.log('最终materialList:', materialList.value);
+    console.log('最终汇总列表:', materialList.value);
     console.log('数据条数:', materialList.value.length);
   } catch (error) {
-    console.error('获取物料列表失败:', error);
-    ElMessage.error('获取物料列表失败');
+    console.error('获取物料汇总列表失败:', error);
+    ElMessage.error('获取物料汇总列表失败');
   } finally {
     loading.value = false;
   }
@@ -1110,9 +807,9 @@ const parseExcelFile = async (file: File) => {
     const materialCount = materialData.value.length - shippingCount;
 
     if (shippingCount > 0) {
-      ElMessage.success(`成功解析 ${materialCount} 条物料记录（已自动过滤 ${shippingCount} 条发货清单）`);
+      ElMessage.success(`成功解析 ${materialCount} 条物料记录（已自动过滤 ${shippingCount} 条发货清单），导入后会自动合并相同物料的数量`);
     } else {
-      ElMessage.success(`成功解析 ${materialCount} 条物料记录`);
+      ElMessage.success(`成功解析 ${materialCount} 条物料记录，导入后会自动合并相同物料的数量`);
     }
   } catch (error: any) {
     console.error('Excel解析失败:', error);
@@ -1515,9 +1212,6 @@ const submitData = async () => {
       userCancelled: userCancelled // 添加取消标志
     };
 
-    // 清空已更新集合（每次显示新的导入结果时）
-    updatedItemIds.value.clear();
-
     showResult.value = true;
 
     if (userCancelled) {
@@ -1537,7 +1231,7 @@ const submitData = async () => {
         loadMaterialList();
       }
     } else if (importResult.value.success) {
-      ElMessage.success('数据导入成功!');
+      ElMessage.success('数据导入成功！相同物料已自动合并数量');
       // 清空数据
       materialData.value = [];
       uploadRef.value?.clearFiles();
@@ -1902,9 +1596,6 @@ const submitDataWithConfig = async (config: any) => {
     console.log('🔍 importResult.value.existedItems.length:', importResult.value.existedItems?.length);
     console.log('✅ 产品统计 - 新建产品:', importResult.value.newProductRecords, '| 匹配产品:', importResult.value.matchedProductRecords);
 
-    // 清空已更新集合（每次显示新的导入结果时）
-    updatedItemIds.value.clear();
-
     showResult.value = true;
 
     // 使用 nextTick 确保 DOM 更新后再检查
@@ -1915,7 +1606,7 @@ const submitDataWithConfig = async (config: any) => {
     // 刷新物料列表
     if (totalSuccess > 0) {
       await loadMaterialList();
-      ElMessage.success(`成功导入 ${totalSuccess} 条数据!`);
+      ElMessage.success(`成功导入 ${totalSuccess} 条数据！相同物料已自动合并数量`);
     } else {
       ElMessage.error('导入失败，请查看详细信息');
     }
@@ -1963,7 +1654,14 @@ const downloadTemplate = () => {
 // 导出数据
 const handleExport = async () => {
   try {
-    await exportMaterialList(listQuery.value);
+    // 构建导出参数，将 projectId 转换为 string
+    const exportQuery = {
+      projectId: String(listQuery.value.projectId),
+      sheetName: listQuery.value.sheetName,
+      pageNum: listQuery.value.pageNum,
+      pageSize: listQuery.value.pageSize
+    };
+    await exportMaterialList(exportQuery);
     ElMessage.success('导出成功');
   } catch (error) {
     console.error('导出失败:', error);
@@ -1971,31 +1669,6 @@ const handleExport = async () => {
   }
 };
 
-// 删除物料
-const handleDelete = async (row: MaterialVO) => {
-  try {
-    await ElMessageBox.confirm(
-      `是否确认删除物料"${row.materialName}"？`,
-      '警告',
-      {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        type: 'warning'
-      }
-    );
-
-    if (row.id) {
-      await deleteMaterial(row.id);
-      ElMessage.success('删除成功');
-      loadMaterialList();
-    }
-  } catch (error: any) {
-    if (error !== 'cancel') {
-      console.error('删除失败:', error);
-      ElMessage.error('删除失败');
-    }
-  }
-};
 
 // 获取物料类型标签样式
 const getMaterialTypeTag = (type: string) => {
