@@ -50,7 +50,7 @@
         <el-tag type="info">总计: {{ totalCountExcludingShipping }}</el-tag>
         <el-tag type="success">有效: {{ validCount }}</el-tag>
         <el-tag type="warning">待导入: {{ pendingCount }}</el-tag>
-        <el-tag type="primary">已导入: {{ importedCount }}</el-tag>
+        <el-tag type="info" effect="dark">已导入: {{ importedCount }}</el-tag>
         <el-tag type="danger" v-if="errorCount > 0">错误: {{ errorCount }}</el-tag>
       </div>
 
@@ -252,105 +252,201 @@
     />
 
     <!-- 导入结果对话框 -->
-    <el-dialog v-model="showResult" title="导入结果" width="800px">
+    <el-dialog v-model="showResult" title="导入结果" width="900px">
       <div v-if="importResult">
+        <!-- 导入结果标题 -->
         <el-result
           :icon="importResult.success ? 'success' : 'error'"
           :title="importResult.success ? '导入成功' : '导入失败'"
           :sub-title="importResult.summary"
-        >
-          <template #extra>
-            <!-- 总体统计 -->
-            <div class="result-stats">
-              <el-descriptions :column="2" border>
-                <el-descriptions-item label="总记录数">
-                  {{ importResult.totalRecords }}
-                </el-descriptions-item>
-                <el-descriptions-item label="成功记录">
-                  <el-tag type="success">{{ importResult.successRecords }}</el-tag>
-                </el-descriptions-item>
-                <el-descriptions-item label="失败记录">
-                  <el-tag type="danger" v-if="importResult.failedRecords > 0">{{ importResult.failedRecords }}</el-tag>
-                  <span v-else>0</span>
-                </el-descriptions-item>
-                <el-descriptions-item label="跳过记录">
-                  <el-tag type="info" v-if="importResult.skippedRecords > 0">{{ importResult.skippedRecords }}</el-tag>
-                  <span v-else>0</span>
-                </el-descriptions-item>
-                <el-descriptions-item label="新建产品">
-                  {{ importResult.newProductRecords }}
-                </el-descriptions-item>
-                <el-descriptions-item label="匹配产品">
-                  {{ importResult.matchedProductRecords }}
-                </el-descriptions-item>
-                <el-descriptions-item label="处理Sheet数">
-                  {{ importResult.sheetResults?.length || 0 }}
-                </el-descriptions-item>
-              </el-descriptions>
-            </div>
+        />
 
-            <!-- 各Sheet导入详情 -->
-            <div v-if="importResult.sheetResults && importResult.sheetResults.length > 0" class="sheet-results">
-              <h4>各Sheet导入详情：</h4>
-              <el-table :data="importResult.sheetResults" border size="small" style="margin-top: 10px;">
-                <el-table-column prop="sheetName" label="Sheet名称" min-width="120">
-                  <template #default="{ row }">
-                    <el-tag :type="getSheetResultTag(row.sheetName)" size="small">
-                      {{ row.sheetName }}
-                    </el-tag>
-                  </template>
-                </el-table-column>
-                <el-table-column prop="totalRecords" label="总记录数" width="90" align="center" />
-                <el-table-column prop="batchCount" label="批次数" width="80" align="center">
-                  <template #default="{ row }">
-                    <el-tag v-if="row.batchCount > 0" type="primary" size="small">
-                      {{ row.batchCount }}
-                    </el-tag>
-                    <span v-else>-</span>
-                  </template>
-                </el-table-column>
-                <el-table-column prop="successRecords" label="成功" width="70" align="center">
-                  <template #default="{ row }">
-                    <el-tag type="success" size="small" v-if="row.successRecords > 0">
-                      {{ row.successRecords }}
-                    </el-tag>
-                    <span v-else>0</span>
-                  </template>
-                </el-table-column>
-                <el-table-column prop="failedRecords" label="失败" width="70" align="center">
-                  <template #default="{ row }">
-                    <el-tag type="danger" size="small" v-if="row.failedRecords > 0">
-                      {{ row.failedRecords }}
-                    </el-tag>
-                    <span v-else>0</span>
-                  </template>
-                </el-table-column>
-                <el-table-column prop="newProductRecords" label="新建产品" width="90" align="center" />
-                <el-table-column prop="matchedProductRecords" label="匹配产品" width="90" align="center" />
-                <el-table-column label="状态" width="100" align="center">
-                  <template #default="{ row }">
-                    <el-tag v-if="row.skipped" type="info" size="small">已跳过</el-tag>
-                    <el-tag v-else :type="row.success ? 'success' : 'danger'" size="small">
-                      {{ row.success ? '成功' : '失败' }}
-                    </el-tag>
-                  </template>
-                </el-table-column>
-              </el-table>
-            </div>
+        <!-- 详细内容 -->
+        <!-- 总体统计 -->
+        <div class="result-stats">
+          <el-row :gutter="16">
+            <el-col :span="8">
+              <el-statistic title="总记录数" :value="importResult.totalRecords">
+                <template #suffix>条</template>
+              </el-statistic>
+            </el-col>
+            <el-col :span="8">
+              <el-statistic title="成功记录" :value="importResult.successRecords" class="success-stat">
+                <template #suffix>条</template>
+              </el-statistic>
+            </el-col>
+            <el-col :span="8">
+              <el-statistic title="失败记录" :value="importResult.failedRecords" class="error-stat">
+                <template #suffix>条</template>
+              </el-statistic>
+            </el-col>
+          </el-row>
+          <el-row :gutter="16" style="margin-top: 20px;">
+            <el-col :span="8">
+              <el-statistic title="重复跳过" :value="importResult.skippedRecords" class="warning-stat">
+                <template #suffix>条</template>
+              </el-statistic>
+            </el-col>
+            <el-col :span="8">
+              <el-statistic title="新建产品" :value="importResult.newProductRecords" class="primary-stat">
+                <template #suffix>个</template>
+              </el-statistic>
+            </el-col>
+            <el-col :span="8">
+              <el-statistic title="匹配产品" :value="importResult.matchedProductRecords" class="info-stat">
+                <template #suffix>个</template>
+              </el-statistic>
+            </el-col>
+          </el-row>
+        </div>
 
-            <!-- 错误信息 -->
-            <div v-if="importResult.errors && importResult.errors.length > 0" class="error-list">
-              <h4>错误信息：</h4>
-              <el-scrollbar max-height="200px">
-                <div v-for="(error, index) in importResult.errors" :key="index" class="error-item">
-                  <el-tag type="danger" size="small" v-if="error.rowNumber">第{{ error.rowNumber }}行</el-tag>
-                  <span v-if="error.materialName">{{ error.materialName }}: </span>
-                  {{ error.errorMessage }}
+        <!-- 各Sheet导入详情 -->
+        <div v-if="importResult.sheetResults && importResult.sheetResults.length > 0" class="sheet-results">
+          <h4>各Sheet导入详情：</h4>
+          <el-table :data="importResult.sheetResults" border size="small" style="margin-top: 10px;">
+            <el-table-column prop="sheetName" label="Sheet名称" min-width="120">
+              <template #default="{ row }">
+                <el-tag :type="getSheetResultTag(row.sheetName)" size="small">
+                  {{ row.sheetName }}
+                </el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column prop="totalRecords" label="总记录数" width="90" align="center" />
+            <el-table-column prop="batchCount" label="批次数" width="80" align="center">
+              <template #default="{ row }">
+                <el-tag v-if="row.batchCount > 0" type="info" size="small">
+                  {{ row.batchCount }}
+                </el-tag>
+                <span v-else>-</span>
+              </template>
+            </el-table-column>
+            <el-table-column prop="successRecords" label="成功" width="70" align="center">
+              <template #default="{ row }">
+                <el-tag type="success" size="small" v-if="row.successRecords > 0">
+                  {{ row.successRecords }}
+                </el-tag>
+                <span v-else>0</span>
+              </template>
+            </el-table-column>
+            <el-table-column prop="failedRecords" label="失败" width="70" align="center">
+              <template #default="{ row }">
+                <el-tag type="danger" size="small" v-if="row.failedRecords > 0">
+                  {{ row.failedRecords }}
+                </el-tag>
+                <span v-else>0</span>
+              </template>
+            </el-table-column>
+            <el-table-column prop="newProductRecords" label="新建产品" width="90" align="center" />
+            <el-table-column prop="matchedProductRecords" label="匹配产品" width="90" align="center" />
+            <el-table-column label="状态" width="100" align="center">
+              <template #default="{ row }">
+                <el-tag v-if="row.skipped" type="info" size="small">已跳过</el-tag>
+                <el-tag v-else :type="row.success ? 'success' : 'danger'" size="small">
+                  {{ row.success ? '成功' : '失败' }}
+                </el-tag>
+              </template>
+            </el-table-column>
+          </el-table>
+        </div>
+
+        <!-- 🔍 调试信息 -->
+        <el-alert type="info" :closable="false" style="margin-top: 20px;">
+          <div>调试信息：</div>
+          <div>skippedRecords: {{ importResult.skippedRecords }}</div>
+          <div>existedItems: {{ importResult.existedItems ? '存在' : '不存在' }}</div>
+          <div>existedItems.length: {{ importResult.existedItems?.length }}</div>
+          <div>条件判断: {{ importResult.skippedRecords > 0 ? '通过' : '未通过' }}</div>
+        </el-alert>
+
+        <!-- 重复物料明细（v2.0新结构：分组展示） -->
+        <div v-if="importResult.skippedRecords > 0" class="duplicate-list">
+          <h4>
+            <el-icon style="vertical-align: middle; margin-right: 5px;"><WarningFilled /></el-icon>
+            重复物料明细（共 {{ importResult.skippedRecords || 0 }} 条重复）
+          </h4>
+          <el-alert
+            title="💡 这些物料因为在系统中已存在相同的「物料名称+规格」组合而被跳过，避免重复导入"
+            type="warning"
+            :closable="false"
+            style="margin-bottom: 15px;"
+          />
+
+          <!-- 嵌套展示：已存在物料 + 重复项 -->
+          <template v-if="importResult.existedItems && importResult.existedItems.length > 0">
+            <div v-for="(existedItemVo, index) in importResult.existedItems" :key="index" class="existed-item-group">
+              <!-- 第一行：已存在的物料信息 -->
+              <div class="existed-item-header">
+                <el-tag type="info" size="small" style="margin-right: 8px;">{{ index + 1 }}</el-tag>
+                <el-tag type="success" effect="plain" size="small" style="margin-right: 8px;">已存在</el-tag>
+                <span class="material-name">{{ existedItemVo.existedItem.materialName }}</span>
+                <span class="material-spec" v-if="existedItemVo.existedItem.specification"> （{{ existedItemVo.existedItem.specification }}） </span>
+                <span class="material-info">
+                  - 数据库数量：
+                  <el-tag type="info" size="small">{{ existedItemVo.existedItem.quantity }} {{ existedItemVo.existedItem.unit }}</el-tag>
+                </span>
+                <span class="material-info" v-if="existedItemVo.existedItem.itemCode">- 物品编码：{{ existedItemVo.existedItem.itemCode }}</span>
+                <span class="duplicate-count">（本次重复上传 {{ existedItemVo.duplicateItems.length }} 次）</span>
+              </div>
+
+              <!-- 换行缩进：重复项列表 -->
+              <div class="duplicate-items-list">
+                <el-table :data="existedItemVo.duplicateItems" border size="small" style="margin-left: 40px; margin-top: 8px;">
+                  <el-table-column type="index" label="重复序号" width="80" align="center">
+                    <template #default="{ $index }">
+                      <el-tag size="small" type="warning">第 {{ $index + 1 }} 次</el-tag>
+                    </template>
+                  </el-table-column>
+                  <el-table-column prop="quantity" label="上传数量" width="100" align="center">
+                    <template #default="{ row }">
+                      <span style="font-weight: 600;">{{ row.quantity }} {{ row.unit }}</span>
+                    </template>
+                  </el-table-column>
+                  <el-table-column prop="sheetName" label="来源Sheet" min-width="120" align="center" show-overflow-tooltip />
+                  <el-table-column prop="rowNumber" label="Excel行号" width="100" align="center">
+                    <template #default="{ row }">
+                      <el-tag size="small" type="info">第 {{ row.rowNumber }} 行</el-tag>
+                    </template>
+                  </el-table-column>
+                </el-table>
+
+                <!-- 累加提示 -->
+                <div class="accumulate-tip">
+                  <el-icon><InfoFilled /></el-icon>
+                  <span>
+                    建议操作：将这 {{ existedItemVo.duplicateItems.length }} 次上传的数量（共
+                    <strong>{{ calculateTotalDuplicateQuantity(existedItemVo.duplicateItems) }} {{ existedItemVo.existedItem.unit }}</strong>
+                    ）累加到数据库现有数量，更新为
+                    <strong>{{ calculateAccumulatedQuantity(existedItemVo) }} {{ existedItemVo.existedItem.unit }}</strong>
+                  </span>
                 </div>
-              </el-scrollbar>
+              </div>
             </div>
           </template>
-        </el-result>
+
+          <!-- 兜底显示：有重复但没有详细数据 -->
+          <template v-else>
+            <el-empty description="暂无重复物料的详细信息">
+              <template #extra>
+                <el-button type="primary" size="small" @click="console.log('重复数据调试:', importResult)">查看调试信息</el-button>
+              </template>
+            </el-empty>
+          </template>
+        </div>
+
+        <!-- 错误信息 -->
+        <div v-if="importResult.errors && importResult.errors.length > 0" class="error-list">
+          <h4>
+            <el-icon style="vertical-align: middle; margin-right: 5px;"><CircleCloseFilled /></el-icon>
+            错误信息（共 {{ importResult.errors.length }} 条）：
+          </h4>
+          <el-scrollbar max-height="200px">
+            <div v-for="(error, index) in importResult.errors" :key="index" class="error-item">
+              <el-tag type="danger" size="small" v-if="error.rowNumber">第{{ error.rowNumber }}行</el-tag>
+              <span v-if="error.materialName">{{ error.materialName }}: </span>
+              {{ error.errorMessage }}
+            </div>
+          </el-scrollbar>
+        </div>
       </div>
     </el-dialog>
   </div>
@@ -359,7 +455,7 @@
 <script setup name="MaterialDetail" lang="ts">
 import { ref, computed, watch, onMounted, nextTick, shallowRef } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import { Check, Close } from '@element-plus/icons-vue';
+import { Check, Close, WarningFilled, CircleCloseFilled, InfoFilled } from '@element-plus/icons-vue';
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
 import { parseTime } from '@/utils/ruoyi';
@@ -457,13 +553,13 @@ const errorCount = computed(() => {
   }).length;
 });
 
-const warningCount = computed(() => {
-  return materialData.value.filter(item => {
-    const sheetName = (item.sheetName || '').toLowerCase();
-    const isShippingList = sheetName.includes('发货') || sheetName.includes('装车');
-    return item.hasWarnings && !isShippingList;
-  }).length;
-});
+// const warningCount = computed(() => {
+//   return materialData.value.filter(item => {
+//     const sheetName = (item.sheetName || '').toLowerCase();
+//     const isShippingList = sheetName.includes('发货') || sheetName.includes('装车');
+//     return item.hasWarnings && !isShippingList;
+//   }).length;
+// });
 
 // 待导入数量（排除发货清单）
 const pendingCount = computed(() => {
@@ -639,6 +735,22 @@ const handleRefreshMaterialList = () => {
   } else {
     initializeData();
   }
+};
+
+/**
+ * 计算重复项的总数量
+ */
+const calculateTotalDuplicateQuantity = (duplicateItems: any[]): number => {
+  return duplicateItems.reduce((sum: number, item: any) => sum + (item.quantity || 0), 0);
+};
+
+/**
+ * 计算累加后的数量
+ */
+const calculateAccumulatedQuantity = (existedItemVo: any): number => {
+  const existingQuantity = existedItemVo.existedItem.quantity || 0;
+  const duplicateTotal = calculateTotalDuplicateQuantity(existedItemVo.duplicateItems);
+  return existingQuantity + duplicateTotal;
 };
 
 // 暴露方法给父组件
@@ -887,6 +999,8 @@ const validateData = async () => {
 };
 
 // 提交数据 - 按Sheet分组分批上传（每批10条，过滤发货清单）
+// 注意：此函数已废弃，当前使用 submitDataWithConfig
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const submitData = async () => {
   // 检查是否有错误
   if (errorCount.value > 0) {
@@ -1111,7 +1225,7 @@ const submitData = async () => {
           // 后端返回结构：{ code: 200, data: { success: true, ... } }
           const result = response.data || response;
 
-          if (result.success) {
+        if (result.success) {
             sheetSuccessCount += result.successRecords || 0;
             sheetNewProducts += result.newProductRecords || 0;
             sheetMatchedProducts += result.matchedProductRecords || 0;
@@ -1119,7 +1233,7 @@ const submitData = async () => {
               `✓ 第${batchIndex + 1}批上传成功: ${result.successRecords}条 ` +
                 `(累计成功: ${sheetSuccessCount}/${validMaterials.length})`
             );
-          } else {
+        } else {
             sheetFailedCount += result.failedRecords || 0;
             if (result.errors) {
               sheetErrors.push(...result.errors);
@@ -1131,8 +1245,8 @@ const submitData = async () => {
           // 【开发模式】由确认框控制节奏，不需要额外延迟
           if (!IS_DEV_MODE && batchIndex < totalBatches - 1) {
             await new Promise((resolve) => setTimeout(resolve, 200));
-          }
-        } catch (error: any) {
+        }
+      } catch (error: any) {
           sheetFailedCount += batchMaterials.length;
           sheetErrors.push({
             errorMessage: `第${batchIndex + 1}批上传失败: ${error.message || '未知错误'}`
@@ -1142,10 +1256,10 @@ const submitData = async () => {
       }
 
       // 汇总该Sheet的结果
-      importResults.push({
-        sheetName: group.sheetName,
+        importResults.push({
+          sheetName: group.sheetName,
         success: sheetSuccessCount > 0,
-        totalRecords: group.materials.length,
+          totalRecords: group.materials.length,
         filteredRecords: filteredMaterials.length,
         successRecords: sheetSuccessCount,
         failedRecords: sheetFailedCount,
@@ -1247,6 +1361,8 @@ const submitDataWithConfig = async (config: any) => {
     // 计算总数和总批次数
     let totalMaterialCount = 0;
     let totalBatchCount = 0;
+    // 使用 Map 收集和合并所有批次的重复物料，key 为物料的唯一标识（materialName + specification）
+    const existedItemsMap = new Map<string, any>();
     selectedGroups.forEach(group => {
       const batchSize = batchSizeMap[group.sheetName] || 50;
       const validMaterials = group.materials.filter((item) => {
@@ -1395,11 +1511,92 @@ const submitDataWithConfig = async (config: any) => {
           const response: any = await importParsedMaterialData(importData);
           const result = response.data || response;
 
+          // 🔍 详细调试日志：查看后端返回的完整数据结构
+          console.log('🔍 后端返回的完整响应:', {
+            success: result.success,
+            successCount: result.successCount,
+            skippedRecords: result.skippedRecords,
+            existedItems: result.existedItems,
+            duplicateItems: result.duplicateItems,
+            newProductCount: result.newProductCount,
+            matchedProductCount: result.matchedProductCount,
+            fullResult: result
+          });
+
           if (result && result.success) {
             const batchSuccess = result.successCount || batchMaterials.length;
             sheetSuccessCount += batchSuccess;
             sheetNewProducts += result.newProductCount || 0;
             sheetMatchedProducts += result.matchedProductCount || 0;
+
+            // 收集重复物料信息（优先使用新结构 existedItems）
+            if (result.existedItems && result.existedItems.length > 0) {
+              console.log('✅ 发现 existedItems 数据:', result.existedItems);
+              // v2.0 新结构：按已存在物料分组
+              result.existedItems.forEach((existedItemVo: any) => {
+                // 后端返回的数据结构：existedItem 包含 duplicateItems
+                const existedItemRaw = existedItemVo.existedItem;
+
+                // 提取 duplicateItems（可能在 existedItem 里面，也可能在外面）
+                const duplicateItems = existedItemRaw.duplicateItems || existedItemVo.duplicateItems || [];
+
+                // 构建标准的 existedItem（不包含 duplicateItems）
+                const existedItem = {
+                  id: existedItemRaw.id,
+                  materialName: existedItemRaw.materialName,
+                  specification: existedItemRaw.specification,
+                  quantity: existedItemRaw.quantity,
+                  unit: existedItemRaw.unit,
+                  sheetName: existedItemRaw.sheetName,
+                  itemCode: existedItemRaw.itemCode,
+                  equipmentType: existedItemRaw.equipmentType
+                };
+
+                const materialKey = `${existedItem.materialName}_${existedItem.specification || ''}`;
+
+                if (existedItemsMap.has(materialKey)) {
+                  // 合并重复项到现有物料
+                  const existing = existedItemsMap.get(materialKey);
+                  existing.duplicateItems.push(...duplicateItems);
+                } else {
+                  // 新增物料
+                  existedItemsMap.set(materialKey, {
+                    existedItem: existedItem,
+                    duplicateItems: [...duplicateItems]
+                  });
+                }
+              });
+            } else if (result.duplicateItems && result.duplicateItems.length > 0) {
+              console.log('⚠️ 使用降级处理：duplicateItems 扁平结构', result.duplicateItems);
+              // v1.0 兼容：扁平结构，需要手动分组（降级处理）
+              result.duplicateItems.forEach((duplicateItem: any) => {
+                const materialKey = `${duplicateItem.materialName}_${duplicateItem.specification || ''}`;
+                if (!existedItemsMap.has(materialKey)) {
+                  existedItemsMap.set(materialKey, {
+                    existedItem: {
+                      materialName: duplicateItem.materialName,
+                      specification: duplicateItem.specification,
+                      quantity: 0, // 旧结构没有数据库数量信息
+                      unit: duplicateItem.unit
+                    },
+                    duplicateItems: []
+                  });
+                }
+                existedItemsMap.get(materialKey).duplicateItems.push(duplicateItem);
+              });
+            }
+
+            // 统计跳过数量
+            if (result.skippedRecords && result.skippedRecords > 0) {
+              totalSkipped += result.skippedRecords;
+              console.log(`📊 本批次跳过 ${result.skippedRecords} 条，累计跳过 ${totalSkipped} 条`);
+            }
+
+            // 🔍 检查是否有重复数据但没有详细信息的情况
+            if (result.skippedRecords > 0 && !result.existedItems && !result.duplicateItems) {
+              console.warn('⚠️ 警告：有跳过记录但没有 existedItems 或 duplicateItems 数据！');
+              console.warn('后端返回:', result);
+            }
 
             // 标记已导入
             batchMaterials.forEach(material => {
@@ -1453,10 +1650,23 @@ const submitDataWithConfig = async (config: any) => {
       ? `🎉 导入完成！成功导入 ${totalSuccess} 条，失败 ${totalFailed} 条`
       : '❌ 导入失败，请查看详细信息';
 
+    // 转换 Map 为数组
+    const existedItemsList = Array.from(existedItemsMap.values());
+
+    // 🔍 调试日志：检查重复数据
+    console.log('📊 重复数据统计:', {
+      totalSkipped,
+      existedItemsMapSize: existedItemsMap.size,
+      existedItemsListLength: existedItemsList.length,
+      existedItemsList: existedItemsList
+    });
+
     // 显示导入结果
     importResult.value = {
       success: totalSuccess > 0,
-      summary: `成功导入 ${totalSuccess} 条，失败 ${totalFailed} 条`,
+      summary: totalSkipped > 0
+        ? `成功导入 ${totalSuccess} 条，失败 ${totalFailed} 条，重复跳过 ${totalSkipped} 条`
+        : `成功导入 ${totalSuccess} 条，失败 ${totalFailed} 条`,
       totalRecords: totalSuccess + totalFailed, // 总记录数 = 成功 + 失败
       successRecords: totalSuccess,
       failedRecords: totalFailed,
@@ -1464,9 +1674,21 @@ const submitDataWithConfig = async (config: any) => {
       newProductRecords: totalNewProducts,
       matchedProductRecords: totalMatchedProducts,
       sheetResults: importResults,
-      errors: importResults.flatMap(r => r.errors)
+      errors: importResults.flatMap(r => r.errors),
+      existedItems: existedItemsList // 已存在物料信息（v2.0新结构），不再过滤空数组
     };
+
+    console.log('📋 最终导入结果:', importResult.value);
+    console.log('🔍 importResult.value.skippedRecords:', importResult.value.skippedRecords);
+    console.log('🔍 importResult.value.existedItems:', importResult.value.existedItems);
+    console.log('🔍 importResult.value.existedItems.length:', importResult.value.existedItems?.length);
+
     showResult.value = true;
+
+    // 使用 nextTick 确保 DOM 更新后再检查
+    await nextTick();
+    console.log('🔍 DOM 更新后检查: showResult.value =', showResult.value);
+    console.log('🔍 DOM 更新后检查: importResult.value =', importResult.value);
 
     // 刷新物料列表
     if (totalSuccess > 0) {
@@ -1661,6 +1883,46 @@ const getSheetResultTag = (sheetName: string) => {
 
   .result-stats {
     margin: 20px 0;
+    padding: 20px;
+    background-color: #f5f7fa;
+    border-radius: 8px;
+
+    :deep(.el-statistic) {
+      text-align: center;
+
+      .el-statistic__head {
+        font-size: 14px;
+        color: #606266;
+        margin-bottom: 8px;
+      }
+
+      .el-statistic__content {
+        font-size: 28px;
+        font-weight: 600;
+        color: #303133;
+      }
+    }
+
+    // 不同类型的统计数据颜色
+    :deep(.success-stat .el-statistic__content) {
+      color: #67c23a;
+    }
+
+    :deep(.error-stat .el-statistic__content) {
+      color: #f56c6c;
+    }
+
+    :deep(.warning-stat .el-statistic__content) {
+      color: #e6a23c;
+    }
+
+    :deep(.primary-stat .el-statistic__content) {
+      color: #409eff;
+    }
+
+    :deep(.info-stat .el-statistic__content) {
+      color: #909399;
+    }
   }
 
   .sheet-results {
@@ -1679,6 +1941,98 @@ const getSheetResultTag = (sheetName: string) => {
     }
   }
 
+  .duplicate-list {
+    margin-top: 20px;
+    text-align: left;
+
+    h4 {
+      margin-bottom: 10px;
+      font-size: 14px;
+      color: #e6a23c;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+    }
+
+    :deep(.el-table) {
+      font-size: 13px;
+    }
+
+    .existed-item-group {
+      margin-bottom: 20px;
+      padding: 12px;
+      background-color: #fafafa;
+      border-radius: 4px;
+      border: 1px solid #e4e7ed;
+
+      &:last-child {
+        margin-bottom: 0;
+      }
+
+      .existed-item-header {
+        padding: 10px;
+        background-color: #f0f9ff;
+        border-radius: 4px;
+        border-left: 4px solid #409eff;
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 4px;
+
+        .material-name {
+          font-size: 14px;
+          font-weight: 600;
+      color: #303133;
+        }
+
+        .material-spec {
+          font-size: 13px;
+          color: #606266;
+        }
+
+        .material-info {
+          font-size: 12px;
+          color: #909399;
+          margin-left: 8px;
+        }
+
+        .duplicate-count {
+          font-size: 12px;
+          color: #e6a23c;
+          font-weight: 600;
+          margin-left: 8px;
+        }
+      }
+
+      .duplicate-items-list {
+        margin-top: 12px;
+
+        .accumulate-tip {
+          margin: 12px 0 0 40px;
+          padding: 10px 12px;
+          background-color: #f4f4f5;
+          border-left: 3px solid #909399;
+          border-radius: 4px;
+          font-size: 13px;
+          color: #606266;
+          display: flex;
+          align-items: flex-start;
+          gap: 8px;
+
+          .el-icon {
+            margin-top: 2px;
+            color: #909399;
+          }
+
+          strong {
+            color: #409eff;
+            font-weight: 600;
+          }
+        }
+      }
+    }
+  }
+
   .error-list {
     margin-top: 20px;
     text-align: left;
@@ -1686,7 +2040,10 @@ const getSheetResultTag = (sheetName: string) => {
     h4 {
       margin-bottom: 10px;
       font-size: 14px;
-      color: #303133;
+      color: #f56c6c;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
     }
   }
 

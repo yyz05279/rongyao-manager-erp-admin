@@ -131,10 +131,48 @@ export interface MaterialImportResultVo {
   failedRecords: number;
   newProductRecords: number;
   matchedProductRecords: number;
+  skippedRecords?: number; // 跳过的记录数（重复物料）
   shippingListId?: string;
   listCode?: string;
   errors?: MaterialImportError[];
   warnings?: MaterialImportWarning[];
+  existedItems?: ExistedItemVo[]; // 已存在物料信息（v2.0新结构）
+  duplicateItems?: DuplicateMaterialItem[]; // 重复物料明细（兼容v1.0）
+}
+
+/**
+ * 已存在物料信息（v2.0）
+ */
+export interface ExistedItemVo {
+  existedItem: ExistedItemDetailVo; // 数据库中已存在的物料
+  duplicateItems: DuplicateMaterialItem[]; // 本次上传中与该物料重复的所有记录
+}
+
+/**
+ * 已存在物料详细信息
+ */
+export interface ExistedItemDetailVo {
+  id: number;
+  materialName: string;
+  specification?: string;
+  quantity: number;
+  unit?: string;
+  sheetName?: string;
+  itemCode?: string;
+  equipmentType?: string;
+}
+
+/**
+ * 重复物料项
+ */
+export interface DuplicateMaterialItem {
+  materialName: string;
+  specification?: string;
+  quantity: number;
+  unit?: string;
+  sheetName?: string;
+  rowNumber?: number;
+  reason?: string; // 重复原因
 }
 
 /**
