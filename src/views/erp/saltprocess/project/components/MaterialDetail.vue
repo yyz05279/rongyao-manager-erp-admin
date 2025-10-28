@@ -1518,16 +1518,18 @@ const submitDataWithConfig = async (config: any) => {
             skippedRecords: result.skippedRecords,
             existedItems: result.existedItems,
             duplicateItems: result.duplicateItems,
-            newProductCount: result.newProductCount,
-            matchedProductCount: result.matchedProductCount,
+            newProductRecords: result.newProductRecords,
+            matchedProductRecords: result.matchedProductRecords,
             fullResult: result
           });
 
           if (result && result.success) {
             const batchSuccess = result.successCount || batchMaterials.length;
             sheetSuccessCount += batchSuccess;
-            sheetNewProducts += result.newProductCount || 0;
-            sheetMatchedProducts += result.matchedProductCount || 0;
+            // 修复：使用正确的字段名 newProductRecords 和 matchedProductRecords
+            sheetNewProducts += result.newProductRecords || 0;
+            sheetMatchedProducts += result.matchedProductRecords || 0;
+            console.log(`✅ 批次累加 - 本批次新建: ${result.newProductRecords || 0}, 匹配: ${result.matchedProductRecords || 0} | 累计新建: ${sheetNewProducts}, 累计匹配: ${sheetMatchedProducts}`);
 
             // 收集重复物料信息（优先使用新结构 existedItems）
             if (result.existedItems && result.existedItems.length > 0) {
@@ -1629,6 +1631,7 @@ const submitDataWithConfig = async (config: any) => {
       totalFailed += sheetFailedCount;
       totalNewProducts += sheetNewProducts;
       totalMatchedProducts += sheetMatchedProducts;
+      console.log(`📊 Sheet累加完成 [${group.sheetName}] - 本Sheet新建: ${sheetNewProducts}, 匹配: ${sheetMatchedProducts} | 全局累计新建: ${totalNewProducts}, 累计匹配: ${totalMatchedProducts}`);
 
       importResults.push({
         sheetName: group.sheetName,
@@ -1682,6 +1685,7 @@ const submitDataWithConfig = async (config: any) => {
     console.log('🔍 importResult.value.skippedRecords:', importResult.value.skippedRecords);
     console.log('🔍 importResult.value.existedItems:', importResult.value.existedItems);
     console.log('🔍 importResult.value.existedItems.length:', importResult.value.existedItems?.length);
+    console.log('✅ 产品统计 - 新建产品:', importResult.value.newProductRecords, '| 匹配产品:', importResult.value.matchedProductRecords);
 
     showResult.value = true;
 
