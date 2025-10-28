@@ -46,6 +46,30 @@ export function updateMaterial(data: MaterialVO): AxiosPromise<void> {
 }
 
 /**
+ * 批量更新物料明细
+ * @param items 物料明细数组
+ */
+export function batchUpdateMaterialItems(items: any[]): AxiosPromise<void> {
+  return request({
+    url: '/erp/saltprocess/material/item/batch',
+    method: 'put',
+    data: items
+  });
+}
+
+/**
+ * 单个更新物料明细
+ * @param data 物料明细数据
+ */
+export function updateMaterialItem(data: any): AxiosPromise<void> {
+  return request({
+    url: '/erp/saltprocess/material/item',
+    method: 'put',
+    data: data
+  });
+}
+
+/**
  * 删除物料
  */
 export function deleteMaterial(materialIds: string | string[]): AxiosPromise<void> {
@@ -133,4 +157,3 @@ export function exportMaterialList(query?: MaterialQuery): Promise<void> {
     responseType: 'blob'
   });
 }
-
