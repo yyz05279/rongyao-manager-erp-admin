@@ -64,7 +64,7 @@
         <el-table-column label="单重(kg)" align="center" prop="unitWeight" width="100" />
         <el-table-column label="总重(kg)" align="center" prop="totalWeight" width="100" />
         <el-table-column label="制造商" align="center" prop="manufacturer" width="120" />
-        <el-table-column label="型号" align="center" prop="model" width="120" />
+        <!-- <el-table-column label="型号" align="center" prop="model" width="120" /> -->
         <el-table-column label="生产日期" align="center" prop="productionDate" width="120">
           <template #default="scope">
             <span>{{ scope.row.productionDate || '-' }}</span>
@@ -204,11 +204,11 @@
               <el-input v-model="form.manufacturer" placeholder="请输入制造商" />
             </el-form-item>
           </el-col>
-          <el-col :span="12">
+          <!-- <el-col :span="12">
             <el-form-item label="型号" prop="model">
               <el-input v-model="form.model" placeholder="请输入型号" />
             </el-form-item>
-          </el-col>
+          </el-col> -->
         </el-row>
         <el-row>
           <el-col :span="12">

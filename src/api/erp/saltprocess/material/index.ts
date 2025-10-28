@@ -1,6 +1,15 @@
 import request from '@/utils/request';
 import type { AxiosPromise } from 'axios';
-import type { MaterialQuery, MaterialVO, MaterialImportBo, MaterialImportResultVo, ProductMatchRequest, ProductMatchResponse } from './types';
+import type {
+  MaterialQuery,
+  MaterialVO,
+  MaterialImportBo,
+  MaterialImportResultVo,
+  ProductMatchRequest,
+  ProductMatchResponse,
+  MaterialSummaryVO,
+  MaterialSummaryQuery
+} from './types';
 
 /**
  * 查询物料列表
@@ -155,5 +164,16 @@ export function exportMaterialList(query?: MaterialQuery): Promise<void> {
     method: 'get',
     params: query,
     responseType: 'blob'
+  });
+}
+
+/**
+ * 查询项目物料汇总列表（按物料分组，不区分批次）
+ */
+export function listMaterialSummary(query: MaterialSummaryQuery): AxiosPromise<{ rows: MaterialSummaryVO[]; total: number }> {
+  return request({
+    url: '/erp/saltprocess/material/summary',
+    method: 'get',
+    params: query
   });
 }

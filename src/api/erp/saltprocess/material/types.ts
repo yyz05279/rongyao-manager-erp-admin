@@ -212,3 +212,35 @@ export interface ProductMatchResponse {
   matched: boolean;
 }
 
+/**
+ * 物料汇总统计VO
+ */
+export interface MaterialSummaryVO {
+  itemCode?: string;
+  itemName: string;
+  specification?: string;
+  materialCategory?: string;
+  equipmentType?: string;
+  quantity: number; // 汇总数量
+  unit: string;
+  totalWeight?: number;
+  totalVolume?: number;
+  manufacturer?: string;
+  model?: string;
+  packageQuantity?: number;
+  batchCount: number; // 批次数量
+  detailIds?: string; // 明细ID列表
+  fileSource?: string;
+  sheetName?: string;
+}
+
+/**
+ * 物料汇总查询参数
+ */
+export interface MaterialSummaryQuery {
+  projectId: number;
+  sheetName?: string;
+  pageNum?: number;
+  pageSize?: number;
+}
+
