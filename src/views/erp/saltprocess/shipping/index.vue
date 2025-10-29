@@ -118,7 +118,7 @@
           <el-button
             type="success"
             icon="Upload"
-            @click="handleImport"
+            @click="handleEnhancedImport"
             v-hasPermi="['erp:saltprocess:shipping:import']"
           >
             Excel导入
@@ -319,8 +319,8 @@
       />
     </el-card>
 
-    <!-- Excel导入对话框 -->
-    <ExcelImportDialog
+    <!-- Excel导入对话框（使用增强版） -->
+    <EnhancedShippingImportDialog
       v-if="importDialog.visible"
       v-model:visible="importDialog.visible"
       @success="handleImportSuccess"
@@ -472,7 +472,7 @@ import type {
   ShippingListQuery,
   ShippingStatus
 } from '@/api/erp/saltprocess/shipping/types';
-import ExcelImportDialog from './components/ExcelImportDialog.vue';
+import EnhancedShippingImportDialog from './components/EnhancedShippingImportDialog.vue';
 
 const router = useRouter();
 const { proxy } = getCurrentInstance() as ComponentInternalInstance;
@@ -657,15 +657,19 @@ const handleDelete = async (row?: ShippingListVO) => {
   }
 };
 
-const handleImport = () => {
+// 打开Excel导入对话框（使用增强版）
+const handleEnhancedImport = () => {
   importDialog.visible = true;
 };
 
-const handleImportSuccess = (id: string) => {
-  ElMessage.success('发货清单创建成功');
+// 导入成功回调
+const handleImportSuccess = (id?: string) => {
+  ElMessage.success('发货清单导入成功');
   getList();
-  // 可以选择跳转到详情页面
-  // router.push(`/saltprocess/shipping/detail/${id}`);
+  if (id) {
+    // 可以选择跳转到详情页面
+    // router.push(`/saltprocess/shipping/detail/${id}`);
+  }
 };
 
 const handleExport = () => {

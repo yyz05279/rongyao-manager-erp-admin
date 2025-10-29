@@ -19,6 +19,8 @@ tests/
 !tests/fixtures/
 !tests/package.json
 
+assets/
+
 # 测试生成的文件
 tests/**/coverage/
 tests/**/node_modules/
