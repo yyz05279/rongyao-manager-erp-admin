@@ -566,11 +566,10 @@ const getList = async () => {
     // 调试日志 - 查看原始响应数据
     console.log('=== 发货清单API响应 ===');
     console.log('完整响应:', response);
-    console.log('响应数据:', response.data);
 
     // 处理接口返回的数据结构
-    const responseData: any = response.data;
-    const data = responseData.rows || [];
+    // 注意：响应拦截器已经返回了 res.data，所以 response 本身就是数据对象
+    const data = (response as any).rows || [];
 
     console.log('提取的rows数据:', data);
     console.log('数据条数:', data.length);
@@ -585,7 +584,7 @@ const getList = async () => {
       return mappedItem;
     });
 
-    total.value = responseData.total || 0;
+    total.value = (response as any).total || 0;
 
     console.log('最终shippingList:', shippingList.value);
     console.log('总数:', total.value);
