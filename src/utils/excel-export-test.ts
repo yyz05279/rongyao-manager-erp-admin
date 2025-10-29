@@ -3,9 +3,9 @@
  * 基于XLSX.js库实现Excel文件生成功能
  */
 import * as XLSX from 'xlsx';
-import { 
-  ShippingListVO, 
-  ShippingItemVO, 
+import {
+  ShippingListVO,
+  ShippingItemVO,
   ShippingStatistics,
   ShippingTrackingRecord,
   ShippingStatus,
@@ -76,11 +76,7 @@ export class ExcelExportTool {
   /**
    * 导出发货清单汇总
    */
-  exportShippingListSummary(
-    lists: ShippingListVO[], 
-    statistics?: ShippingStatistics,
-    config?: Partial<ExportConfig>
-  ): void {
+  exportShippingListSummary(lists: ShippingListVO[], statistics?: ShippingStatistics, config?: Partial<ExportConfig>): void {
     const finalConfig: ExportConfig = {
       fileName: `发货清单汇总_${this.formatDate(new Date())}.xlsx`,
       sheetName: '发货清单汇总',
@@ -108,17 +104,27 @@ export class ExcelExportTool {
 
     // 添加表头
     const headers = [
-      '清单编号', '项目名称', '批次号', '负责人', '发货日期', 
-      '预计送达', '实际送达', '发货状态', '发货方式', '总件数', 
-      '总重量(kg)', '总体积(m³)', '备注'
+      '清单编号',
+      '项目名称',
+      '批次号',
+      '负责人',
+      '发货日期',
+      '预计送达',
+      '实际送达',
+      '发货状态',
+      '发货方式',
+      '总件数',
+      '总重量(kg)',
+      '总体积(m³)',
+      '备注'
     ];
-    
+
     XLSX.utils.sheet_add_aoa(worksheet, [headers], { origin: `A${currentRow + 1}` });
     this.applyHeaderStyle(worksheet, currentRow, headers.length);
     currentRow++;
 
     // 添加数据行
-    const data = lists.map(list => [
+    const data = lists.map((list) => [
       list.listCode,
       list.projectName,
       list.batchNumber,
@@ -139,9 +145,19 @@ export class ExcelExportTool {
 
     // 设置列宽
     this.setColumnWidths(worksheet, [
-      { wch: 15 }, { wch: 20 }, { wch: 12 }, { wch: 10 }, { wch: 12 },
-      { wch: 12 }, { wch: 12 }, { wch: 10 }, { wch: 10 }, { wch: 8 },
-      { wch: 12 }, { wch: 12 }, { wch: 20 }
+      { wch: 15 },
+      { wch: 20 },
+      { wch: 12 },
+      { wch: 10 },
+      { wch: 12 },
+      { wch: 12 },
+      { wch: 12 },
+      { wch: 10 },
+      { wch: 10 },
+      { wch: 8 },
+      { wch: 12 },
+      { wch: 12 },
+      { wch: 20 }
     ]);
 
     XLSX.utils.book_append_sheet(this.workbook, worksheet, finalConfig.sheetName);
@@ -182,9 +198,21 @@ export class ExcelExportTool {
 
     // 添加明细表头
     const itemHeaders = [
-      '序号', '物品名称', '规格型号', '设备类型', '数量', '单位',
-      '单重(kg)', '总重(kg)', '制造商', '型号', '序列号',
-      '包装方式', '包装件数', '是否易碎', '备注'
+      '序号',
+      '物品名称',
+      '规格型号',
+      '设备类型',
+      '数量',
+      '单位',
+      '单重(kg)',
+      '总重(kg)',
+      '制造商',
+      '型号',
+      '序列号',
+      '包装方式',
+      '包装件数',
+      '是否易碎',
+      '备注'
     ];
 
     XLSX.utils.sheet_add_aoa(worksheet, [['发货明细']], { origin: `A${currentRow + 1}` });
@@ -227,9 +255,21 @@ export class ExcelExportTool {
 
     // 设置列宽
     this.setColumnWidths(worksheet, [
-      { wch: 6 }, { wch: 20 }, { wch: 15 }, { wch: 10 }, { wch: 8 }, { wch: 6 },
-      { wch: 10 }, { wch: 10 }, { wch: 15 }, { wch: 12 }, { wch: 15 },
-      { wch: 10 }, { wch: 8 }, { wch: 8 }, { wch: 20 }
+      { wch: 6 },
+      { wch: 20 },
+      { wch: 15 },
+      { wch: 10 },
+      { wch: 8 },
+      { wch: 6 },
+      { wch: 10 },
+      { wch: 10 },
+      { wch: 15 },
+      { wch: 12 },
+      { wch: 15 },
+      { wch: 10 },
+      { wch: 8 },
+      { wch: 8 },
+      { wch: 20 }
     ]);
 
     XLSX.utils.book_append_sheet(this.workbook, worksheet, finalConfig.sheetName);
@@ -266,10 +306,7 @@ export class ExcelExportTool {
     const groupedItems = this.groupItems(items, groupBy);
 
     // 添加汇总表头
-    const summaryHeaders = [
-      '分组', '物品名称', '规格型号', '设备类型', '总数量', 
-      '单位', '总重量(kg)', '制造商', '平均单重(kg)', '备注'
-    ];
+    const summaryHeaders = ['分组', '物品名称', '规格型号', '设备类型', '总数量', '单位', '总重量(kg)', '制造商', '平均单重(kg)', '备注'];
 
     XLSX.utils.sheet_add_aoa(worksheet, [summaryHeaders], { origin: `A${currentRow + 1}` });
     this.applyHeaderStyle(worksheet, currentRow, summaryHeaders.length);
@@ -278,16 +315,15 @@ export class ExcelExportTool {
     // 添加分组数据
     for (const [groupKey, groupItems] of Object.entries(groupedItems)) {
       const summary = this.calculateGroupSummary(groupItems);
-      
+
       // 添加分组标题行
-      XLSX.utils.sheet_add_aoa(worksheet, [[groupKey, '', '', '', '', '', '', '', '', '']], 
-        { origin: `A${currentRow + 1}` });
+      XLSX.utils.sheet_add_aoa(worksheet, [[groupKey, '', '', '', '', '', '', '', '', '']], { origin: `A${currentRow + 1}` });
       this.applyCellStyle(worksheet, currentRow, 0, this.styles.statisticsStyle);
       this.mergeCells(worksheet, currentRow, 0, currentRow, summaryHeaders.length - 1);
       currentRow++;
 
       // 添加分组明细
-      const groupData = groupItems.map(item => [
+      const groupData = groupItems.map((item) => [
         '',
         item.itemName,
         item.specification || '',
@@ -305,17 +341,25 @@ export class ExcelExportTool {
       currentRow += groupData.length;
 
       // 添加小计行
-      XLSX.utils.sheet_add_aoa(worksheet, [
-        ['小计', '', '', '', summary.totalQuantity, '', summary.totalWeight, '', summary.avgWeight, '']
-      ], { origin: `A${currentRow + 1}` });
+      XLSX.utils.sheet_add_aoa(worksheet, [['小计', '', '', '', summary.totalQuantity, '', summary.totalWeight, '', summary.avgWeight, '']], {
+        origin: `A${currentRow + 1}`
+      });
       this.applyCellStyle(worksheet, currentRow, 0, this.styles.statisticsStyle);
       currentRow += 2;
     }
 
     // 设置列宽
     this.setColumnWidths(worksheet, [
-      { wch: 15 }, { wch: 20 }, { wch: 15 }, { wch: 10 }, { wch: 8 },
-      { wch: 6 }, { wch: 12 }, { wch: 15 }, { wch: 12 }, { wch: 20 }
+      { wch: 15 },
+      { wch: 20 },
+      { wch: 15 },
+      { wch: 10 },
+      { wch: 8 },
+      { wch: 6 },
+      { wch: 12 },
+      { wch: 15 },
+      { wch: 12 },
+      { wch: 20 }
     ]);
 
     XLSX.utils.book_append_sheet(this.workbook, worksheet, finalConfig.sheetName);
@@ -345,9 +389,7 @@ export class ExcelExportTool {
     // 状态统计
     const statusStats = [
       ['发货状态', '数量'],
-      ...Object.entries(statistics.statusCounts).map(([status, count]) => [
-        this.getStatusText(status as ShippingStatus), count
-      ])
+      ...Object.entries(statistics.statusCounts).map(([status, count]) => [this.getStatusText(status as ShippingStatus), count])
     ];
 
     XLSX.utils.sheet_add_aoa(worksheet, statusStats, { origin: `D${startRow + 1}` });
@@ -411,7 +453,7 @@ export class ExcelExportTool {
     currentRow++;
 
     // 跟踪记录数据
-    const trackingData = records.map(record => [
+    const trackingData = records.map((record) => [
       this.formatDateTime(record.statusTime),
       this.getStatusText(record.status),
       record.location || '',
@@ -431,7 +473,7 @@ export class ExcelExportTool {
   private groupItems(items: ShippingItemVO[], groupBy: string): { [key: string]: ShippingItemVO[] } {
     const grouped: { [key: string]: ShippingItemVO[] } = {};
 
-    items.forEach(item => {
+    items.forEach((item) => {
       let key: string;
       switch (groupBy) {
         case 'equipment_type':
@@ -478,7 +520,7 @@ export class ExcelExportTool {
   /**
    * 应用表头样式
    */
-  private applyHeaderStyle(worksheet: XLSX.WorkSheet, row: number, colCount: number, startCol: number = 0): void {
+  private applyHeaderStyle(worksheet: XLSX.WorkSheet, row: number, colCount: number, startCol = 0): void {
     for (let col = startCol; col < startCol + colCount; col++) {
       const cellAddress = XLSX.utils.encode_cell({ r: row, c: col });
       if (!worksheet[cellAddress]) worksheet[cellAddress] = { v: '' };
@@ -489,7 +531,7 @@ export class ExcelExportTool {
   /**
    * 应用数据样式
    */
-  private applyDataStyle(worksheet: XLSX.WorkSheet, startRow: number, rowCount: number, colCount: number, startCol: number = 0): void {
+  private applyDataStyle(worksheet: XLSX.WorkSheet, startRow: number, rowCount: number, colCount: number, startCol = 0): void {
     for (let row = startRow; row < startRow + rowCount; row++) {
       for (let col = startCol; col < startCol + colCount; col++) {
         const cellAddress = XLSX.utils.encode_cell({ r: row, c: col });

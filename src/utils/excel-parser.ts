@@ -10,16 +10,15 @@ export class ExcelParser {
    * @param options - 解析选项
    * @returns 解析结果
    */
-  static async parseFile(file: File, options: {
-    headerRowIndex?: number | null;
-    sheetNames?: string[] | null;
-    materialTypeDetector?: (fileName: string) => string;
-  } = {}): Promise<any[]> {
-    const {
-      headerRowIndex = null,
-      sheetNames = null,
-      materialTypeDetector = this.defaultMaterialTypeDetector
-    } = options;
+  static async parseFile(
+    file: File,
+    options: {
+      headerRowIndex?: number | null;
+      sheetNames?: string[] | null;
+      materialTypeDetector?: (fileName: string) => string;
+    } = {}
+  ): Promise<any[]> {
+    const { headerRowIndex = null, sheetNames = null, materialTypeDetector = this.defaultMaterialTypeDetector } = options;
 
     try {
       const buffer = await file.arrayBuffer();
@@ -36,13 +35,7 @@ export class ExcelParser {
           header: 1
         }) as any[][];
 
-        const sheetResult = this.parseSheetData(
-          jsonData,
-          sheetName,
-          file.name,
-          headerRowIndex,
-          materialTypeDetector
-        );
+        const sheetResult = this.parseSheetData(jsonData, sheetName, file.name, headerRowIndex, materialTypeDetector);
 
         results.push(...sheetResult);
       }
@@ -66,9 +59,7 @@ export class ExcelParser {
     if (!jsonData || jsonData.length === 0) return [];
 
     // 查找表头行
-    const headerIndex = headerRowIndex !== null
-      ? headerRowIndex
-      : this.findHeaderRow(jsonData);
+    const headerIndex = headerRowIndex !== null ? headerRowIndex : this.findHeaderRow(jsonData);
     if (headerIndex === -1) return [];
 
     // 构建列映射
@@ -80,14 +71,7 @@ export class ExcelParser {
       const row = jsonData[i];
       if (!row || this.isEmptyRow(row)) continue;
 
-      const material = this.parseRowData(
-        row,
-        columnMapping,
-        sheetName,
-        fileName,
-        i + 1,
-        materialTypeDetector(fileName)
-      );
+      const material = this.parseRowData(row, columnMapping, sheetName, fileName, i + 1, materialTypeDetector(fileName));
 
       if (material) {
         materials.push(material);
@@ -101,24 +85,14 @@ export class ExcelParser {
    * 查找表头行
    */
   static findHeaderRow(jsonData: any[][]): number {
-    const keywords = [
-      '序号',
-      '物品名称',
-      '物料名称',
-      '设备名称',
-      '名称',
-      '类别',
-      '规格',
-      '数量',
-      '单位'
-    ];
+    const keywords = ['序号', '物品名称', '物料名称', '设备名称', '名称', '类别', '规格', '数量', '单位'];
 
     for (let i = 0; i < Math.min(10, jsonData.length); i++) {
       const row = jsonData[i];
       if (!row) continue;
 
       const rowStr = row.join('').toLowerCase();
-      if (keywords.some(keyword => rowStr.includes(keyword))) {
+      if (keywords.some((keyword) => rowStr.includes(keyword))) {
         return i;
       }
     }
@@ -153,7 +127,7 @@ export class ExcelParser {
       };
 
       for (const [field, keywords] of Object.entries(mappingRules)) {
-        if (keywords.some(keyword => headerStr.includes(keyword))) {
+        if (keywords.some((keyword) => headerStr.includes(keyword))) {
           if (!mapping[field]) {
             mapping[field] = index;
           }
@@ -241,7 +215,7 @@ export class ExcelParser {
    * 检查空行
    */
   static isEmptyRow(row: any[]): boolean {
-    return !row.some(cell => cell !== null && cell !== undefined && cell !== '');
+    return !row.some((cell) => cell !== null && cell !== undefined && cell !== '');
   }
 
   /**
@@ -260,15 +234,15 @@ export class ExcelParser {
 
     // 设置列宽
     ws['!cols'] = [
-      { wch: 8 },  // 序号
+      { wch: 8 }, // 序号
       { wch: 20 }, // 物料名称
       { wch: 15 }, // 规格型号
-      { wch: 8 },  // 数量
-      { wch: 8 },  // 单位
+      { wch: 8 }, // 数量
+      { wch: 8 }, // 单位
       { wch: 10 }, // 材质
       { wch: 12 }, // 制造商
       { wch: 15 }, // 备注
-      { wch: 15 }  // 备注2
+      { wch: 15 } // 备注2
     ];
 
     XLSX.utils.book_append_sheet(wb, ws, '物料清单模板');
@@ -284,7 +258,7 @@ export class MaterialDataValidator {
    * 验证物料数据
    */
   static validateMaterials(materials: any[]): any[] {
-    return materials.map(material => {
+    return materials.map((material) => {
       const validatedMaterial = { ...material };
       this.validateMaterial(validatedMaterial);
       return validatedMaterial;

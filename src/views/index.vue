@@ -89,11 +89,7 @@
                 <div class="function-category">
                   <h4 class="category-title">已完成功能</h4>
                   <div class="function-list">
-                    <div
-                      class="function-item completed"
-                      v-for="func in module.completedFunctions"
-                      :key="func.name"
-                    >
+                    <div class="function-item completed" v-for="func in module.completedFunctions" :key="func.name">
                       <svg-icon icon-class="star" class="function-status" />
                       <span class="function-name">{{ func.name }}</span>
                       <span class="function-version">{{ func.version }}</span>
@@ -103,11 +99,7 @@
                 <div class="function-category" v-if="module.plannedFunctions && module.plannedFunctions.length > 0">
                   <h4 class="category-title">计划功能</h4>
                   <div class="function-list">
-                    <div
-                      class="function-item planned"
-                      v-for="func in module.plannedFunctions"
-                      :key="func.name"
-                    >
+                    <div class="function-item planned" v-for="func in module.plannedFunctions" :key="func.name">
                       <svg-icon icon-class="guide" class="function-status" />
                       <span class="function-name">{{ func.name }}</span>
                       <span class="function-version">{{ func.version }}</span>

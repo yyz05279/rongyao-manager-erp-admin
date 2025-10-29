@@ -3,12 +3,7 @@
  * 基于XLSX.js库实现Excel文件解析功能
  */
 import * as XLSX from 'xlsx';
-import { 
-  ShippingItemForm, 
-  EquipmentType, 
-  ShippingExcelImportConfig,
-  ShippingExcelImportResult 
-} from '@/api/erp/saltprocess/shipping/types';
+import { ShippingItemForm, EquipmentType, ShippingExcelImportConfig, ShippingExcelImportResult } from '@/api/erp/saltprocess/shipping/types';
 
 // Excel模板配置
 export interface ExcelTemplateConfig {
@@ -136,7 +131,7 @@ export class ExcelImportParser {
   async readFile(file: File): Promise<XLSX.WorkBook> {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
-      
+
       reader.onload = (e) => {
         try {
           const data = new Uint8Array(e.target?.result as ArrayBuffer);
@@ -147,11 +142,11 @@ export class ExcelImportParser {
           reject(new Error('Excel文件读取失败：' + error));
         }
       };
-      
+
       reader.onerror = () => {
         reject(new Error('文件读取失败'));
       };
-      
+
       reader.readAsArrayBuffer(file);
     });
   }
@@ -169,7 +164,7 @@ export class ExcelImportParser {
   /**
    * 预览工作表数据
    */
-  previewSheet(sheetName: string, maxRows: number = 10): any[][] {
+  previewSheet(sheetName: string, maxRows = 10): any[][] {
     if (!this.workbook) {
       throw new Error('请先读取Excel文件');
     }
@@ -179,12 +174,12 @@ export class ExcelImportParser {
       throw new Error(`工作表 "${sheetName}" 不存在`);
     }
 
-    const jsonData = XLSX.utils.sheet_to_json(worksheet, { 
-      header: 1, 
+    const jsonData = XLSX.utils.sheet_to_json(worksheet, {
+      header: 1,
       defval: '',
-      range: maxRows 
+      range: maxRows
     });
-    
+
     return jsonData as any[][];
   }
 
@@ -205,7 +200,7 @@ export class ExcelImportParser {
 
     const sheetName = this.config.sheetName || this.workbook.SheetNames[0];
     const worksheet = this.workbook.Sheets[sheetName];
-    
+
     if (!worksheet) {
       throw new Error(`工作表 "${sheetName}" 不存在`);
     }
@@ -325,18 +320,18 @@ export class ExcelImportParser {
    */
   private parseEquipmentType(value: any): EquipmentType {
     const typeMap: { [key: string]: EquipmentType } = {
-      '机械设备': EquipmentType.MECHANICAL,
-      'MECHANICAL': EquipmentType.MECHANICAL,
-      '电控设备': EquipmentType.ELECTRICAL,
-      'ELECTRICAL': EquipmentType.ELECTRICAL,
-      '管路设备': EquipmentType.PIPELINE,
-      'PIPELINE': EquipmentType.PIPELINE,
-      '燃烧器': EquipmentType.BURNER,
-      'BURNER': EquipmentType.BURNER,
-      '辅助设备': EquipmentType.AUXILIARY,
-      'AUXILIARY': EquipmentType.AUXILIARY,
-      '标准件': EquipmentType.STANDARD_PARTS,
-      'STANDARD_PARTS': EquipmentType.STANDARD_PARTS
+      机械设备: EquipmentType.MECHANICAL,
+      MECHANICAL: EquipmentType.MECHANICAL,
+      电控设备: EquipmentType.ELECTRICAL,
+      ELECTRICAL: EquipmentType.ELECTRICAL,
+      管路设备: EquipmentType.PIPELINE,
+      PIPELINE: EquipmentType.PIPELINE,
+      燃烧器: EquipmentType.BURNER,
+      BURNER: EquipmentType.BURNER,
+      辅助设备: EquipmentType.AUXILIARY,
+      AUXILIARY: EquipmentType.AUXILIARY,
+      标准件: EquipmentType.STANDARD_PARTS,
+      STANDARD_PARTS: EquipmentType.STANDARD_PARTS
     };
 
     const key = String(value).trim().toUpperCase();
@@ -348,7 +343,7 @@ export class ExcelImportParser {
    */
   private parseBoolean(value: any): boolean {
     if (typeof value === 'boolean') return value;
-    
+
     const str = String(value).trim().toLowerCase();
     return ['是', 'yes', 'true', '1', 'y'].includes(str);
   }
@@ -356,7 +351,10 @@ export class ExcelImportParser {
   /**
    * 验证行数据
    */
-  private validateRowData(data: ShippingItemForm, rowNumber: number): {
+  private validateRowData(
+    data: ShippingItemForm,
+    rowNumber: number
+  ): {
     isValid: boolean;
     errors: Array<{ row: number; field: string; message: string }>;
   } {

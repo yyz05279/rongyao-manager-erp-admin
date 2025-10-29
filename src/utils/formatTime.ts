@@ -1,5 +1,5 @@
-import dayjs from 'dayjs'
-import type { TableColumnCtx } from 'element-plus'
+import dayjs from 'dayjs';
+import type { TableColumnCtx } from 'element-plus';
 
 /**
  * 日期快捷选项适用于 el-date-picker
@@ -8,49 +8,49 @@ export const defaultShortcuts = [
   {
     text: '今天',
     value: () => {
-      return new Date()
+      return new Date();
     }
   },
   {
     text: '昨天',
     value: () => {
-      const date = new Date()
-      date.setTime(date.getTime() - 3600 * 1000 * 24)
-      return [date, date]
+      const date = new Date();
+      date.setTime(date.getTime() - 3600 * 1000 * 24);
+      return [date, date];
     }
   },
   {
     text: '最近七天',
     value: () => {
-      const date = new Date()
-      date.setTime(date.getTime() - 3600 * 1000 * 24 * 7)
-      return [date, new Date()]
+      const date = new Date();
+      date.setTime(date.getTime() - 3600 * 1000 * 24 * 7);
+      return [date, new Date()];
     }
   },
   {
     text: '最近 30 天',
     value: () => {
-      const date = new Date()
-      date.setTime(date.getTime() - 3600 * 1000 * 24 * 30)
-      return [date, new Date()]
+      const date = new Date();
+      date.setTime(date.getTime() - 3600 * 1000 * 24 * 30);
+      return [date, new Date()];
     }
   },
   {
     text: '本月',
     value: () => {
-      const date = new Date()
-      date.setDate(1) // 设置为当前月的第一天
-      return [date, new Date()]
+      const date = new Date();
+      date.setDate(1); // 设置为当前月的第一天
+      return [date, new Date()];
     }
   },
   {
     text: '今年',
     value: () => {
-      const date = new Date()
-      return [new Date(`${date.getFullYear()}-01-01`), date]
+      const date = new Date();
+      return [new Date(`${date.getFullYear()}-01-01`), date];
     }
   }
-]
+];
 
 /**
  * 时间日期转换
@@ -66,17 +66,17 @@ export const defaultShortcuts = [
 export function formatDate(date: Date, format?: string): string {
   // 日期不存在，则返回空
   if (!date) {
-    return ''
+    return '';
   }
   // 日期存在，则进行格式化
-  return date ? dayjs(date).format(format ?? 'YYYY-MM-DD HH:mm:ss') : ''
+  return date ? dayjs(date).format(format ?? 'YYYY-MM-DD HH:mm:ss') : '';
 }
 
 /**
  * 获取当前的日期+时间
  */
 export function getNowDateTime() {
-  return dayjs()
+  return dayjs();
 }
 
 /**
@@ -85,18 +85,18 @@ export function getNowDateTime() {
  * @returns 返回第几周数字值
  */
 export function getWeek(dateTime: Date): number {
-  const temptTime = new Date(dateTime.getTime())
+  const temptTime = new Date(dateTime.getTime());
   // 周几
-  const weekday = temptTime.getDay() || 7
+  const weekday = temptTime.getDay() || 7;
   // 周1+5天=周六
-  temptTime.setDate(temptTime.getDate() - weekday + 1 + 5)
-  let firstDay = new Date(temptTime.getFullYear(), 0, 1)
-  const dayOfWeek = firstDay.getDay()
-  let spendDay = 1
-  if (dayOfWeek != 0) spendDay = 7 - dayOfWeek + 1
-  firstDay = new Date(temptTime.getFullYear(), 0, 1 + spendDay)
-  const d = Math.ceil((temptTime.valueOf() - firstDay.valueOf()) / 86400000)
-  return Math.ceil(d / 7)
+  temptTime.setDate(temptTime.getDate() - weekday + 1 + 5);
+  let firstDay = new Date(temptTime.getFullYear(), 0, 1);
+  const dayOfWeek = firstDay.getDay();
+  let spendDay = 1;
+  if (dayOfWeek != 0) spendDay = 7 - dayOfWeek + 1;
+  firstDay = new Date(temptTime.getFullYear(), 0, 1 + spendDay);
+  const d = Math.ceil((temptTime.valueOf() - firstDay.valueOf()) / 86400000);
+  return Math.ceil(d / 7);
 }
 
 /**
@@ -112,36 +112,36 @@ export function getWeek(dateTime: Date): number {
  */
 export function formatPast(param: string | Date, format = 'YYYY-mm-dd HH:MM:SS'): string {
   // 传入格式处理、存储转换值
-  let t: any, s: number
+  let t: any, s: number;
   // 获取js 时间戳
-  let time: number = new Date().getTime()
+  let time: number = new Date().getTime();
   // 是否是对象
-  typeof param === 'string' || 'object' ? (t = new Date(param).getTime()) : (t = param)
+  typeof param === 'string' || 'object' ? (t = new Date(param).getTime()) : (t = param);
   // 当前时间戳 - 传入时间戳
-  time = Number.parseInt(`${time - t}`)
+  time = Number.parseInt(`${time - t}`);
   if (time < 10000) {
     // 10秒内
-    return '刚刚'
+    return '刚刚';
   } else if (time < 60000 && time >= 10000) {
     // 超过10秒少于1分钟内
-    s = Math.floor(time / 1000)
-    return `${s}秒前`
+    s = Math.floor(time / 1000);
+    return `${s}秒前`;
   } else if (time < 3600000 && time >= 60000) {
     // 超过1分钟少于1小时
-    s = Math.floor(time / 60000)
-    return `${s}分钟前`
+    s = Math.floor(time / 60000);
+    return `${s}分钟前`;
   } else if (time < 86400000 && time >= 3600000) {
     // 超过1小时少于24小时
-    s = Math.floor(time / 3600000)
-    return `${s}小时前`
+    s = Math.floor(time / 3600000);
+    return `${s}小时前`;
   } else if (time < 259200000 && time >= 86400000) {
     // 超过1天少于3天内
-    s = Math.floor(time / 86400000)
-    return `${s}天前`
+    s = Math.floor(time / 86400000);
+    return `${s}天前`;
   } else {
     // 超过3天
-    const date = typeof param === 'string' || 'object' ? new Date(param) : param
-    return formatDate(date, format)
+    const date = typeof param === 'string' || 'object' ? new Date(param) : param;
+    return formatDate(date, format);
   }
 }
 
@@ -152,15 +152,15 @@ export function formatPast(param: string | Date, format = 'YYYY-mm-dd HH:MM:SS')
  * @returns 返回拼接后的时间字符串
  */
 export function formatAxis(param: Date): string {
-  const hour: number = new Date(param).getHours()
-  if (hour < 6) return '凌晨好'
-  else if (hour < 9) return '早上好'
-  else if (hour < 12) return '上午好'
-  else if (hour < 14) return '中午好'
-  else if (hour < 17) return '下午好'
-  else if (hour < 19) return '傍晚好'
-  else if (hour < 22) return '晚上好'
-  else return '夜里好'
+  const hour: number = new Date(param).getHours();
+  if (hour < 6) return '凌晨好';
+  else if (hour < 9) return '早上好';
+  else if (hour < 12) return '上午好';
+  else if (hour < 14) return '中午好';
+  else if (hour < 17) return '下午好';
+  else if (hour < 19) return '傍晚好';
+  else if (hour < 22) return '晚上好';
+  else return '夜里好';
 }
 
 /**
@@ -170,23 +170,23 @@ export function formatAxis(param: Date): string {
  * @returns {string} 字符串
  */
 export function formatPast2(ms: number): string {
-  const day = Math.floor(ms / (24 * 60 * 60 * 1000))
-  const hour = Math.floor(ms / (60 * 60 * 1000) - day * 24)
-  const minute = Math.floor(ms / (60 * 1000) - day * 24 * 60 - hour * 60)
-  const second = Math.floor(ms / 1000 - day * 24 * 60 * 60 - hour * 60 * 60 - minute * 60)
+  const day = Math.floor(ms / (24 * 60 * 60 * 1000));
+  const hour = Math.floor(ms / (60 * 60 * 1000) - day * 24);
+  const minute = Math.floor(ms / (60 * 1000) - day * 24 * 60 - hour * 60);
+  const second = Math.floor(ms / 1000 - day * 24 * 60 * 60 - hour * 60 * 60 - minute * 60);
   if (day > 0) {
-    return day + ' 天' + hour + ' 小时 ' + minute + ' 分钟'
+    return day + ' 天' + hour + ' 小时 ' + minute + ' 分钟';
   }
   if (hour > 0) {
-    return hour + ' 小时 ' + minute + ' 分钟'
+    return hour + ' 小时 ' + minute + ' 分钟';
   }
   if (minute > 0) {
-    return minute + ' 分钟'
+    return minute + ' 分钟';
   }
   if (second > 0) {
-    return second + ' 秒'
+    return second + ' 秒';
   } else {
-    return 0 + ' 秒'
+    return 0 + ' 秒';
   }
 }
 
@@ -198,7 +198,7 @@ export function formatPast2(ms: number): string {
  * @param cellValue 字段值
  */
 export function dateFormatter(_row: any, _column: TableColumnCtx<any>, cellValue: any): string {
-  return cellValue ? formatDate(cellValue) : ''
+  return cellValue ? formatDate(cellValue) : '';
 }
 
 /**
@@ -209,7 +209,7 @@ export function dateFormatter(_row: any, _column: TableColumnCtx<any>, cellValue
  * @param cellValue 字段值
  */
 export function dateFormatter2(_row: any, _column: TableColumnCtx<any>, cellValue: any): string {
-  return cellValue ? formatDate(cellValue, 'YYYY-MM-DD') : ''
+  return cellValue ? formatDate(cellValue, 'YYYY-MM-DD') : '';
 }
 
 /**
@@ -218,7 +218,7 @@ export function dateFormatter2(_row: any, _column: TableColumnCtx<any>, cellValu
  * @returns 带时间00:00:00的日期
  */
 export function beginOfDay(param: Date): Date {
-  return new Date(param.getFullYear(), param.getMonth(), param.getDate(), 0, 0, 0)
+  return new Date(param.getFullYear(), param.getMonth(), param.getDate(), 0, 0, 0);
 }
 
 /**
@@ -227,7 +227,7 @@ export function beginOfDay(param: Date): Date {
  * @returns 带时间23:59:59的日期
  */
 export function endOfDay(param: Date): Date {
-  return new Date(param.getFullYear(), param.getMonth(), param.getDate(), 23, 59, 59)
+  return new Date(param.getFullYear(), param.getMonth(), param.getDate(), 23, 59, 59);
 }
 
 /**
@@ -236,10 +236,10 @@ export function endOfDay(param: Date): Date {
  * @param param2 日期2
  */
 export function betweenDay(param1: Date, param2: Date): number {
-  param1 = convertDate(param1)
-  param2 = convertDate(param2)
+  param1 = convertDate(param1);
+  param2 = convertDate(param2);
   // 计算差值
-  return Math.floor((param2.getTime() - param1.getTime()) / (24 * 3600 * 1000))
+  return Math.floor((param2.getTime() - param1.getTime()) / (24 * 3600 * 1000));
 }
 
 /**
@@ -248,8 +248,8 @@ export function betweenDay(param1: Date, param2: Date): number {
  * @param param2 添加的时间
  */
 export function addTime(param1: Date, param2: number): Date {
-  param1 = convertDate(param1)
-  return new Date(param1.getTime() + param2)
+  param1 = convertDate(param1);
+  return new Date(param1.getTime() + param2);
 }
 
 /**
@@ -258,9 +258,9 @@ export function addTime(param1: Date, param2: number): Date {
  */
 export function convertDate(param: Date | string): Date {
   if (typeof param === 'string') {
-    return new Date(param)
+    return new Date(param);
   }
-  return param
+  return param;
 }
 
 /**
@@ -269,11 +269,11 @@ export function convertDate(param: Date | string): Date {
  * @param b 日期 B
  */
 export function isSameDay(a: dayjs.ConfigType, b: dayjs.ConfigType): boolean {
-  if (!a || !b) return false
+  if (!a || !b) return false;
 
-  const aa = dayjs(a)
-  const bb = dayjs(b)
-  return aa.year() == bb.year() && aa.month() == bb.month() && aa.day() == bb.day()
+  const aa = dayjs(a);
+  const bb = dayjs(b);
+  return aa.year() == bb.year() && aa.month() == bb.month() && aa.day() == bb.day();
 }
 
 /**
@@ -281,39 +281,36 @@ export function isSameDay(a: dayjs.ConfigType, b: dayjs.ConfigType): boolean {
  * @param date 日期
  * @param days 天数
  */
-export function getDayRange(
-  date: dayjs.ConfigType,
-  days: number
-): [dayjs.ConfigType, dayjs.ConfigType] {
-  const day = dayjs(date).add(days, 'd')
-  return getDateRange(day, day)
+export function getDayRange(date: dayjs.ConfigType, days: number): [dayjs.ConfigType, dayjs.ConfigType] {
+  const day = dayjs(date).add(days, 'd');
+  return getDateRange(day, day);
 }
 
 /**
  * 获取最近7天的开始时间、截止时间
  */
 export function getLast7Days(): [dayjs.ConfigType, dayjs.ConfigType] {
-  const lastWeekDay = dayjs().subtract(7, 'd')
-  const yesterday = dayjs().subtract(1, 'd')
-  return getDateRange(lastWeekDay, yesterday)
+  const lastWeekDay = dayjs().subtract(7, 'd');
+  const yesterday = dayjs().subtract(1, 'd');
+  return getDateRange(lastWeekDay, yesterday);
 }
 
 /**
  * 获取最近30天的开始时间、截止时间
  */
 export function getLast30Days(): [dayjs.ConfigType, dayjs.ConfigType] {
-  const lastMonthDay = dayjs().subtract(30, 'd')
-  const yesterday = dayjs().subtract(1, 'd')
-  return getDateRange(lastMonthDay, yesterday)
+  const lastMonthDay = dayjs().subtract(30, 'd');
+  const yesterday = dayjs().subtract(1, 'd');
+  return getDateRange(lastMonthDay, yesterday);
 }
 
 /**
  * 获取最近1年的开始时间、截止时间
  */
 export function getLast1Year(): [dayjs.ConfigType, dayjs.ConfigType] {
-  const lastYearDay = dayjs().subtract(1, 'y')
-  const yesterday = dayjs().subtract(1, 'd')
-  return getDateRange(lastYearDay, yesterday)
+  const lastYearDay = dayjs().subtract(1, 'y');
+  const yesterday = dayjs().subtract(1, 'd');
+  return getDateRange(lastYearDay, yesterday);
 }
 
 /**
@@ -321,12 +318,6 @@ export function getLast1Year(): [dayjs.ConfigType, dayjs.ConfigType] {
  * @param beginDate 开始日期
  * @param endDate 截止日期
  */
-export function getDateRange(
-  beginDate: dayjs.ConfigType,
-  endDate: dayjs.ConfigType
-): [string, string] {
-  return [
-    dayjs(beginDate).startOf('d').format('YYYY-MM-DD HH:mm:ss'),
-    dayjs(endDate).endOf('d').format('YYYY-MM-DD HH:mm:ss')
-  ]
+export function getDateRange(beginDate: dayjs.ConfigType, endDate: dayjs.ConfigType): [string, string] {
+  return [dayjs(beginDate).startOf('d').format('YYYY-MM-DD HH:mm:ss'), dayjs(endDate).endOf('d').format('YYYY-MM-DD HH:mm:ss')];
 }

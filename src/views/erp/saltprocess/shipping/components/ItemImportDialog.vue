@@ -194,7 +194,7 @@
   </el-dialog>
 </template>
 
-<script setup lang="ts">
+<script setup name="ItemImportDialog" lang="ts">
 import { ref, reactive, computed, watch } from 'vue';
 import { ElMessage } from 'element-plus';
 import { UploadFilled, Document, Delete } from '@element-plus/icons-vue';
@@ -273,17 +273,17 @@ const excelParser = new ShippingExcelParser();
 // 方法
 const handleFileChange = async (file: any) => {
   selectedFile.value = file.raw;
-  
+
   try {
     const result = await excelParser.parseFile(file.raw);
     sheetNames.value = result.sheets;
     importConfig.sheetName = result.sheets[0];
-    
+
     // 自动识别文件类型
     const detectedType = excelParser.identifyShippingListType();
     importConfig.fileType = detectedType;
     importConfig.columnMapping = SHIPPING_EXCEL_CONFIGS[detectedType].columnMapping;
-    
+
     ElMessage.success('文件解析成功');
   } catch (error) {
     ElMessage.error(`文件解析失败: ${error}`);
@@ -320,7 +320,7 @@ const nextStep = async () => {
     // 解析数据
     await parseExcelData();
   }
-  
+
   if (currentStep.value < 2) {
     currentStep.value++;
   }
@@ -334,7 +334,7 @@ const prevStep = () => {
 
 const parseExcelData = async () => {
   if (!selectedFile.value) return;
-  
+
   processing.value = true;
   try {
     const result = await excelParser.importShippingData(importConfig, importConfig.sheetName);
@@ -343,7 +343,7 @@ const parseExcelData = async () => {
       _hasError: false
     }));
     importErrors.value = result.errors;
-    
+
     // 标记有错误的数据
     result.errors.forEach(error => {
       const item = previewData.value[error.row - 2]; // 减去表头行
@@ -351,7 +351,7 @@ const parseExcelData = async () => {
         item._hasError = true;
       }
     });
-    
+
     ElMessage.success('数据解析完成');
   } catch (error) {
     ElMessage.error(`数据解析失败: ${error}`);
@@ -366,13 +366,13 @@ const handleConfirm = () => {
     ElMessage.warning('没有有效数据可以导入');
     return;
   }
-  
+
   // 移除临时字段
   const cleanData = validData.map(item => {
     const { _hasError, ...cleanItem } = item;
     return cleanItem;
   });
-  
+
   emit('success', cleanData);
   handleClose();
 };
@@ -389,7 +389,7 @@ const handleClose = () => {
     headerRow: 1,
     columnMapping: {}
   });
-  
+
   emit('update:visible', false);
 };
 
@@ -417,14 +417,14 @@ const getEquipmentTypeLabel = (type: EquipmentType): string => {
   .import-steps {
     margin-bottom: 30px;
   }
-  
+
   .step-content {
     min-height: 400px;
     padding: 20px 0;
-    
+
     .upload-area {
       margin-bottom: 20px;
-      
+
       :deep(.el-upload-dragger) {
         width: 100%;
         height: 180px;
@@ -434,29 +434,29 @@ const getEquipmentTypeLabel = (type: EquipmentType): string => {
         position: relative;
         overflow: hidden;
         transition: border-color 0.3s;
-        
+
         &:hover {
           border-color: #409eff;
         }
       }
     }
-    
+
     .file-info {
       margin-bottom: 20px;
-      
+
       .file-details {
         display: flex;
         align-items: center;
         gap: 12px;
-        
+
         .file-meta {
           flex: 1;
-          
+
           .file-name {
             font-weight: 500;
             color: #303133;
           }
-          
+
           .file-size {
             font-size: 12px;
             color: #909399;
@@ -465,7 +465,7 @@ const getEquipmentTypeLabel = (type: EquipmentType): string => {
         }
       }
     }
-    
+
     .template-section {
       .template-buttons {
         display: flex;
@@ -474,11 +474,11 @@ const getEquipmentTypeLabel = (type: EquipmentType): string => {
         flex-wrap: wrap;
       }
     }
-    
+
     .preview-header {
       margin-bottom: 16px;
     }
-    
+
     .preview-tip,
     .error-tip {
       margin-top: 12px;
@@ -494,7 +494,7 @@ const getEquipmentTypeLabel = (type: EquipmentType): string => {
       color: #e6a23c;
       font-size: 14px;
     }
-    
+
     .error-section {
       margin-top: 20px;
     }
@@ -513,15 +513,15 @@ const getEquipmentTypeLabel = (type: EquipmentType): string => {
     width: 95% !important;
     margin: 5vh auto;
   }
-  
+
   .import-container {
     .step-content {
       padding: 10px 0;
-      
+
       .template-buttons {
         flex-direction: column;
         align-items: center;
-        
+
         .el-button {
           width: 200px;
         }
