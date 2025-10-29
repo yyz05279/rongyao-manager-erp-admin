@@ -220,8 +220,17 @@ const initData = async () => {
   try {
     const [projectRes, personRes] = await Promise.all([getProjectSimpleList(), getResponsiblePersonList()]);
 
-    projectList.value = projectRes.data;
-    responsiblePersonList.value = personRes.data;
+    // 处理项目列表数据
+    projectList.value = (projectRes.data || []).map((item: any) => ({
+      id: item.id || item.projectId,
+      name: item.name || item.projectName
+    }));
+
+    // 处理负责人列表数据（后端返回格式：{userId, userName, nickName}）
+    responsiblePersonList.value = (personRes.data || []).map((user: any) => ({
+      id: String(user.userId || user.id),
+      name: user.nickName || user.userName || user.name
+    }));
   } catch (error) {
     ElMessage.error('获取基础数据失败');
   }

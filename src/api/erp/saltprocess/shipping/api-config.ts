@@ -4,7 +4,8 @@
  */
 
 // 判断是否使用Mock数据
-const USE_MOCK_DATA = import.meta.env.DEV || import.meta.env.VITE_USE_MOCK === 'true';
+// 只在明确设置 VITE_USE_MOCK='true' 时才使用 Mock，否则使用真实接口
+const USE_MOCK_DATA = import.meta.env.VITE_USE_MOCK === 'true';
 
 // 导入所有API函数
 import * as mockApi from './mock-service';

@@ -1,7 +1,7 @@
 <template>
   <el-dialog
     v-model="dialogVisible"
-    title="Excel导入发货清单（增强版）"
+    title="Excel导入发货清单"
     width="95%"
     :close-on-click-modal="false"
     @close="handleClose"
@@ -410,7 +410,6 @@ import {
   Delete,
   Calendar,
   Box,
-  Picture,
   Plus,
   Setting,
   User
@@ -613,21 +612,35 @@ const uploadImagesToServer = async (
 
   try {
     const files = images.map(img => img.file);
+    console.log(`[${bizType}] 开始上传 ${files.length} 张图片...`);
+
     const response = await uploadImages(files, bizType);
+
+    // 检查响应数据结构
+    if (!response.data || !Array.isArray(response.data)) {
+      throw new Error('图片上传接口返回数据格式错误');
+    }
 
     // 过滤成功的上传结果
     const successResults = response.data.filter(item => item.success);
 
+    // 如果有任何图片上传失败，抛出错误
     if (successResults.length < files.length) {
       const failedCount = files.length - successResults.length;
-      ElMessage.warning(`有 ${failedCount} 张图片上传失败`);
+      const failedFiles = response.data
+        .filter(item => !item.success)
+        .map(item => item.originalFileName)
+        .join(', ');
+      throw new Error(`有 ${failedCount} 张图片上传失败：${failedFiles}`);
     }
 
-    return successResults.map(item => item.fileUrl || '').filter(url => url);
+    const urls = successResults.map(item => item.fileUrl || '').filter(url => url);
+    console.log(`[${bizType}] 上传成功，共 ${urls.length} 张`);
+
+    return urls;
   } catch (error: any) {
-    console.error(`${bizType} 图片上传失败:`, error);
-    ElMessage.error(`图片上传失败: ${error.message || '未知错误'}`);
-    return [];
+    console.error(`[${bizType}] 图片上传失败:`, error);
+    throw error; // 重新抛出错误，让调用方处理
   }
 };
 
@@ -697,33 +710,79 @@ const handleImport = async () => {
   importing.value = true;
 
   try {
-    // 1. 上传发货照片
-    ElMessage.info('正在上传发货照片...');
-    const shippingPhotoUrls = await uploadImagesToServer(
-      uploadedImages.value,
-      'shipping-photos'
-    );
+    let shippingPhotoUrls: string[] = [];
+    let driverLicensePhotoUrls: string[] = [];
 
-    // 2. 上传司机驾照
-    ElMessage.info('正在上传司机驾照...');
-    const driverLicensePhotoUrls = await uploadImagesToServer(
-      driverLicenseImages.value,
-      'driver-license'
-    );
+    console.log('=== 开始导入流程 ===');
+    console.log('发货照片数量:', uploadedImages.value.length);
+    console.log('驾照图片数量:', driverLicenseImages.value.length);
 
-    // 3. 转换设备明细数据
+    // 并行上传所有图片（发货照片 + 司机驾照）
+    const uploadTasks: Promise<{ type: string; count: number }>[] = [];
+
+    if (uploadedImages.value.length > 0 || driverLicenseImages.value.length > 0) {
+      ElMessage.info('正在上传图片...');
+
+      // 1. 添加发货照片上传任务
+      if (uploadedImages.value.length > 0) {
+        console.log('✅ 添加发货照片上传任务');
+        const shippingPhotoTask = uploadImagesToServer(
+          uploadedImages.value,
+          'shipping-photos'
+        ).then(urls => {
+          shippingPhotoUrls = urls;
+          return { type: 'shipping-photos', count: urls.length };
+        });
+        uploadTasks.push(shippingPhotoTask);
+      } else {
+        console.log('⏭️  跳过发货照片上传（无图片）');
+      }
+
+      // 2. 添加司机驾照上传任务
+      if (driverLicenseImages.value.length > 0) {
+        console.log('✅ 添加司机驾照上传任务');
+        const licensePhotoTask = uploadImagesToServer(
+          driverLicenseImages.value,
+          'driver-license'
+        ).then(urls => {
+          driverLicensePhotoUrls = urls;
+          return { type: 'driver-license', count: urls.length };
+        });
+        uploadTasks.push(licensePhotoTask);
+      } else {
+        console.log('⏭️  跳过司机驾照上传（无图片）');
+      }
+
+      console.log(`📦 总共创建了 ${uploadTasks.length} 个上传任务`);
+
+      // 3. 等待所有上传任务完成
+      try {
+        const results = await Promise.all(uploadTasks);
+
+        // 显示上传成功消息
+        const totalCount = results.reduce((sum, r) => sum + r.count, 0);
+        ElMessage.success(`图片上传成功（共${totalCount}张）`);
+      } catch (error: any) {
+        console.error('图片上传失败:', error);
+        ElMessage.error(`图片上传失败: ${error.message}`);
+        throw error; // 上传失败，中断流程
+      }
+    }
+
+    // 4. 转换设备明细数据
     const shippingItems = convertEquipmentDetails();
 
-    // 4. 提取发货时间信息（使用第一条记录）
+    // 5. 提取发货时间信息（使用第一条记录）
     const firstTimeRecord = parsedData.value.shippingTimes[0];
 
-    // 5. 构建导入请求数据
+    // 6. 构建导入请求数据
     const importData: EnhancedShippingImportRequest = {
       // 基本信息
       projectId: importConfig.projectId,
       batchNumber: importConfig.batchNumber,
       responsiblePersonId: importConfig.responsiblePersonId,
       shippingDate: firstTimeRecord?.发货时间 || new Date().toISOString().split('T')[0],
+      shippingType: 'NORMAL',  // 发货类型：正常发货
       shippingMethod: 'TRUCK',
 
       // 车辆信息
@@ -736,7 +795,7 @@ const handleImport = async () => {
       driverPhone: firstTimeRecord?.司机电话,
       driverInfo: firstTimeRecord?.司机姓名及电话,
 
-      // 图片URL列表
+      // 图片URL列表（只有上传成功才会有值）
       shippingPhotoUrls,
       driverLicensePhotoUrls,
 
@@ -744,7 +803,7 @@ const handleImport = async () => {
       shippingItems
     };
 
-    // 6. 调用增强版导入接口
+    // 7. 调用增强版导入接口
     ElMessage.info('正在保存发货清单...');
     const response = await importEnhancedShippingList(importData);
 
@@ -760,7 +819,10 @@ const handleImport = async () => {
     }
   } catch (error: any) {
     console.error('导入失败:', error);
-    ElMessage.error(`导入失败: ${error.message || '未知错误'}`);
+    // 只显示错误消息，不再重复显示（因为已经在具体步骤中显示过了）
+    if (!error.message?.includes('上传失败')) {
+      ElMessage.error(`导入失败: ${error.message || '未知错误'}`);
+    }
   } finally {
     importing.value = false;
   }
@@ -834,7 +896,7 @@ const formatCellValue = (value: any): string => {
  * 计算表格合并单元格
  * 合并相同的"名称"、"序号"和"重量"列
  */
-const getSpanMethod = ({ row, column, rowIndex, columnIndex }: any, data: any[]) => {
+const getSpanMethod = ({ row, column, rowIndex }: any, data: any[]) => {
   // 需要合并的列名
   const mergeColumns = ['序号', '名称', '重量', '重量（吨）', '重量(吨)'];
 
@@ -877,15 +939,34 @@ const getSpanMethod = ({ row, column, rowIndex, columnIndex }: any, data: any[])
 // 初始化数据
 const initData = async () => {
   try {
+    console.log('开始加载项目列表和负责人列表...');
     const [projectRes, personRes] = await Promise.all([
       getProjectSimpleList(),
       getResponsiblePersonList()
     ]);
 
-    projectList.value = projectRes.data || [];
-    responsiblePersonList.value = personRes.data || [];
-  } catch (error) {
-    ElMessage.error('获取基础数据失败');
+    console.log('项目列表响应:', projectRes);
+    console.log('负责人列表响应:', personRes);
+
+    // 处理项目列表数据
+    projectList.value = (projectRes.data || []).map((item: any) => ({
+      id: item.id || item.projectId,
+      name: item.name || item.projectName
+    }));
+
+    // 处理负责人列表数据（后端返回格式：{userId, userName, nickName}）
+    responsiblePersonList.value = (personRes.data || []).map((user: any) => ({
+      id: String(user.userId || user.id),
+      name: user.nickName || user.userName || user.name
+    }));
+
+    console.log('项目列表数量:', projectList.value.length);
+    console.log('负责人列表数量:', responsiblePersonList.value.length);
+    console.log('转换后的负责人列表:', responsiblePersonList.value);
+  } catch (error: any) {
+    console.error('获取基础数据失败:', error);
+    console.error('错误详情:', error.response || error.message);
+    ElMessage.error(`获取基础数据失败: ${error.message || '未知错误'}`);
   }
 };
 
