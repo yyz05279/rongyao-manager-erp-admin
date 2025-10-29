@@ -5,22 +5,22 @@
 
 // 项目类型映射常量
 export const PROJECT_TYPE_MAP = {
-  1: "二元化盐项目",
-  2: "三元化盐项目", 
-  3: "定制项目"
+  1: '二元化盐项目',
+  2: '三元化盐项目',
+  3: '定制项目'
 } as const;
 
 // 项目类型数字枚举
 export type ProjectTypeNumber = keyof typeof PROJECT_TYPE_MAP;
 
 // 项目类型中文描述
-export type ProjectTypeText = typeof PROJECT_TYPE_MAP[ProjectTypeNumber];
+export type ProjectTypeText = (typeof PROJECT_TYPE_MAP)[ProjectTypeNumber];
 
 // 项目类型标签颜色映射
 export const PROJECT_TYPE_TAG_MAP = {
-  1: "primary",
-  2: "success", 
-  3: "warning"
+  1: 'primary',
+  2: 'success',
+  3: 'warning'
 } as const;
 
 /**
@@ -30,12 +30,12 @@ export const PROJECT_TYPE_TAG_MAP = {
  */
 export const getProjectTypeText = (type: string | number | undefined | null): string => {
   if (type === undefined || type === null) {
-    return "未知类型";
+    return '未知类型';
   }
 
   // 处理数字类型
   if (typeof type === 'number') {
-    return PROJECT_TYPE_MAP[type as ProjectTypeNumber] || "未知类型";
+    return PROJECT_TYPE_MAP[type as ProjectTypeNumber] || '未知类型';
   }
 
   // 处理字符串类型（可能是数字字符串）
@@ -44,21 +44,21 @@ export const getProjectTypeText = (type: string | number | undefined | null): st
     if (!isNaN(numType) && numType in PROJECT_TYPE_MAP) {
       return PROJECT_TYPE_MAP[numType as ProjectTypeNumber];
     }
-    
+
     // 处理字符串枚举值（向后兼容）
     const stringToNumberMap: Record<string, ProjectTypeNumber> = {
-      'BINARY_SALT': 1,
-      'TERNARY_SALT': 2,
-      'CUSTOM': 3
+      BINARY_SALT: 1,
+      TERNARY_SALT: 2,
+      CUSTOM: 3
     };
-    
+
     const mappedNumber = stringToNumberMap[type];
     if (mappedNumber) {
       return PROJECT_TYPE_MAP[mappedNumber];
     }
   }
 
-  return "未知类型";
+  return '未知类型';
 };
 
 /**
@@ -68,12 +68,12 @@ export const getProjectTypeText = (type: string | number | undefined | null): st
  */
 export const getProjectTypeTag = (type: string | number | undefined | null): string => {
   if (type === undefined || type === null) {
-    return "";
+    return '';
   }
 
   // 处理数字类型
   if (typeof type === 'number') {
-    return PROJECT_TYPE_TAG_MAP[type as ProjectTypeNumber] || "";
+    return PROJECT_TYPE_TAG_MAP[type as ProjectTypeNumber] || '';
   }
 
   // 处理字符串类型（可能是数字字符串）
@@ -82,21 +82,21 @@ export const getProjectTypeTag = (type: string | number | undefined | null): str
     if (!isNaN(numType) && numType in PROJECT_TYPE_TAG_MAP) {
       return PROJECT_TYPE_TAG_MAP[numType as ProjectTypeNumber];
     }
-    
+
     // 处理字符串枚举值（向后兼容）
     const stringToNumberMap: Record<string, ProjectTypeNumber> = {
-      'BINARY_SALT': 1,
-      'TERNARY_SALT': 2,
-      'CUSTOM': 3
+      BINARY_SALT: 1,
+      TERNARY_SALT: 2,
+      CUSTOM: 3
     };
-    
+
     const mappedNumber = stringToNumberMap[type];
     if (mappedNumber) {
       return PROJECT_TYPE_TAG_MAP[mappedNumber];
     }
   }
 
-  return "";
+  return '';
 };
 
 /**
@@ -118,7 +118,7 @@ export const isValidProjectType = (type: string | number | undefined | null): bo
     if (!isNaN(numType)) {
       return numType in PROJECT_TYPE_MAP;
     }
-    
+
     // 检查字符串枚举值
     const validStringTypes = ['BINARY_SALT', 'TERNARY_SALT', 'CUSTOM'];
     return validStringTypes.includes(type);

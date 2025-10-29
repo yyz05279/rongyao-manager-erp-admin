@@ -3,12 +3,7 @@
  * 基于现有的excel-parser.ts扩展，专门处理发货清单相关的Excel文件
  */
 import * as XLSX from 'xlsx';
-import type {
-  ShippingExcelImportConfig,
-  ShippingExcelImportResult,
-  ShippingItemForm,
-  EquipmentType
-} from '@/api/erp/saltprocess/shipping/types';
+import type { ShippingExcelImportConfig, ShippingExcelImportResult, ShippingItemForm, EquipmentType } from '@/api/erp/saltprocess/shipping/types';
 
 // 发货清单Excel配置
 export const SHIPPING_EXCEL_CONFIGS = {
@@ -17,98 +12,98 @@ export const SHIPPING_EXCEL_CONFIGS = {
     fileType: 'GENERAL' as const,
     headerRow: 1,
     columnMapping: {
-      '序号': 'index',
-      '物品名称': 'itemName',
-      '规格型号': 'specification',
-      '数量': 'quantity',
-      '单位': 'unit',
-      '单重': 'unitWeight',
-      '总重': 'totalWeight',
-      '制造商': 'manufacturer',
-      '型号': 'model',
-      '序列号': 'serialNumber',
-      '包装方式': 'packageType',
-      '包装件数': 'packageQuantity',
-      '备注': 'remarks'
+      序号: 'index',
+      物品名称: 'itemName',
+      规格型号: 'specification',
+      数量: 'quantity',
+      单位: 'unit',
+      单重: 'unitWeight',
+      总重: 'totalWeight',
+      制造商: 'manufacturer',
+      型号: 'model',
+      序列号: 'serialNumber',
+      包装方式: 'packageType',
+      包装件数: 'packageQuantity',
+      备注: 'remarks'
     }
   },
-  
+
   // 机械设备发货清单配置
   MECHANICAL: {
     fileType: 'MECHANICAL' as const,
     headerRow: 1,
     columnMapping: {
-      '序号': 'index',
-      '设备名称': 'itemName',
-      '规格': 'specification',
-      '数量': 'quantity',
-      '单位': 'unit',
-      '重量': 'unitWeight',
-      '总重量': 'totalWeight',
-      '制造厂家': 'manufacturer',
-      '设备型号': 'model',
-      '设备编号': 'serialNumber',
-      '包装': 'packageType',
-      '备注': 'remarks'
+      序号: 'index',
+      设备名称: 'itemName',
+      规格: 'specification',
+      数量: 'quantity',
+      单位: 'unit',
+      重量: 'unitWeight',
+      总重量: 'totalWeight',
+      制造厂家: 'manufacturer',
+      设备型号: 'model',
+      设备编号: 'serialNumber',
+      包装: 'packageType',
+      备注: 'remarks'
     }
   },
-  
+
   // 电控设备发货清单配置
   ELECTRICAL: {
     fileType: 'ELECTRICAL' as const,
     headerRow: 1,
     columnMapping: {
-      '序号': 'index',
-      '设备名称': 'itemName',
-      '型号规格': 'specification',
-      '数量': 'quantity',
-      '单位': 'unit',
+      序号: 'index',
+      设备名称: 'itemName',
+      型号规格: 'specification',
+      数量: 'quantity',
+      单位: 'unit',
       '单重(kg)': 'unitWeight',
       '总重(kg)': 'totalWeight',
-      '生产厂家': 'manufacturer',
-      '产品型号': 'model',
-      '产品编号': 'serialNumber',
-      '包装方式': 'packageType',
-      '说明': 'remarks'
+      生产厂家: 'manufacturer',
+      产品型号: 'model',
+      产品编号: 'serialNumber',
+      包装方式: 'packageType',
+      说明: 'remarks'
     }
   },
-  
+
   // 管路装箱清单配置
   PIPELINE: {
     fileType: 'PIPELINE' as const,
     headerRow: 1,
     columnMapping: {
-      '序号': 'index',
-      '名称': 'itemName',
-      '规格': 'specification',
-      '数量': 'quantity',
-      '单位': 'unit',
-      '单重': 'unitWeight',
-      '总重': 'totalWeight',
-      '材质': 'manufacturer',
-      '标准': 'model',
-      '包装': 'packageType',
-      '备注': 'remarks'
+      序号: 'index',
+      名称: 'itemName',
+      规格: 'specification',
+      数量: 'quantity',
+      单位: 'unit',
+      单重: 'unitWeight',
+      总重: 'totalWeight',
+      材质: 'manufacturer',
+      标准: 'model',
+      包装: 'packageType',
+      备注: 'remarks'
     }
   },
-  
+
   // 燃烧器及附属件清单配置
   BURNER: {
     fileType: 'BURNER' as const,
     headerRow: 1,
     columnMapping: {
-      '序号': 'index',
-      '设备名称': 'itemName',
-      '规格型号': 'specification',
-      '数量': 'quantity',
-      '单位': 'unit',
+      序号: 'index',
+      设备名称: 'itemName',
+      规格型号: 'specification',
+      数量: 'quantity',
+      单位: 'unit',
       '重量(kg)': 'unitWeight',
       '总重量(kg)': 'totalWeight',
-      '制造商': 'manufacturer',
-      '型号': 'model',
-      '编号': 'serialNumber',
-      '包装': 'packageType',
-      '备注': 'remarks'
+      制造商: 'manufacturer',
+      型号: 'model',
+      编号: 'serialNumber',
+      包装: 'packageType',
+      备注: 'remarks'
     }
   }
 };
@@ -122,12 +117,12 @@ export class ShippingExcelParser {
   async parseFile(file: File): Promise<{ success: boolean; message: string; sheets: string[] }> {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
-      
+
       reader.onload = (e) => {
         try {
           const data = new Uint8Array(e.target?.result as ArrayBuffer);
           this.workbook = XLSX.read(data, { type: 'array' });
-          
+
           resolve({
             success: true,
             message: '文件解析成功',
@@ -156,7 +151,7 @@ export class ShippingExcelParser {
 
     const targetSheet = sheetName || this.workbook.SheetNames[0];
     const worksheet = this.workbook.Sheets[targetSheet];
-    
+
     if (!worksheet) {
       throw new Error(`工作表 "${targetSheet}" 不存在`);
     }
@@ -182,17 +177,14 @@ export class ShippingExcelParser {
   /**
    * 导入发货清单数据
    */
-  async importShippingData(
-    config: ShippingExcelImportConfig,
-    sheetName?: string
-  ): Promise<ShippingExcelImportResult> {
+  async importShippingData(config: ShippingExcelImportConfig, sheetName?: string): Promise<ShippingExcelImportResult> {
     if (!this.workbook) {
       throw new Error('请先解析Excel文件');
     }
 
     const targetSheet = sheetName || this.workbook.SheetNames[0];
     const worksheet = this.workbook.Sheets[targetSheet];
-    
+
     if (!worksheet) {
       throw new Error(`工作表 "${targetSheet}" 不存在`);
     }
@@ -205,10 +197,7 @@ export class ShippingExcelParser {
     let headerRowIndex = config.headerRow - 1;
     for (let i = 0; i < Math.min(10, jsonData.length); i++) {
       const row = jsonData[i] as any[];
-      if (row && row.some(cell => 
-        typeof cell === 'string' && 
-        (cell.includes('名称') || cell.includes('序号') || cell.includes('数量'))
-      )) {
+      if (row && row.some((cell) => typeof cell === 'string' && (cell.includes('名称') || cell.includes('序号') || cell.includes('数量')))) {
         headerRowIndex = i;
         break;
       }
@@ -222,7 +211,7 @@ export class ShippingExcelParser {
     // 处理数据行
     for (let i = headerRowIndex + 1; i < jsonData.length; i++) {
       const row = jsonData[i] as any[];
-      if (!row || row.every(cell => !cell)) continue; // 跳过空行
+      if (!row || row.every((cell) => !cell)) continue; // 跳过空行
 
       const item: Partial<ShippingItemForm> = {
         isFragile: false,
@@ -232,11 +221,11 @@ export class ShippingExcelParser {
       // 映射字段
       headers.forEach((header, colIndex) => {
         if (!header) return;
-        
+
         const fieldName = this.findMappedField(header, config.columnMapping);
         if (fieldName && row[colIndex] !== undefined && row[colIndex] !== null) {
           const value = row[colIndex];
-          
+
           try {
             switch (fieldName) {
               case 'quantity':
@@ -341,8 +330,8 @@ export class ShippingExcelParser {
    * 验证和增强数据项
    */
   private validateAndEnhanceItem(
-    item: Partial<ShippingItemForm>, 
-    rowIndex: number, 
+    item: Partial<ShippingItemForm>,
+    rowIndex: number,
     fileType: string
   ): { item: Partial<ShippingItemForm>; errors: { row: number; field: string; message: string }[] } {
     const errors: { row: number; field: string; message: string }[] = [];
@@ -397,30 +386,30 @@ export class ShippingExcelParser {
   static generateTemplate(templateType: keyof typeof SHIPPING_EXCEL_CONFIGS): Blob {
     const config = SHIPPING_EXCEL_CONFIGS[templateType];
     const headers = Object.keys(config.columnMapping);
-    
+
     // 示例数据
     const sampleData = {
-      '序号': 1,
-      '物品名称': '示例设备',
-      '规格型号': 'ABC-123',
-      '数量': 1,
-      '单位': '台',
-      '单重': 100,
-      '总重': 100,
-      '制造商': '示例厂家',
-      '型号': 'MODEL-001',
-      '序列号': 'SN001',
-      '包装方式': '木箱',
-      '包装件数': 1,
-      '备注': '示例备注'
+      序号: 1,
+      物品名称: '示例设备',
+      规格型号: 'ABC-123',
+      数量: 1,
+      单位: '台',
+      单重: 100,
+      总重: 100,
+      制造商: '示例厂家',
+      型号: 'MODEL-001',
+      序列号: 'SN001',
+      包装方式: '木箱',
+      包装件数: 1,
+      备注: '示例备注'
     };
 
-    const data = [headers, headers.map(h => sampleData[h] || '')];
-    
+    const data = [headers, headers.map((h) => sampleData[h] || '')];
+
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.aoa_to_sheet(data);
     XLSX.utils.book_append_sheet(wb, ws, '发货清单');
-    
+
     return new Blob([XLSX.write(wb, { bookType: 'xlsx', type: 'array' })], {
       type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     });

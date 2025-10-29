@@ -2,26 +2,22 @@
  * 盐化工艺数据自动计算工具
  * 根据钠盐规格(1.2吨/袋)和钾盐规格(1.0吨/袋)，实现缺失字段的自动计算功能
  */
-import type {
-  MoltenSaltInventoryRecord,
-  SaltProcessRecord,
-  SALT_SPECIFICATIONS
-} from '@/api/erp/saltprocess/records/excel-import/types';
+import type { MoltenSaltInventoryRecord, SaltProcessRecord, SALT_SPECIFICATIONS } from '@/api/erp/saltprocess/records/excel-import/types';
 
 // 盐类规格常量
 export const SALT_SPECS = {
   SODIUM_WEIGHT_PER_BAG: 1.2, // 钠盐：1.2吨/袋
   POTASSIUM_WEIGHT_PER_BAG: 1.0, // 钾盐：1.0吨/袋
-  
+
   // 密度参数（用于体积计算）
   SODIUM_DENSITY: 2.16, // g/cm³
   POTASSIUM_DENSITY: 2.11, // g/cm³
-  
+
   // 标准工艺参数
   STANDARD_TEMPERATURE: 450, // 标准反应温度 °C
   STANDARD_PRESSURE: 2.5, // 标准反应压力 MPa
   STANDARD_PH: 7.0, // 标准pH值
-  
+
   // 效率参数
   THEORETICAL_YIELD: 0.95, // 理论产出率 95%
   ENERGY_EFFICIENCY: 0.85 // 能源效率 85%
@@ -78,9 +74,7 @@ export class MoltenSaltCalculator {
    * 根据重量反推袋数
    */
   static calculateBagsFromWeight(weight: number, saltType: 'sodium' | 'potassium'): number {
-    const weightPerBag = saltType === 'sodium' 
-      ? SALT_SPECS.SODIUM_WEIGHT_PER_BAG 
-      : SALT_SPECS.POTASSIUM_WEIGHT_PER_BAG;
+    const weightPerBag = saltType === 'sodium' ? SALT_SPECS.SODIUM_WEIGHT_PER_BAG : SALT_SPECS.POTASSIUM_WEIGHT_PER_BAG;
     return Math.round(weight / weightPerBag);
   }
 
@@ -88,9 +82,7 @@ export class MoltenSaltCalculator {
    * 计算体积（基于密度）
    */
   static calculateVolume(weight: number, saltType: 'sodium' | 'potassium'): number {
-    const density = saltType === 'sodium' 
-      ? SALT_SPECS.SODIUM_DENSITY 
-      : SALT_SPECS.POTASSIUM_DENSITY;
+    const density = saltType === 'sodium' ? SALT_SPECS.SODIUM_DENSITY : SALT_SPECS.POTASSIUM_DENSITY;
     // 重量(吨) -> 体积(m³)
     return Number(((weight * 1000) / (density * 1000)).toFixed(3));
   }
@@ -101,7 +93,7 @@ export class MoltenSaltCalculator {
   private static validateAndCorrect(record: MoltenSaltInventoryRecord): MoltenSaltInventoryRecord {
     // 确保所有数值字段都是有效数字
     const numericFields = ['sodiumBags', 'potassiumBags', 'sodiumWeight', 'potassiumWeight', 'totalWeight', 'totalCrushingAmount'];
-    
+
     for (const field of numericFields) {
       const value = (record as any)[field];
       if (value !== undefined && value !== null) {
@@ -112,12 +104,12 @@ export class MoltenSaltCalculator {
     // 数据一致性检查
     const calculatedSodiumWeight = this.calculateSodiumWeight(record.sodiumBags || 0);
     const calculatedPotassiumWeight = this.calculatePotassiumWeight(record.potassiumBags || 0);
-    
+
     // 如果计算值与实际值差异较大，使用计算值
     if (Math.abs((record.sodiumWeight || 0) - calculatedSodiumWeight) > 0.1) {
       record.sodiumWeight = calculatedSodiumWeight;
     }
-    
+
     if (Math.abs((record.potassiumWeight || 0) - calculatedPotassiumWeight) > 0.1) {
       record.potassiumWeight = calculatedPotassiumWeight;
     }
@@ -137,22 +129,13 @@ export class SaltProcessCalculator {
     const calculated = { ...record } as SaltProcessRecord;
 
     // 基础计算
-    calculated.totalNitrate = this.calculateTotalNitrate(
-      record.sodiumNitrate || 0, 
-      record.potassiumNitrate || 0
-    );
+    calculated.totalNitrate = this.calculateTotalNitrate(record.sodiumNitrate || 0, record.potassiumNitrate || 0);
 
-    calculated.efficiency = this.calculateEfficiency(
-      record.saltPerWaste || 0,
-      record.wasteAmount || 0
-    );
+    calculated.efficiency = this.calculateEfficiency(record.saltPerWaste || 0, record.wasteAmount || 0);
 
     // 累积化盐量计算（如果缺失）
     if (!calculated.accumulatedSalt && record.saltPerWaste && record.wasteAmount) {
-      calculated.accumulatedSalt = this.calculateAccumulatedSalt(
-        record.saltPerWaste,
-        record.wasteAmount
-      );
+      calculated.accumulatedSalt = this.calculateAccumulatedSalt(record.saltPerWaste, record.wasteAmount);
     }
 
     // 能耗效率计算
@@ -193,14 +176,18 @@ export class SaltProcessCalculator {
   /**
    * 计算能耗效率
    */
-  static calculateEnergyEfficiency(gasConsumption: number, powerConsumption: number, wasteAmount: number): {
+  static calculateEnergyEfficiency(
+    gasConsumption: number,
+    powerConsumption: number,
+    wasteAmount: number
+  ): {
     gasEfficiency: number;
     powerEfficiency: number;
     totalEnergyConsumption: number;
   } {
     const gasEfficiency = wasteAmount > 0 ? Number((gasConsumption / wasteAmount).toFixed(3)) : 0;
     const powerEfficiency = wasteAmount > 0 ? Number((powerConsumption / wasteAmount).toFixed(3)) : 0;
-    
+
     // 总能耗（标准化为kWh等效）
     // 1 Nm³天然气 ≈ 10 kWh
     const totalEnergyConsumption = Number((gasConsumption * 10 + powerConsumption).toFixed(2));
@@ -230,7 +217,7 @@ export class SaltProcessCalculator {
   /**
    * 计算液位利用率
    */
-  static calculateLevelUtilization(currentLevel: number, maxLevel: number = 10): number {
+  static calculateLevelUtilization(currentLevel: number, maxLevel = 10): number {
     return Number(((currentLevel / maxLevel) * 100).toFixed(1));
   }
 
@@ -240,12 +227,21 @@ export class SaltProcessCalculator {
   private static validateAndCorrect(record: SaltProcessRecord): SaltProcessRecord {
     // 确保所有数值字段都是有效数字
     const numericFields = [
-      'sequenceNumber', 'wasteAmount', 'sodiumNitrate', 'potassiumNitrate',
-      'saltPerWaste', 'accumulatedSalt', 'moltenSaltTemperature', 'moltenSaltLevel',
-      'gasConsumptionPerWaste', 'powerConsumptionPerWaste', 'staffCount',
-      'totalNitrate', 'efficiency'
+      'sequenceNumber',
+      'wasteAmount',
+      'sodiumNitrate',
+      'potassiumNitrate',
+      'saltPerWaste',
+      'accumulatedSalt',
+      'moltenSaltTemperature',
+      'moltenSaltLevel',
+      'gasConsumptionPerWaste',
+      'powerConsumptionPerWaste',
+      'staffCount',
+      'totalNitrate',
+      'efficiency'
     ];
-    
+
     for (const field of numericFields) {
       const value = (record as any)[field];
       if (value !== undefined && value !== null) {
@@ -278,14 +274,14 @@ export class BatchCalculator {
    * 批量计算熔盐入库统计数据
    */
   static calculateMoltenSaltBatch(records: Partial<MoltenSaltInventoryRecord>[]): MoltenSaltInventoryRecord[] {
-    return records.map(record => MoltenSaltCalculator.calculateRecord(record));
+    return records.map((record) => MoltenSaltCalculator.calculateRecord(record));
   }
 
   /**
    * 批量计算化盐量记录数据
    */
   static calculateSaltProcessBatch(records: Partial<SaltProcessRecord>[]): SaltProcessRecord[] {
-    return records.map(record => SaltProcessCalculator.calculateRecord(record));
+    return records.map((record) => SaltProcessCalculator.calculateRecord(record));
   }
 
   /**
@@ -311,8 +307,11 @@ export class BatchCalculator {
     const totalSodiumBags = records.reduce((sum, record) => sum + (record.sodiumBags || 0), 0);
     const totalPotassiumBags = records.reduce((sum, record) => sum + (record.potassiumBags || 0), 0);
     const totalWeight = records.reduce((sum, record) => sum + (record.totalWeight || 0), 0);
-    
-    const dates = records.map(record => record.date).filter(Boolean).sort();
+
+    const dates = records
+      .map((record) => record.date)
+      .filter(Boolean)
+      .sort();
     const dateRange = {
       start: dates[0] || '',
       end: dates[dates.length - 1] || ''
