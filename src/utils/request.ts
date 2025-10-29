@@ -52,7 +52,10 @@ service.interceptors.request.use(
       config.url = url;
     }
 
-    if (!isRepeatSubmit && (config.method === 'post' || config.method === 'put')) {
+    // 图片上传接口跳过防重复检查（支持并行上传）
+    const isUploadRequest = config.url?.includes('/upload/image');
+
+    if (!isRepeatSubmit && !isUploadRequest && (config.method === 'post' || config.method === 'put')) {
       const requestObj = {
         url: config.url,
         data: typeof config.data === 'object' ? JSON.stringify(config.data) : config.data,
