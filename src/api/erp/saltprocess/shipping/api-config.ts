@@ -30,6 +30,10 @@ export const createShippingListFromExcel = apiImplementation.createShippingListF
 export const delShippingAttachment = apiImplementation.delShippingAttachment;
 export const downloadShippingAttachment = apiImplementation.downloadShippingAttachment;
 export const exportSingleShippingList = apiImplementation.exportSingleShippingList;
+export const importEnhancedShippingList = apiImplementation.importEnhancedShippingList;
+
+// 导出类型
+export type { EnhancedShippingImportRequest, EnhancedShippingImportResult } from './index';
 
 // 导出配置信息
 export const API_CONFIG = {

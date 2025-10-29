@@ -125,7 +125,7 @@
             </el-form>
           </div>
 
-          <!-- 第二部分：发货时间信息 -->
+          <!-- 第二部分：设备发货时间 -->
           <div v-if="parsedData.shippingTimes.length > 0" class="section shipping-time-section">
             <el-divider content-position="left">
               <div class="section-title">
@@ -141,32 +141,119 @@
               size="default"
               class="shipping-time-table"
             >
-              <el-table-column label="序号" prop="序号" width="80" align="center" />
-              <el-table-column label="名称" prop="名称" min-width="200" show-overflow-tooltip />
-              <el-table-column label="明细" prop="明细" min-width="120" align="center" />
-              <el-table-column label="发货时间" prop="发货时间" width="120" align="center">
+              <el-table-column label="序号" prop="序号" width="100" align="center" />
+              <el-table-column label="名称" prop="名称" width="400" show-overflow-tooltip />
+              <el-table-column label="明细" prop="明细" width="200" align="center" />
+              <el-table-column label="发货时间" prop="发货时间" width="180" align="center">
                 <template #default="{ row }">
-                  <el-tag type="success" size="small">{{ row.发货时间 }}</el-tag>
-                </template>
-              </el-table-column>
-              <el-table-column label="车牌号" prop="车牌号" width="120" align="center">
-                <template #default="{ row }">
-                  <el-tag v-if="row.车牌号" type="primary" size="small">{{ row.车牌号 }}</el-tag>
-                  <span v-else class="text-muted">-</span>
-                </template>
-              </el-table-column>
-              <el-table-column label="车辆描述" prop="车辆描述" min-width="120" show-overflow-tooltip />
-              <el-table-column label="司机姓名" prop="司机姓名" width="100" align="center" />
-              <el-table-column label="司机电话" prop="司机电话" width="130" align="center">
-                <template #default="{ row }">
-                  <span v-if="row.司机电话" class="text-primary">{{ row.司机电话 }}</span>
-                  <span v-else class="text-muted">-</span>
+                  <el-tag type="success" size="large" effect="dark" class="shipping-date-tag">
+                    <el-icon style="margin-right: 4px;"><calendar /></el-icon>
+                    {{ row.发货时间 }}
+                  </el-tag>
                 </template>
               </el-table-column>
             </el-table>
           </div>
 
-          <!-- 第三部分：设备明细（按sheet分组） -->
+          <!-- 第三部分：司机车辆信息 -->
+          <div v-if="parsedData.shippingTimes.length > 0" class="section driver-vehicle-section">
+            <el-divider content-position="left">
+              <div class="section-title">
+                <el-icon><user /></el-icon>
+                <span>司机车辆信息</span>
+              </div>
+            </el-divider>
+
+            <div
+              v-for="(record, idx) in parsedData.shippingTimes"
+              :key="idx"
+              class="driver-info-card"
+            >
+              <div class="info-section">
+                <div class="info-row">
+                  <div class="info-label">车牌号：</div>
+                  <div class="info-value">
+                    <span v-if="record.车牌号" class="license-plate">{{ record.车牌号 }}</span>
+                    <span v-else class="text-muted">未填写</span>
+                  </div>
+                </div>
+                <div class="info-row">
+                  <div class="info-label">车辆描述：</div>
+                  <div class="info-value">{{ record.车辆描述 || '-' }}</div>
+                </div>
+                <div class="info-row">
+                  <div class="info-label">司机姓名：</div>
+                  <div class="info-value">{{ record.司机姓名 || '-' }}</div>
+                </div>
+                <div class="info-row">
+                  <div class="info-label">司机电话：</div>
+                  <div class="info-value text-primary">{{ record.司机电话 || '-' }}</div>
+                </div>
+              </div>
+
+              <div class="license-section">
+                <div class="license-title">
+                  <el-icon><picture /></el-icon>
+                  <span>司机驾照</span>
+                </div>
+
+                <div v-if="driverLicenseImages.length === 0" class="license-upload-empty">
+                  <el-upload
+                    :auto-upload="false"
+                    :show-file-list="false"
+                    accept="image/*"
+                    :limit="1"
+                    :on-change="handleLicenseUpload"
+                  >
+                    <div class="upload-box">
+                      <el-icon :size="36" class="upload-icon"><plus /></el-icon>
+                      <div class="upload-text">点击上传驾照</div>
+                    </div>
+                  </el-upload>
+                </div>
+
+                <div v-else class="license-image-preview">
+                  <el-image
+                    :src="driverLicenseImages[0].url"
+                    :preview-src-list="driverLicenseImages.map(img => img.url)"
+                    fit="contain"
+                    class="license-img"
+                  />
+                  <div class="license-actions">
+                    <el-button
+                      type="primary"
+                      size="small"
+                      :icon="Plus"
+                      @click="triggerLicenseUpload"
+                    >
+                      更换
+                    </el-button>
+                    <el-button
+                      type="danger"
+                      size="small"
+                      :icon="Delete"
+                      @click="removeLicenseImage(0)"
+                    >
+                      删除
+                    </el-button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 隐藏的上传组件 -->
+            <el-upload
+              ref="licenseUploadRef"
+              :auto-upload="false"
+              :show-file-list="false"
+              accept="image/*"
+              :limit="1"
+              :on-change="handleLicenseUpload"
+              style="display: none;"
+            />
+          </div>
+
+          <!-- 第四部分：设备明细（按sheet分组） -->
           <div
             v-for="(detail, index) in parsedData.equipmentDetails"
             :key="index"
@@ -208,7 +295,7 @@
             </el-table>
           </div>
 
-          <!-- 第四部分：发货照片 -->
+          <!-- 第五部分：发货照片 -->
           <div class="section image-section">
             <el-divider content-position="left">
               <div class="section-title">
@@ -263,67 +350,6 @@
                   <div class="add-image-btn">
                     <el-icon :size="40"><plus /></el-icon>
                     <div class="add-text">添加照片</div>
-                  </div>
-                </el-upload>
-              </div>
-            </div>
-          </div>
-
-          <!-- 第五部分：司机驾照 -->
-          <div class="section license-section">
-            <el-divider content-position="left">
-              <div class="section-title">
-                <el-icon><user /></el-icon>
-                <span>司机驾照</span>
-              </div>
-            </el-divider>
-
-            <div v-if="driverLicenseImages.length === 0" class="no-images">
-              <el-empty description="暂无驾照照片">
-                <el-upload
-                  :auto-upload="false"
-                  :show-file-list="false"
-                  accept="image/*"
-                  multiple
-                  :on-change="handleLicenseUpload"
-                >
-                  <el-button type="success" :icon="Plus">添加驾照照片</el-button>
-                </el-upload>
-              </el-empty>
-            </div>
-
-            <div v-else class="image-gallery">
-              <div v-for="(image, idx) in driverLicenseImages" :key="idx" class="image-item">
-                <el-image
-                  :src="image.url"
-                  :preview-src-list="driverLicenseImages.map(img => img.url)"
-                  :initial-index="idx"
-                  fit="cover"
-                  class="preview-image"
-                />
-                <div class="image-actions">
-                  <el-button
-                    type="danger"
-                    size="small"
-                    :icon="Delete"
-                    circle
-                    @click="removeLicenseImage(idx)"
-                  />
-                </div>
-              </div>
-
-              <!-- 添加更多按钮 -->
-              <div class="image-item add-more">
-                <el-upload
-                  :auto-upload="false"
-                  :show-file-list="false"
-                  accept="image/*"
-                  multiple
-                  :on-change="handleLicenseUpload"
-                >
-                  <div class="add-image-btn">
-                    <el-icon :size="40"><plus /></el-icon>
-                    <div class="add-text">添加驾照</div>
                   </div>
                 </el-upload>
               </div>
@@ -395,8 +421,13 @@ import {
 } from '@/utils/enhanced-shipping-excel-parser';
 import {
   getProjectSimpleList,
-  getResponsiblePersonList
+  getResponsiblePersonList,
+  importEnhancedShippingList,
+  type EnhancedShippingImportRequest
 } from '@/api/erp/saltprocess/shipping/api-config';
+import type { EnhancedShippingItemForm } from '@/api/erp/saltprocess/shipping/types';
+import { uploadImages } from '@/api/erp/common/upload';
+import type { BizType } from '@/api/erp/common/upload/types';
 
 // Props & Emits
 interface Props {
@@ -437,6 +468,9 @@ const uploadedImages = ref<{ file: File; url: string }[]>([]);
 
 // 上传的司机驾照照片
 const driverLicenseImages = ref<{ file: File; url: string }[]>([]);
+
+// 驾照上传引用
+const licenseUploadRef = ref();
 
 // 导入配置
 const importConfig = reactive({
@@ -534,12 +568,24 @@ const removeImage = (index: number) => {
 const handleLicenseUpload = (file: any) => {
   const imageFile = file.raw;
   const url = URL.createObjectURL(imageFile);
-  driverLicenseImages.value.push({ file: imageFile, url });
+
+  // 如果已有照片，先清除旧的
+  if (driverLicenseImages.value.length > 0) {
+    URL.revokeObjectURL(driverLicenseImages.value[0].url);
+  }
+
+  // 只保留最新的一张照片
+  driverLicenseImages.value = [{ file: imageFile, url }];
 };
 
 const removeLicenseImage = (index: number) => {
   URL.revokeObjectURL(driverLicenseImages.value[index].url);
   driverLicenseImages.value.splice(index, 1);
+};
+
+// 触发驾照上传
+const triggerLicenseUpload = () => {
+  licenseUploadRef.value?.$el?.querySelector('input')?.click();
 };
 
 const nextStep = () => {
@@ -554,6 +600,94 @@ const prevStep = () => {
   }
 };
 
+/**
+ * 上传图片到服务器
+ */
+const uploadImagesToServer = async (
+  images: { file: File; url: string }[],
+  bizType: BizType
+): Promise<string[]> => {
+  if (!images || images.length === 0) {
+    return [];
+  }
+
+  try {
+    const files = images.map(img => img.file);
+    const response = await uploadImages(files, bizType);
+
+    // 过滤成功的上传结果
+    const successResults = response.data.filter(item => item.success);
+
+    if (successResults.length < files.length) {
+      const failedCount = files.length - successResults.length;
+      ElMessage.warning(`有 ${failedCount} 张图片上传失败`);
+    }
+
+    return successResults.map(item => item.fileUrl || '').filter(url => url);
+  } catch (error: any) {
+    console.error(`${bizType} 图片上传失败:`, error);
+    ElMessage.error(`图片上传失败: ${error.message || '未知错误'}`);
+    return [];
+  }
+};
+
+/**
+ * 转换设备明细数据格式
+ */
+const convertEquipmentDetails = (): EnhancedShippingItemForm[] => {
+  const allItems: EnhancedShippingItemForm[] = [];
+
+  parsedData.value.equipmentDetails.forEach(sheet => {
+    sheet.data.forEach(detail => {
+      allItems.push({
+        sequenceNo: detail.序号,
+        equipmentName: detail.名称 || '',
+        subItemName: detail.分项,
+        quantity: detail.数量 || 0,
+        unit: detail.单位 || '套',
+        weight: detail.重量,
+        specification: detail.分项 || '',
+        equipmentType: inferEquipmentType(detail.名称 || ''),
+        remarks1: detail.备注,
+        remarks: detail.备注
+      });
+    });
+  });
+
+  return allItems;
+};
+
+/**
+ * 根据设备名称推断设备类型
+ */
+const inferEquipmentType = (name: string): string => {
+  if (name.includes('输送') || name.includes('传送') || name.includes('提升')) {
+    return 'MECHANICAL';
+  }
+  if (name.includes('粉碎') || name.includes('破碎') || name.includes('分解')) {
+    return 'MECHANICAL';
+  }
+  if (name.includes('钢平台') || name.includes('立柱') || name.includes('护栏')) {
+    return 'AUXILIARY';
+  }
+  if (name.includes('除尘') || name.includes('风机')) {
+    return 'AUXILIARY';
+  }
+  if (name.includes('电控') || name.includes('配电') || name.includes('电机')) {
+    return 'ELECTRICAL';
+  }
+  if (name.includes('管道') || name.includes('阀门')) {
+    return 'PIPELINE';
+  }
+  if (name.includes('燃烧')) {
+    return 'BURNER';
+  }
+  return 'AUXILIARY';
+};
+
+/**
+ * 执行导入
+ */
 const handleImport = async () => {
   if (!canImport.value) {
     ElMessage.warning('请完善导入配置');
@@ -563,21 +697,70 @@ const handleImport = async () => {
   importing.value = true;
 
   try {
-    // TODO: 调用后端API保存数据
-    // const result = await saveShippingListFromExcel({
-    //   ...importConfig,
-    //   shippingTimes: parsedData.value.shippingTimes,
-    //   equipmentDetails: parsedData.value.equipmentDetails,
-    //   images: uploadedImages.value
-    // });
+    // 1. 上传发货照片
+    ElMessage.info('正在上传发货照片...');
+    const shippingPhotoUrls = await uploadImagesToServer(
+      uploadedImages.value,
+      'shipping-photos'
+    );
 
-    // 模拟导入
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    // 2. 上传司机驾照
+    ElMessage.info('正在上传司机驾照...');
+    const driverLicensePhotoUrls = await uploadImagesToServer(
+      driverLicenseImages.value,
+      'driver-license'
+    );
 
-    ElMessage.success('导入成功');
-    currentStep.value = 2;
-  } catch (error) {
-    ElMessage.error(`导入失败: ${error}`);
+    // 3. 转换设备明细数据
+    const shippingItems = convertEquipmentDetails();
+
+    // 4. 提取发货时间信息（使用第一条记录）
+    const firstTimeRecord = parsedData.value.shippingTimes[0];
+
+    // 5. 构建导入请求数据
+    const importData: EnhancedShippingImportRequest = {
+      // 基本信息
+      projectId: importConfig.projectId,
+      batchNumber: importConfig.batchNumber,
+      responsiblePersonId: importConfig.responsiblePersonId,
+      shippingDate: firstTimeRecord?.发货时间 || new Date().toISOString().split('T')[0],
+      shippingMethod: 'TRUCK',
+
+      // 车辆信息
+      vehiclePlate: firstTimeRecord?.车牌号,
+      vehicleDescription: firstTimeRecord?.车辆描述,
+      vehicleInfo: firstTimeRecord?.车辆信息,
+
+      // 司机信息
+      driverName: firstTimeRecord?.司机姓名,
+      driverPhone: firstTimeRecord?.司机电话,
+      driverInfo: firstTimeRecord?.司机姓名及电话,
+
+      // 图片URL列表
+      shippingPhotoUrls,
+      driverLicensePhotoUrls,
+
+      // 设备明细
+      shippingItems
+    };
+
+    // 6. 调用增强版导入接口
+    ElMessage.info('正在保存发货清单...');
+    const response = await importEnhancedShippingList(importData);
+
+    if (response.data.success) {
+      ElMessage.success(`导入成功！清单编号：${response.data.listCode || '-'}`);
+      currentStep.value = 2;
+      emit('success', response.data);
+    } else {
+      ElMessage.error(`导入失败: ${response.data.summary || '未知错误'}`);
+      if (response.data.errors && response.data.errors.length > 0) {
+        console.error('导入错误详情:', response.data.errors);
+      }
+    }
+  } catch (error: any) {
+    console.error('导入失败:', error);
+    ElMessage.error(`导入失败: ${error.message || '未知错误'}`);
   } finally {
     importing.value = false;
   }
@@ -816,6 +999,14 @@ onMounted(() => {
         width: 100%;
       }
 
+      .shipping-date-tag {
+        font-size: 15px;
+        font-weight: 600;
+        padding: 8px 16px;
+        display: inline-flex;
+        align-items: center;
+      }
+
       .text-muted {
         color: #909399;
         font-size: 14px;
@@ -902,6 +1093,155 @@ onMounted(() => {
         border-radius: 4px;
       }
     }
+
+    // 司机车辆信息样式
+    .driver-vehicle-section {
+      .driver-info-card {
+        display: flex;
+        gap: 20px;
+        padding: 20px;
+        background: #ecf5ff;
+        border: 1px solid #b3d8ff;
+        border-radius: 8px;
+        margin-bottom: 16px;
+        transition: all 0.3s;
+
+        &:hover {
+          box-shadow: 0 2px 12px rgba(64, 158, 255, 0.2);
+        }
+
+        .info-section {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+
+          .info-row {
+            display: flex;
+            align-items: center;
+
+            .info-label {
+              min-width: 90px;
+              font-weight: 600;
+              color: #606266;
+              font-size: 14px;
+            }
+
+            .info-value {
+              flex: 1;
+              color: #303133;
+              font-size: 14px;
+
+              .license-plate {
+                display: inline-block;
+                padding: 6px 12px;
+                background: #FFD700; // 黄色车牌背景
+                color: #000;         // 黑色字体
+                font-weight: 700;
+                font-size: 16px;
+                font-family: 'Arial Black', 'Microsoft YaHei Bold', sans-serif;
+                letter-spacing: 2px;
+                border: 2px solid #333;
+                border-radius: 4px;
+                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+              }
+            }
+          }
+        }
+
+        .license-section {
+          flex-shrink: 0;
+          width: 300px;
+          display: flex;
+          flex-direction: column;
+          margin-left: 20px;
+
+          .license-title {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 12px;
+            font-weight: 600;
+            font-size: 14px;
+            color: #303133;
+
+            .el-icon {
+              color: #409eff;
+            }
+          }
+
+          .license-upload-empty {
+            .upload-box {
+              width: 300px;
+              height: 188px; // 保持 1.6:1 比例
+              border: 2px dashed #b3d8ff;
+              border-radius: 8px;
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+              justify-content: center;
+              cursor: pointer;
+              transition: all 0.3s;
+              background: rgba(255, 255, 255, 0.7);
+
+              &:hover {
+                border-color: #409eff;
+                background: #fff;
+
+                .upload-icon {
+                  color: #409eff;
+                }
+              }
+
+              .upload-icon {
+                color: #909399;
+                transition: color 0.3s;
+              }
+
+              .upload-text {
+                margin-top: 8px;
+                font-size: 13px;
+                color: #606266;
+              }
+            }
+          }
+
+          .license-image-preview {
+            position: relative;
+            width: 300px;
+            height: 188px;
+            border: 2px solid #409eff;
+            border-radius: 8px;
+            overflow: hidden;
+            background: #fff;
+
+            .license-img {
+              width: 100%;
+              height: 100%;
+              display: block;
+            }
+
+            .license-actions {
+              position: absolute;
+              bottom: 0;
+              left: 0;
+              right: 0;
+              padding: 10px;
+              background: linear-gradient(to top, rgba(0, 0, 0, 0.7) 0%, transparent 100%);
+              display: flex;
+              justify-content: center;
+              gap: 8px;
+              opacity: 0;
+              transition: opacity 0.3s;
+            }
+
+            &:hover .license-actions {
+              opacity: 1;
+            }
+          }
+        }
+      }
+    }
   }
 }
 
@@ -916,6 +1256,21 @@ onMounted(() => {
   .image-gallery {
     grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)) !important;
   }
+
+  .driver-info-card {
+    flex-direction: column !important;
+
+    .license-section {
+      width: 100% !important;
+
+      .upload-box,
+      .license-image-preview {
+        width: 100% !important;
+        max-width: 400px;
+        margin: 0 auto;
+      }
+    }
+  }
 }
 
 @media (max-width: 768px) {
@@ -928,6 +1283,36 @@ onMounted(() => {
 
   .image-gallery {
     grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  .driver-info-card {
+    padding: 16px !important;
+
+    .license-section {
+      .upload-box,
+      .license-image-preview {
+        height: auto !important;
+        aspect-ratio: 1.6 !important; // 保持 1.6:1 比例
+      }
+    }
+  }
+}
+
+@media (max-width: 480px) {
+  .driver-info-card {
+    padding: 12px !important;
+
+    .info-section {
+      .info-row {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+
+        .info-label {
+          min-width: auto;
+        }
+      }
+    }
   }
 }
 </style>
