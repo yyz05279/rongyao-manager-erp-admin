@@ -77,7 +77,7 @@ export class MockShippingService {
    */
   static async listShippingList(query: ShippingListQuery): Promise<ApiResponse<PageResult<ShippingListVO>>> {
     await delay();
-    
+
     try {
       const filteredLists = filterShippingLists(query);
       const result = paginateResults(filteredLists, query.pageNum, query.pageSize);
@@ -92,7 +92,7 @@ export class MockShippingService {
    */
   static async getShippingList(id: string): Promise<ApiResponse<ShippingListVO>> {
     await delay();
-    
+
     try {
       const shippingList = this.shippingLists.find(list => list.id === id);
       if (!shippingList) {
@@ -109,7 +109,7 @@ export class MockShippingService {
    */
   static async addShippingList(data: ShippingListForm): Promise<ApiResponse<string>> {
     await delay();
-    
+
     try {
       const newId = `SL${Date.now()}`;
       const newShippingList: ShippingListVO = {
@@ -134,7 +134,7 @@ export class MockShippingService {
       };
 
       this.shippingLists.unshift(newShippingList);
-      
+
       // 添加初始跟踪记录
       const trackingRecord: ShippingTrackingRecord = {
         id: `TR${Date.now()}`,
@@ -157,7 +157,7 @@ export class MockShippingService {
    */
   static async updateShippingList(id: string, data: ShippingListForm): Promise<ApiResponse<null>> {
     await delay();
-    
+
     try {
       const index = this.shippingLists.findIndex(list => list.id === id);
       if (index === -1) {
@@ -203,26 +203,26 @@ export class MockShippingService {
    */
   static async delShippingList(ids: string[]): Promise<ApiResponse<null>> {
     await delay();
-    
+
     try {
       // 检查是否有已发货的清单
-      const hasShippedList = this.shippingLists.some(list => 
+      const hasShippedList = this.shippingLists.some(list =>
         ids.includes(list.id) && ['shipped', 'delivered', 'completed'].includes(list.status)
       );
-      
+
       if (hasShippedList) {
         return errorResponse('已发货的清单不能删除');
       }
 
       // 删除发货清单
       this.shippingLists = this.shippingLists.filter(list => !ids.includes(list.id));
-      
+
       // 删除相关明细
       this.shippingItems = this.shippingItems.filter(item => !ids.includes(item.shippingListId));
-      
+
       // 删除相关跟踪记录
       this.trackingRecords = this.trackingRecords.filter(record => !ids.includes(record.shippingListId));
-      
+
       // 删除相关附件
       this.attachments = this.attachments.filter(attachment => !ids.includes(attachment.shippingListId));
 
@@ -237,7 +237,7 @@ export class MockShippingService {
    */
   static async updateShippingStatus(id: string, status: ShippingStatus, remarks?: string): Promise<ApiResponse<null>> {
     await delay();
-    
+
     try {
       const index = this.shippingLists.findIndex(list => list.id === id);
       if (index === -1) {
@@ -273,7 +273,7 @@ export class MockShippingService {
    */
   static async getShippingItems(shippingListId: string): Promise<ApiResponse<ShippingItemVO[]>> {
     await delay();
-    
+
     try {
       const items = getShippingItemsByListId(shippingListId);
       return successResponse(items);
@@ -287,7 +287,7 @@ export class MockShippingService {
    */
   static async getProjectSimpleList(): Promise<ApiResponse<Array<{id: string, name: string}>>> {
     await delay();
-    
+
     try {
       return successResponse(mockProjects);
     } catch (error) {
@@ -300,7 +300,7 @@ export class MockShippingService {
    */
   static async getResponsiblePersonList(): Promise<ApiResponse<Array<{id: string, name: string}>>> {
     await delay();
-    
+
     try {
       return successResponse(mockUsers);
     } catch (error) {
@@ -313,7 +313,7 @@ export class MockShippingService {
    */
   static async getShippingStatistics(): Promise<ApiResponse<ShippingStatistics>> {
     await delay();
-    
+
     try {
       // 重新计算统计数据
       const stats: ShippingStatistics = {
@@ -337,7 +337,7 @@ export class MockShippingService {
           standard_parts: this.shippingItems.filter(item => item.equipmentType === 'standard_parts').length
         }
       };
-      
+
       return successResponse(stats);
     } catch (error) {
       return errorResponse('获取统计数据失败');
@@ -349,10 +349,10 @@ export class MockShippingService {
    */
   static async getTrackingRecords(shippingListId: string): Promise<ApiResponse<ShippingTrackingRecord[]>> {
     await delay();
-    
+
     try {
       const records = getTrackingRecordsByListId(shippingListId);
-      return successResponse(records.sort((a, b) => 
+      return successResponse(records.sort((a, b) =>
         new Date(b.operationTime).getTime() - new Date(a.operationTime).getTime()
       ));
     } catch (error) {
@@ -530,3 +530,34 @@ export const createShippingListFromExcel = MockShippingService.createShippingLis
 export const delShippingAttachment = MockShippingService.delShippingAttachment.bind(MockShippingService);
 export const downloadShippingAttachment = MockShippingService.downloadShippingAttachment.bind(MockShippingService);
 export const exportSingleShippingList = MockShippingService.exportSingleShippingList.bind(MockShippingService);
+
+// 增强版导入接口（Mock实现）
+export const importEnhancedShippingList = async (data: any): Promise<any> => {
+  await delay();
+
+  try {
+    // Mock实现：直接返回成功
+    const listCode = generateListCode();
+    const shippingListId = `SL${Date.now()}`;
+
+    console.log('增强版导入（Mock）:', data);
+
+    return {
+      data: {
+        success: true,
+        shippingListId,
+        listCode,
+        summary: `成功导入发货清单，共 ${data.shippingItems?.length || 0} 项设备`,
+        errors: []
+      }
+    };
+  } catch (error) {
+    return {
+      data: {
+        success: false,
+        summary: '导入失败',
+        errors: [String(error)]
+      }
+    };
+  }
+};

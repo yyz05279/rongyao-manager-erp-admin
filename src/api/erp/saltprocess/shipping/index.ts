@@ -15,7 +15,9 @@ import {
   ShippingTrackingRecord,
   ShippingAttachment,
   ShippingExportParams,
-  ShippingItemsExportParams
+  ShippingItemsExportParams,
+  EnhancedShippingListForm,
+  EnhancedShippingItemForm
 } from './types';
 import { ApiResponse, PageResult } from '../types';
 
@@ -319,3 +321,62 @@ export const getResponsiblePersonList = (): AxiosPromise<{ id: string; name: str
 export const getShippingItems = listShippingItems;
 export const getTrackingRecords = getShippingTrackingRecords;
 export const getAttachments = getShippingAttachments;
+
+/**
+ * 增强版发货清单导入接口
+ * 包含车辆、司机、照片等增强信息
+ */
+export interface EnhancedShippingImportRequest {
+  // 基本信息
+  projectId: string;
+  projectName?: string;
+  batchNumber: string;
+  shippingType?: string;
+  shippingLocation?: string;
+  responsiblePerson?: string;
+  responsiblePersonId: number | string;
+  shippingDate: string;
+  expectedDeliveryDate?: string;
+  shippingMethod?: string;
+
+  // 兼容旧版字段
+  vehicleInfo?: string;
+  driverInfo?: string;
+
+  // 增强版字段
+  vehiclePlate?: string;              // 车牌号
+  vehicleDescription?: string;        // 车辆描述
+  driverName?: string;                // 司机姓名
+  driverPhone?: string;               // 司机电话
+  shippingPhotoUrls?: string[];       // 发货照片URL列表
+  driverLicensePhotoUrls?: string[];  // 司机驾照照片URL列表
+
+  remarks?: string;
+
+  // 设备明细
+  shippingItems: EnhancedShippingItemForm[];
+}
+
+/**
+ * 增强版发货清单导入结果
+ */
+export interface EnhancedShippingImportResult {
+  success: boolean;
+  shippingListId?: string;
+  listCode?: string;
+  summary: string;
+  errors?: string[];
+}
+
+/**
+ * 增强版发货清单导入接口
+ */
+export const importEnhancedShippingList = (
+  data: EnhancedShippingImportRequest
+): AxiosPromise<EnhancedShippingImportResult> => {
+  return request({
+    url: '/erp/saltprocess/shipping/import/data',
+    method: 'post',
+    data
+  });
+};

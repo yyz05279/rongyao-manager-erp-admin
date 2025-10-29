@@ -122,6 +122,17 @@ export interface ShippingListForm {
   items: ShippingItemForm[];
 }
 
+// 增强版发货清单表单数据
+export interface EnhancedShippingListForm extends ShippingListForm {
+  // 增强版字段
+  vehiclePlate?: string;              // 车牌号
+  vehicleDescription?: string;        // 车辆描述
+  driverName?: string;                // 司机姓名
+  driverPhone?: string;               // 司机电话
+  shippingPhotoUrls?: string[];       // 发货照片URL列表
+  driverLicensePhotoUrls?: string[];  // 司机驾照照片URL列表
+}
+
 // 发货清单明细表单数据
 export interface ShippingItemForm {
   id?: string;
@@ -141,6 +152,20 @@ export interface ShippingItemForm {
   isHazardous: boolean;
   storageRequirement?: string;
   remarks?: string;
+}
+
+// 增强版发货清单明细表单数据（来自Excel解析）
+export interface EnhancedShippingItemForm {
+  sequenceNo?: number | string;      // 序号
+  equipmentName: string;              // 设备名称（原：名称）
+  subItemName?: string;               // 子项名称（原：分项）
+  quantity: number | string;          // 数量
+  unit: string;                       // 单位
+  weight?: number | string;           // 重量（吨）
+  specification?: string;             // 规格
+  equipmentType?: EquipmentType | string; // 设备类型
+  remarks1?: string;                  // 备注1（Excel中的"备注"列）
+  remarks?: string;                   // 备注2
 }
 
 // 发货统计数据
