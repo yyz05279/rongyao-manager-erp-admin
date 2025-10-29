@@ -160,11 +160,15 @@ export class EnhancedShippingExcelParser {
     const worksheet = this.workbook.Sheets[sheetName];
     if (!worksheet) return [];
 
-    const jsonData = XLSX.utils.sheet_to_json(worksheet, {
+    // 先读取原始数据
+    let jsonData = XLSX.utils.sheet_to_json(worksheet, {
       header: 1,
       defval: '', // 空单元格默认值
       raw: false // 不使用原始值，让xlsx自动处理日期
     }) as any[][];
+
+    // 处理合并单元格
+    jsonData = this.fillMergedCells(worksheet, jsonData);
 
     const records: ShippingTimeRecord[] = [];
 
@@ -235,7 +239,48 @@ export class EnhancedShippingExcelParser {
   }
 
   /**
-   * 解析设备明细sheet
+   * 处理合并单元格，将主单元格的值填充到所有合并区域
+   */
+  private fillMergedCells(worksheet: XLSX.WorkSheet, jsonData: any[][]): any[][] {
+    // 获取合并单元格信息
+    const merges = worksheet['!merges'] || [];
+
+    if (merges.length === 0) {
+      return jsonData; // 没有合并单元格，直接返回
+    }
+
+    // 创建数据副本
+    const filledData = jsonData.map(row => [...(row || [])]);
+
+    // 遍历所有合并单元格区域
+    merges.forEach((merge: XLSX.Range) => {
+      const { s: start, e: end } = merge; // s: start, e: end
+
+      // 获取合并区域左上角单元格的值
+      const masterValue = filledData[start.r]?.[start.c];
+
+      // 如果主单元格有值，填充到整个合并区域
+      if (masterValue !== undefined && masterValue !== null && masterValue !== '') {
+        for (let row = start.r; row <= end.r; row++) {
+          // 确保行存在
+          if (!filledData[row]) {
+            filledData[row] = [];
+          }
+          for (let col = start.c; col <= end.c; col++) {
+            // 只在单元格为空时填充
+            if (!filledData[row][col]) {
+              filledData[row][col] = masterValue;
+            }
+          }
+        }
+      }
+    });
+
+    return filledData;
+  }
+
+  /**
+   * 解析设备明细sheet（支持合并单元格）
    */
   private parseEquipmentDetailSheet(sheetName: string): EquipmentDetailRecord[] {
     if (!this.workbook) return [];
@@ -243,10 +288,14 @@ export class EnhancedShippingExcelParser {
     const worksheet = this.workbook.Sheets[sheetName];
     if (!worksheet) return [];
 
-    const jsonData = XLSX.utils.sheet_to_json(worksheet, {
+    // 先读取原始数据
+    let jsonData = XLSX.utils.sheet_to_json(worksheet, {
       header: 1,
       defval: ''
     }) as any[][];
+
+    // 处理合并单元格
+    jsonData = this.fillMergedCells(worksheet, jsonData);
 
     const records: EquipmentDetailRecord[] = [];
 
@@ -284,8 +333,8 @@ export class EnhancedShippingExcelParser {
         }
       });
 
-      // 如果至少有名称，就添加这条记录
-      if (record['名称']) {
+      // 如果至少有名称或分项，就添加这条记录
+      if (record['名称'] || record['分项']) {
         records.push(record as EquipmentDetailRecord);
       }
     }

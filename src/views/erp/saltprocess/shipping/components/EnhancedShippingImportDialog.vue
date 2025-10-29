@@ -182,7 +182,7 @@
               </div>
             </el-divider>
 
-            <!-- 动态表格：根据实际数据字段生成列 -->
+            <!-- 动态表格：根据实际数据字段生成列，支持合并单元格 -->
             <el-table
               :data="detail.data"
               border
@@ -190,6 +190,7 @@
               size="default"
               max-height="500"
               class="equipment-detail-table"
+              :span-method="(params) => getSpanMethod(params, detail.data)"
             >
               <el-table-column
                 v-for="(column, colIndex) in getTableColumns(detail.data)"
@@ -207,7 +208,7 @@
             </el-table>
           </div>
 
-          <!-- 第四部分：图片展示 -->
+          <!-- 第四部分：发货照片 -->
           <div class="section image-section">
             <el-divider content-position="left">
               <div class="section-title">
@@ -262,6 +263,67 @@
                   <div class="add-image-btn">
                     <el-icon :size="40"><plus /></el-icon>
                     <div class="add-text">添加照片</div>
+                  </div>
+                </el-upload>
+              </div>
+            </div>
+          </div>
+
+          <!-- 第五部分：司机驾照 -->
+          <div class="section license-section">
+            <el-divider content-position="left">
+              <div class="section-title">
+                <el-icon><user /></el-icon>
+                <span>司机驾照</span>
+              </div>
+            </el-divider>
+
+            <div v-if="driverLicenseImages.length === 0" class="no-images">
+              <el-empty description="暂无驾照照片">
+                <el-upload
+                  :auto-upload="false"
+                  :show-file-list="false"
+                  accept="image/*"
+                  multiple
+                  :on-change="handleLicenseUpload"
+                >
+                  <el-button type="success" :icon="Plus">添加驾照照片</el-button>
+                </el-upload>
+              </el-empty>
+            </div>
+
+            <div v-else class="image-gallery">
+              <div v-for="(image, idx) in driverLicenseImages" :key="idx" class="image-item">
+                <el-image
+                  :src="image.url"
+                  :preview-src-list="driverLicenseImages.map(img => img.url)"
+                  :initial-index="idx"
+                  fit="cover"
+                  class="preview-image"
+                />
+                <div class="image-actions">
+                  <el-button
+                    type="danger"
+                    size="small"
+                    :icon="Delete"
+                    circle
+                    @click="removeLicenseImage(idx)"
+                  />
+                </div>
+              </div>
+
+              <!-- 添加更多按钮 -->
+              <div class="image-item add-more">
+                <el-upload
+                  :auto-upload="false"
+                  :show-file-list="false"
+                  accept="image/*"
+                  multiple
+                  :on-change="handleLicenseUpload"
+                >
+                  <div class="add-image-btn">
+                    <el-icon :size="40"><plus /></el-icon>
+                    <div class="add-text">添加驾照</div>
                   </div>
                 </el-upload>
               </div>
@@ -324,7 +386,8 @@ import {
   Box,
   Picture,
   Plus,
-  Setting
+  Setting,
+  User
 } from '@element-plus/icons-vue';
 import {
   EnhancedShippingExcelParser,
@@ -369,8 +432,11 @@ const parsedData = ref<EnhancedShippingParseResult>({
   availableSheets: []
 });
 
-// 上传的图片
+// 上传的发货照片
 const uploadedImages = ref<{ file: File; url: string }[]>([]);
+
+// 上传的司机驾照照片
+const driverLicenseImages = ref<{ file: File; url: string }[]>([]);
 
 // 导入配置
 const importConfig = reactive({
@@ -465,6 +531,17 @@ const removeImage = (index: number) => {
   uploadedImages.value.splice(index, 1);
 };
 
+const handleLicenseUpload = (file: any) => {
+  const imageFile = file.raw;
+  const url = URL.createObjectURL(imageFile);
+  driverLicenseImages.value.push({ file: imageFile, url });
+};
+
+const removeLicenseImage = (index: number) => {
+  URL.revokeObjectURL(driverLicenseImages.value[index].url);
+  driverLicenseImages.value.splice(index, 1);
+};
+
 const nextStep = () => {
   if (currentStep.value < 2) {
     currentStep.value++;
@@ -514,6 +591,7 @@ const handleViewList = () => {
 const handleClose = () => {
   // 清理资源
   uploadedImages.value.forEach(img => URL.revokeObjectURL(img.url));
+  driverLicenseImages.value.forEach(img => URL.revokeObjectURL(img.url));
 
   // 重置状态
   currentStep.value = 0;
@@ -527,6 +605,7 @@ const handleClose = () => {
     availableSheets: []
   };
   uploadedImages.value = [];
+  driverLicenseImages.value = [];
   Object.assign(importConfig, {
     projectId: '',
     responsiblePersonId: '',
@@ -566,6 +645,50 @@ const getColumnAlign = (column: string): string => {
 const formatCellValue = (value: any): string => {
   if (value === null || value === undefined || value === '') return '-';
   return String(value);
+};
+
+/**
+ * 计算表格合并单元格
+ * 合并相同的"名称"、"序号"和"重量"列
+ */
+const getSpanMethod = ({ row, column, rowIndex, columnIndex }: any, data: any[]) => {
+  // 需要合并的列名
+  const mergeColumns = ['序号', '名称', '重量', '重量（吨）', '重量(吨)'];
+
+  const columnName = column.property;
+
+  // 只处理需要合并的列
+  if (!mergeColumns.includes(columnName)) {
+    return { rowspan: 1, colspan: 1 };
+  }
+
+  // 如果当前行的值为空，不合并
+  if (!row[columnName]) {
+    return { rowspan: 1, colspan: 1 };
+  }
+
+  // 计算连续相同值的行数
+  let rowspan = 1;
+  const currentValue = row[columnName];
+
+  // 向下查找相同的值
+  for (let i = rowIndex + 1; i < data.length; i++) {
+    if (data[i][columnName] === currentValue) {
+      rowspan++;
+    } else {
+      break;
+    }
+  }
+
+  // 检查是否是合并区域的第一行
+  const isFirstRow = rowIndex === 0 || data[rowIndex - 1][columnName] !== currentValue;
+
+  if (isFirstRow) {
+    return { rowspan, colspan: 1 };
+  } else {
+    // 不是第一行，隐藏此单元格
+    return { rowspan: 0, colspan: 0 };
+  }
 };
 
 // 初始化数据
