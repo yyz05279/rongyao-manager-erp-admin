@@ -200,9 +200,18 @@
                 :src="url"
                 :preview-src-list="driverLicenseUrls"
                 :initial-index="idx"
+                :preview-teleported="true"
+                :hide-on-click-modal="true"
                 fit="cover"
                 class="preview-image"
-              />
+              >
+                <template #error>
+                  <div class="image-error">
+                    <el-icon :size="40"><CreditCard /></el-icon>
+                    <div>图片加载失败</div>
+                  </div>
+                </template>
+              </el-image>
             </div>
           </div>
         </div>
@@ -447,13 +456,21 @@
               :src="url"
               :preview-src-list="shippingPhotoUrls"
               :initial-index="idx"
+              :preview-teleported="true"
+              :hide-on-click-modal="true"
               fit="cover"
               class="preview-image"
+              lazy
             >
               <template #error>
                 <div class="image-error">
                   <el-icon :size="40"><Picture /></el-icon>
-                  <div>加载失败</div>
+                  <div>图片加载失败</div>
+                </div>
+              </template>
+              <template #placeholder>
+                <div class="image-loading">
+                  <el-icon class="is-loading"><Loading /></el-icon>
                 </div>
               </template>
             </el-image>
@@ -480,7 +497,7 @@ import { ref, reactive, onMounted, computed, getCurrentInstance } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import type { ComponentInternalInstance } from 'vue';
-import { Location, Document, Picture, Phone, User, Van, CreditCard } from '@element-plus/icons-vue';
+import { Location, Document, Picture, Phone, User, Van, CreditCard, Loading } from '@element-plus/icons-vue';
 // 根据环境配置自动选择API
 import {
   getShippingList,
@@ -576,6 +593,11 @@ const getShippingDetail = async () => {
     // 打印生成的完整URL，方便调试
     console.log('📷 发货照片URL:', shippingPhotoUrls.value);
     console.log('📄 驾照照片URL:', driverLicenseUrls.value);
+    
+    // 验证URL是否可访问
+    if (driverLicenseUrls.value.length > 0) {
+      console.log('🔍 驾照照片第一张URL:', driverLicenseUrls.value[0]);
+    }
     
   } catch (error) {
     console.error('❌ 获取发货清单详情失败:', error);
@@ -947,6 +969,19 @@ onMounted(() => {
           div {
             margin-top: 8px;
             font-size: 14px;
+          }
+        }
+
+        .image-loading {
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          height: 100%;
+          background: #f5f7fa;
+
+          .el-icon {
+            font-size: 32px;
+            color: #409eff;
           }
         }
 
