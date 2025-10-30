@@ -85,7 +85,15 @@
               <el-row :gutter="20">
                 <el-col :span="8">
                   <el-form-item label="项目" required>
-                    <el-select v-model="importConfig.projectId" placeholder="请选择项目" filterable style="width: 100%">
+                    <el-select
+                      v-model="importConfig.projectId"
+                      placeholder="请选择项目"
+                      filterable
+                      style="width: 100%"
+                      @change="handleProjectChange"
+                      @focus="() => console.log('✅ 项目选择器获得焦点')"
+                      @blur="() => console.log('✅ 项目选择器失去焦点')"
+                    >
                       <el-option
                         v-for="project in projectList"
                         :key="project.id"
@@ -399,11 +407,50 @@
       </div>
     </template>
   </el-dialog>
+
+  <!-- 批次已存在提示对话框 -->
+  <el-dialog
+    v-model="batchExistsDialogVisible"
+    title="批次已存在"
+    width="500px"
+    :close-on-click-modal="false"
+    @close="handleBatchExistsDialogClose"
+  >
+    <el-alert
+      type="warning"
+      :closable="false"
+      show-icon
+    >
+      <template #title>
+        <span style="font-size: 16px; font-weight: bold;">
+          该项目的批次"{{ importConfig.batchNumber }}"已存在发货清单
+        </span>
+      </template>
+    </el-alert>
+
+    <div style="margin-top: 20px; padding: 15px; background: #f5f7fa; border-radius: 4px;">
+      <p style="margin: 0; color: #606266;">
+        继续导入将会覆盖或重复创建数据，建议先查看已存在的清单详情。
+      </p>
+    </div>
+
+    <template #footer>
+      <span class="dialog-footer">
+        <el-button @click="batchExistsDialogVisible = false">
+          关闭
+        </el-button>
+        <el-button type="primary" @click="handleViewExistingBatch">
+          查看清单详情
+        </el-button>
+      </span>
+    </template>
+  </el-dialog>
 </template>
 
 <script setup name="EnhancedShippingImportDialog" lang="ts">
-import { ref, reactive, computed, onMounted } from 'vue';
+import { ref, reactive, computed, onMounted, nextTick } from 'vue';
 import { ElMessage } from 'element-plus';
+import { useRouter } from 'vue-router';
 import {
   UploadFilled,
   Document,
@@ -422,6 +469,7 @@ import {
   getProjectSimpleList,
   getResponsiblePersonList,
   importEnhancedShippingList,
+  checkBatchExists,
   type EnhancedShippingImportRequest
 } from '@/api/erp/saltprocess/shipping/api-config';
 import type { EnhancedShippingItemForm } from '@/api/erp/saltprocess/shipping/types';
@@ -436,10 +484,14 @@ interface Props {
 interface Emits {
   (e: 'update:visible', value: boolean): void;
   (e: 'success', listId?: string): void;
+  (e: 'view-existing-batch', data: { projectId: string; batchNumber: string }): void;
 }
 
 const props = defineProps<Props>();
 const emit = defineEmits<Emits>();
+
+// Router
+const router = useRouter();
 
 // 响应式数据
 const dialogVisible = computed({
@@ -475,6 +527,14 @@ const licenseUploadRef = ref();
 const importConfig = reactive({
   projectId: '',
   responsiblePersonId: '',
+  batchNumber: ''
+});
+
+// 批次已存在对话框
+const batchExistsDialogVisible = ref(false);
+const existingShippingListId = ref('');
+const existingBatchInfo = reactive({
+  projectId: '',
   batchNumber: ''
 });
 
@@ -551,6 +611,87 @@ const removeFile = () => {
     images: [],
     availableSheets: []
   };
+};
+
+// 项目选择后检查批次是否存在
+const handleProjectChange = async (projectId: string) => {
+  console.log('=== handleProjectChange 被调用 ===');
+  console.log('传入的 projectId:', projectId);
+  console.log('当前的 batchNumber:', importConfig.batchNumber);
+  console.log('importConfig 完整对象:', JSON.stringify(importConfig));
+
+  if (!projectId) {
+    console.log('❌ 项目ID为空，跳过检查');
+    return;
+  }
+
+  if (!importConfig.batchNumber) {
+    console.log('⚠️ 批次号为空，跳过检查（可能还未解析Excel）');
+    return;
+  }
+
+  console.log('✅ 开始检查批次是否存在', { 
+    projectId, 
+    batchNumber: importConfig.batchNumber 
+  });
+
+  try {
+    // 调用批次检查接口
+    console.log('正在调用 checkBatchExists 接口...');
+    const response = await checkBatchExists(projectId, importConfig.batchNumber);
+    console.log('📦 接口返回完整响应:', response);
+    console.log('📊 批次检查结果 (response.data):', response.data);
+    console.log('📊 response.data的类型:', typeof response.data);
+
+    // 后端返回 boolean 值：true-已存在，false-不存在
+    const exists = response.data === true || response.data === 'true';
+    
+    if (exists) {
+      // 批次已存在，显示提示对话框
+      console.log('⚠️ 批次已存在，显示对话框');
+      
+      // 保存批次信息，用于跳转详情页
+      existingBatchInfo.projectId = projectId;
+      existingBatchInfo.batchNumber = importConfig.batchNumber.trim();  // 去除首尾空格
+      console.log('✅ 保存批次信息:', existingBatchInfo);
+      
+      batchExistsDialogVisible.value = true;
+    } else {
+      // 批次不存在，可以继续导入
+      console.log('✅ 批次不存在，可以导入');
+      ElMessage.success('批次检查通过，可以导入');
+    }
+  } catch (error) {
+    console.error('❌ 检查批次失败:', error);
+    ElMessage.error('检查批次失败，请重试');
+  }
+};
+
+// 查看已存在的清单详情
+const handleViewExistingBatch = () => {
+  console.log('✅ 查看清单详情，触发事件给父组件处理', existingBatchInfo);
+
+  // 关闭批次对话框
+  batchExistsDialogVisible.value = false;
+  
+  // 关闭主对话框
+  emit('update:visible', false);
+  
+  // 触发事件，让父组件（列表页）处理跳转
+  emit('view-existing-batch', {
+    projectId: existingBatchInfo.projectId,
+    batchNumber: existingBatchInfo.batchNumber
+  });
+  
+  console.log('✅ 已触发 view-existing-batch 事件');
+};
+
+// 批次已存在对话框关闭时的处理
+const handleBatchExistsDialogClose = () => {
+  // 关闭批次已存在对话框
+  batchExistsDialogVisible.value = false;
+  // 同时关闭Excel导入弹窗
+  handleClose();
 };
 
 const handleImageUpload = (file: any) => {
