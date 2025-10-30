@@ -306,6 +306,25 @@ export const getResponsiblePersonList = (): AxiosPromise<{ id: string; name: str
   });
 };
 
+/**
+ * 检查批次是否已存在
+ * 在添加发货清单前调用，避免重复创建
+ *
+ * @param projectId 项目ID
+ * @param batchNumber 批次号（如：第一车、第二车）
+ * @returns true-已存在，false-不存在
+ */
+export const checkBatchExists = (projectId: string | number, batchNumber: string): AxiosPromise<boolean> => {
+  return request({
+    url: '/erp/saltprocess/shipping/check-batch-exists',
+    method: 'get',
+    params: {
+      projectId,
+      batchNumber
+    }
+  });
+};
+
 // 为了与Mock API保持一致，添加函数别名
 export const getShippingItems = listShippingItems;
 export const getTrackingRecords = getShippingTrackingRecords;

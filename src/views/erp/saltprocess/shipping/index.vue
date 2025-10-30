@@ -324,6 +324,7 @@
       v-if="importDialog.visible"
       v-model:visible="importDialog.visible"
       @success="handleImportSuccess"
+      @view-existing-batch="handleViewExistingBatch"
     />
 
     <!-- 导出参数选择对话框 -->
@@ -669,6 +670,54 @@ const handleImportSuccess = (id?: string) => {
   if (id) {
     // 可以选择跳转到详情页面
     // router.push(`/saltprocess/shipping/detail/${id}`);
+  }
+};
+
+// 查看已存在的批次（从导入对话框触发）
+const handleViewExistingBatch = async (data: { projectId: string; batchNumber: string }) => {
+  console.log('✅ 列表页收到查看批次事件:', data);
+  
+  try {
+    // 查询该项目和批次的发货清单
+    const response = await listShippingList({
+      projectId: data.projectId,
+      batchNumber: data.batchNumber,
+      pageNum: 1,
+      pageSize: 1
+    });
+    
+    console.log('✅ 查询到的清单:', response);
+    
+    if (response.data && response.data.rows && response.data.rows.length > 0) {
+      // 找到了清单，跳转到详情页
+      const shippingList = response.data.rows[0];
+      console.log('✅ 跳转到清单详情:', shippingList.id);
+      
+      router.push(`/saltprocess/shipping/detail/${shippingList.id}`);
+      
+      ElMessage.success(`正在查看批次"${data.batchNumber}"的发货清单详情`);
+    } else {
+      // 没找到清单，提示用户并显示过滤后的列表
+      console.log('⚠️ 未找到匹配的清单，显示列表页');
+      
+      queryParams.projectId = data.projectId;
+      queryParams.batchNumber = data.batchNumber;
+      
+      router.replace({
+        path: '/saltprocess/shipping',
+        query: {
+          projectId: data.projectId,
+          batchNumber: data.batchNumber
+        }
+      });
+      
+      getList();
+      
+      ElMessage.warning(`未找到批次"${data.batchNumber}"的清单，请检查数据`);
+    }
+  } catch (error) {
+    console.error('❌ 查询清单失败:', error);
+    ElMessage.error('查询发货清单失败');
   }
 };
 

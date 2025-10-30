@@ -32,6 +32,7 @@ export const delShippingAttachment = apiImplementation.delShippingAttachment;
 export const downloadShippingAttachment = apiImplementation.downloadShippingAttachment;
 export const exportSingleShippingList = apiImplementation.exportSingleShippingList;
 export const importEnhancedShippingList = apiImplementation.importEnhancedShippingList;
+export const checkBatchExists = apiImplementation.checkBatchExists;
 
 // 导出类型
 export type { EnhancedShippingImportRequest, EnhancedShippingImportResult } from './index';
