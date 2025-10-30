@@ -2,7 +2,7 @@
  * 发货清单数据解析工具
  * 用于解析和标准化后端返回的发货清单数据
  */
-import { ShippingListVO, ShippingItemVO } from './types';
+import { ShippingListVO, ShippingItemVO, SubsystemWeight } from './types';
 
 /**
  * 后端分页响应格式
@@ -141,6 +141,9 @@ export function parseShippingListVO(data: any): ShippingListVO {
 
     // 备注
     remarks: data.remarks || null,
+
+    // 子系统重量映射数组
+    subsystemWeights: parseSubsystemWeights(data.subsystemWeights),
 
     // 审计字段
     tenantId: data.tenantId,
@@ -526,4 +529,56 @@ export function getFullPhotoUrls(photoPaths: string[], baseUrl?: string): string
   }
 
   return photoPaths.map((path) => getFullPhotoUrl(path, baseUrl)).filter(Boolean);
+}
+
+/**
+ * 解析子系统重量数组
+ *
+ * @param data 后端返回的子系统重量数据（可能是字符串或数组）
+ * @returns 标准化的子系统重量数组
+ *
+ * @example
+ * ```typescript
+ * // 后端返回JSON字符串
+ * parseSubsystemWeights('[{"subsystem":"固态处理厂-机械","weight":14.5}]');
+ * // 返回: [{ subsystem: "固态处理厂-机械", weight: 14.5, remarks: undefined }]
+ *
+ * // 后端直接返回数组
+ * parseSubsystemWeights([{ subsystem: "液态处理厂", weight: 3.2 }]);
+ * // 返回: [{ subsystem: "液态处理厂", weight: 3.2, remarks: undefined }]
+ * ```
+ */
+export function parseSubsystemWeights(data: any): SubsystemWeight[] {
+  // 如果数据为空，返回空数组
+  if (!data) {
+    return [];
+  }
+
+  // 如果已经是数组，直接返回
+  if (Array.isArray(data)) {
+    return data.map((item) => ({
+      subsystem: item.subsystem || '',
+      weight: typeof item.weight === 'string' ? parseFloat(item.weight) : item.weight || 0,
+      remarks: item.remarks || undefined
+    }));
+  }
+
+  // 如果是JSON字符串，解析后返回
+  if (typeof data === 'string') {
+    try {
+      const parsed = JSON.parse(data);
+      if (Array.isArray(parsed)) {
+        return parsed.map((item) => ({
+          subsystem: item.subsystem || '',
+          weight: typeof item.weight === 'string' ? parseFloat(item.weight) : item.weight || 0,
+          remarks: item.remarks || undefined
+        }));
+      }
+    } catch (error) {
+      console.error('解析子系统重量JSON失败:', error);
+      return [];
+    }
+  }
+
+  return [];
 }

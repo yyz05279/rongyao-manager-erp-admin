@@ -67,7 +67,7 @@
             </el-tag>
           </div>
         </template>
-        
+
         <el-row :gutter="24">
           <el-col :span="8">
             <div class="info-item">
@@ -222,7 +222,7 @@
         <template #header>
           <span class="card-title">统计信息</span>
         </template>
-        
+
         <el-row :gutter="24">
           <el-col :span="6">
             <el-statistic
@@ -255,13 +255,59 @@
             />
           </el-col>
         </el-row>
-        
-        <!-- 子系统列表 -->
-        <div v-if="subsystemList.length > 0" class="subsystem-list">
+
+        <!-- 子系统列表（优化版：优先展示重量数据，否则显示标签列表） -->
+        <div v-if="mergedSubsystemWeights.length > 0 || subsystemList.length > 0" class="subsystem-section">
           <el-divider content-position="left">
-            <span class="subsystem-title">子系统列表</span>
+            <div class="section-title-with-icon">
+              <el-icon><Box /></el-icon>
+              <span class="subsystem-title">子系统列表</span>
+              <el-tag type="info" size="small">
+                {{ mergedSubsystemWeights.length > 0 ? mergedSubsystemWeights.length : subsystemList.length }} 个子系统
+              </el-tag>
+            </div>
           </el-divider>
-          <div class="subsystem-tags">
+
+          <!-- 有重量数据时：显示表格 -->
+          <el-table
+            v-if="mergedSubsystemWeights.length > 0"
+            :data="mergedSubsystemWeights"
+            border
+            stripe
+            size="default"
+            class="subsystem-weights-table"
+          >
+            <el-table-column label="序号" type="index" width="80" align="center" />
+            <el-table-column label="子系统名称" min-width="200" align="left">
+              <template #default="{ row }">
+                <div class="subsystem-names">
+                  <el-tag
+                    v-for="(name, idx) in row.subsystems"
+                    :key="idx"
+                    type="info"
+                    size="default"
+                    effect="plain"
+                    class="subsystem-tag"
+                  >
+                    {{ name }}
+                  </el-tag>
+                </div>
+              </template>
+            </el-table-column>
+            <el-table-column label="重量（吨）" width="150" align="center">
+              <template #default="{ row }">
+                <span class="weight-value">{{ row.weight.toFixed(2) }}</span>
+              </template>
+            </el-table-column>
+            <el-table-column label="备注" min-width="200" align="left">
+              <template #default="{ row }">
+                <span class="remarks-text">{{ row.remarks || '-' }}</span>
+              </template>
+            </el-table-column>
+          </el-table>
+
+          <!-- 无重量数据时：显示标签列表 -->
+          <div v-else class="subsystem-tags">
             <el-tag
               v-for="(subsystem, index) in subsystemList"
               :key="index"
@@ -282,7 +328,7 @@
             <span class="card-title">发货明细</span>
           </div>
         </template>
-        
+
         <!-- 按设备类型分组展示 -->
         <div
           v-for="(group, index) in groupedShippingItems"
@@ -349,7 +395,7 @@
             </el-button>
           </div>
         </template>
-        
+
         <el-timeline>
           <el-timeline-item
             v-for="record in trackingRecords"
@@ -389,7 +435,7 @@
             </div>
           </div>
         </template>
-        
+
         <div v-if="shippingPhotoUrls.length === 0" class="no-images">
           <el-empty description="暂无发货照片" />
         </div>
@@ -448,7 +494,8 @@ import type {
   ShippingItemVO,
   ShippingTrackingRecord,
   ShippingStatus,
-  EquipmentType
+  EquipmentType,
+  SubsystemWeight
 } from '@/api/erp/saltprocess/shipping/types';
 
 const route = useRoute();
@@ -460,6 +507,49 @@ const loading = ref(true);
 const shippingDetail = ref<ShippingListVO>({} as ShippingListVO);
 const shippingItems = ref<ShippingItemVO[]>([]);
 const trackingRecords = ref<ShippingTrackingRecord[]>([]);
+
+// 计算属性 - 合并相同重量的子系统
+const mergedSubsystemWeights = computed(() => {
+  const subsystemWeights = shippingDetail.value.subsystemWeights;
+  if (!subsystemWeights || subsystemWeights.length === 0) {
+    return [];
+  }
+
+  // 按重量分组，合并相同重量的子系统
+  const weightGroups = new Map<number, {
+    subsystems: string[];
+    weight: number;
+    remarks: string[];
+  }>();
+
+  subsystemWeights.forEach(sw => {
+    const weight = typeof sw.weight === 'string' ? parseFloat(sw.weight) : sw.weight;
+
+    if (!weightGroups.has(weight)) {
+      weightGroups.set(weight, {
+        subsystems: [],
+        weight,
+        remarks: []
+      });
+    }
+
+    const group = weightGroups.get(weight)!;
+    group.subsystems.push(sw.subsystem);
+
+    if (sw.remarks && !group.remarks.includes(sw.remarks)) {
+      group.remarks.push(sw.remarks);
+    }
+  });
+
+  // 转换为数组格式，按重量降序排序
+  return Array.from(weightGroups.values())
+    .map(group => ({
+      subsystems: group.subsystems,
+      weight: group.weight,
+      remarks: group.remarks.join('; ')
+    }))
+    .sort((a, b) => b.weight - a.weight);
+});
 
 // 计算属性 - 子系统数量
 const subsystemCount = computed(() => {
@@ -497,11 +587,11 @@ const groupedShippingItems = computed(() => {
 
   // 按设备名称前缀分组
   const groups = new Map<string, ShippingItemVO[]>();
-  
+
   shippingItems.value.forEach(item => {
     // 提取设备名称的前缀（如：平面输送机-输送主体 → 平面输送机）
     const groupName = extractGroupName(item.itemName);
-    
+
     if (!groups.has(groupName)) {
       groups.set(groupName, []);
     }
@@ -524,19 +614,19 @@ const groupedShippingItems = computed(() => {
  */
 const extractGroupName = (itemName: string): string => {
   if (!itemName) return '其他';
-  
+
   // 按"-"分割，取第一部分作为分组名称
   const parts = itemName.split('-');
   if (parts.length > 1) {
     return parts[0].trim();
   }
-  
+
   // 如果没有"-"，尝试其他分隔符
   const otherParts = itemName.split(/[_|、]/).filter(p => p.trim());
   if (otherParts.length > 1) {
     return otherParts[0].trim();
   }
-  
+
   // 如果都没有分隔符，返回原名称
   return itemName.trim();
 };
@@ -545,23 +635,23 @@ const extractGroupName = (itemName: string): string => {
 const getShippingDetail = async () => {
   const id = route.params.id as string;
   if (!id) return;
-  
+
   loading.value = true;
   try {
     // 🔥 后端详情接口已经返回所有数据（items、trackingRecords、attachments）
     // 不需要再单独调用其他接口
     const response = await getShippingList(id);
-    
+
     // 🔥 使用解析工具处理后端数据
     const parsedData = parseShippingListVO(response.data);
-    
+
     // 设置详情数据
     shippingDetail.value = parsedData;
-    
+
     // 从详情数据中提取关联数据
     shippingItems.value = parsedData.items || [];
     trackingRecords.value = parsedData.trackingRecords || [];
-    
+
     console.log('✅ 发货清单详情加载成功:', {
       清单编号: parsedData.listCode,
       项目名称: parsedData.projectName,
@@ -574,16 +664,16 @@ const getShippingDetail = async () => {
       驾照照片数量: parsedData.driverLicensePhotoUrls?.length || 0,
       驾照照片路径: parsedData.driverLicensePhotoUrls
     });
-    
+
     // 打印生成的完整URL，方便调试
     console.log('📷 发货照片URL:', shippingPhotoUrls.value);
     console.log('📄 驾照照片URL:', driverLicenseUrls.value);
-    
+
     // 验证URL是否可访问
     if (driverLicenseUrls.value.length > 0) {
       console.log('🔍 驾照照片第一张URL:', driverLicenseUrls.value[0]);
     }
-    
+
   } catch (error) {
     console.error('❌ 获取发货清单详情失败:', error);
     ElMessage.error('获取发货清单详情失败');
@@ -698,25 +788,25 @@ const getDetailTableColumns = (items: ShippingItemVO[]): TableColumn[] => {
     { label: '序号', prop: 'index', width: 80, align: 'center' },
     { label: '物品名称', prop: 'itemName', width: 200, align: 'left' },
     { label: '规格型号', prop: 'specification', width: 150, align: 'left' },
-    { 
-      label: '数量', 
-      prop: 'quantity', 
-      width: 100, 
+    {
+      label: '数量',
+      prop: 'quantity',
+      width: 100,
       align: 'center',
       formatter: (value) => value || '-'
     },
     { label: '单位', prop: 'unit', width: 80, align: 'center' },
-    { 
-      label: '单重(kg)', 
-      prop: 'unitWeight', 
-      width: 120, 
+    {
+      label: '单重(kg)',
+      prop: 'unitWeight',
+      width: 120,
       align: 'center',
       formatter: (value) => value ? Number(value).toFixed(2) : '-'
     },
-    { 
-      label: '总重(kg)', 
-      prop: 'totalWeight', 
-      width: 120, 
+    {
+      label: '总重(kg)',
+      prop: 'totalWeight',
+      width: 120,
       align: 'center',
       formatter: (value) => value ? Number(value).toFixed(2) : '-'
     },
@@ -798,8 +888,8 @@ onMounted(() => {
       }
     }
 
-    // 子系统列表样式
-    .subsystem-list {
+    // 子系统列表统一样式
+    .subsystem-section {
       margin-top: 24px;
       padding-top: 20px;
       border-top: 1px solid #e4e7ed;
@@ -810,6 +900,47 @@ onMounted(() => {
         color: #606266;
       }
 
+      // 表格样式（有重量数据时）
+      .subsystem-weights-table {
+        margin-top: 16px;
+        border-radius: 4px;
+        overflow: hidden;
+
+        :deep(.el-table__header-wrapper) {
+          th {
+            background-color: #f5f7fa;
+            color: #606266;
+            font-weight: 600;
+          }
+        }
+
+        .subsystem-names {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+          padding: 4px 0;
+
+          .subsystem-tag {
+            font-size: 13px;
+            font-weight: 500;
+            border-radius: 4px;
+          }
+        }
+
+        .weight-value {
+          font-size: 16px;
+          font-weight: 600;
+          color: #409eff;
+        }
+
+        .remarks-text {
+          color: #606266;
+          font-size: 13px;
+          line-height: 1.5;
+        }
+      }
+
+      // 标签列表样式（无重量数据时）
       .subsystem-tags {
         display: flex;
         flex-wrap: wrap;
@@ -822,7 +953,7 @@ onMounted(() => {
           font-weight: 500;
           border-radius: 6px;
           cursor: default;
-          
+
           &:hover {
             opacity: 0.8;
           }
