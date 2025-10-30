@@ -75,8 +75,11 @@ export const extractEquipmentTypeFromTitle = (title: string): EquipmentType | un
 
 /**
  * 从Excel第二行提取子系统信息
- * 例如：从 "固态处理厂" 中提取子系统名称
- *
+ * 例如：
+ * - "固态处理厂" → "固态处理厂"
+ * - "一、固态处理厂" → "固态处理厂"
+ * - "1、固态处理厂" → "固态处理厂"
+ * 
  * @param row Excel第二行的数据对象或字符串
  * @returns 子系统名称或undefined
  */
@@ -85,10 +88,10 @@ export const extractSubsystemFromSecondRow = (row: any): string | undefined => {
     return undefined;
   }
 
-  // 如果是字符串，直接返回
+  // 如果是字符串，清理前缀后返回
   if (typeof row === 'string') {
-    const trimmed = row.trim();
-    return trimmed || undefined;
+    const cleaned = cleanSubsystemPrefix(row.trim());
+    return cleaned || undefined;
   }
 
   // 如果是对象，尝试从常见的字段中提取
@@ -110,7 +113,7 @@ export const extractSubsystemFromSecondRow = (row: any): string | undefined => {
     if (row[field]) {
       const value = String(row[field]).trim();
       if (value) {
-        return value;
+        return cleanSubsystemPrefix(value);
       }
     }
   }
@@ -121,12 +124,47 @@ export const extractSubsystemFromSecondRow = (row: any): string | undefined => {
     if (value) {
       const strValue = String(value).trim();
       if (strValue && !isNumericOrEmpty(strValue)) {
-        return strValue;
+        return cleanSubsystemPrefix(strValue);
       }
     }
   }
 
   return undefined;
+};
+
+/**
+ * 清理子系统名称前缀
+ * 例如：
+ * - "一、固态处理厂" → "固态处理厂"
+ * - "1、固态处理厂" → "固态处理厂"
+ * - "（一）固态处理厂" → "固态处理厂"
+ * 
+ * @param text 原始文本
+ * @returns 清理后的文本
+ */
+const cleanSubsystemPrefix = (text: string): string => {
+  if (!text) {
+    return '';
+  }
+
+  // 匹配常见的前缀格式：
+  // 1. 中文数字 + 顿号：一、二、三、
+  // 2. 阿拉伯数字 + 顿号：1、2、3、
+  // 3. 括号中的数字：（一）、(1)、【1】
+  // 4. 英文字母：A、B、a)、b)
+  const prefixPatterns = [
+    /^[一二三四五六七八九十]+[、，]/,           // 一、
+    /^[0-9]+[、，]/,                              // 1、
+    /^[（(【\[][\u4e00-\u9fa5\w]+[)）】\]]/,     // （一）、(1)、【A】
+    /^[a-zA-Z]+[、，.。)）]/                      // A、a)
+  ];
+
+  let cleaned = text;
+  for (const pattern of prefixPatterns) {
+    cleaned = cleaned.replace(pattern, '');
+  }
+
+  return cleaned.trim();
 };
 
 /**
@@ -177,7 +215,7 @@ export const assignEquipmentTypes = <T extends { equipmentType?: EquipmentType |
 /**
  * 批量分配子系统信息
  * 用于处理明细数据，如果明细中没有指定子系统，使用主表级别的子系统
- *
+ * 
  * @param items 设备明细列表
  * @param defaultSubsystem 默认子系统（从第二行提取）
  * @returns 添加了子系统的明细列表
@@ -189,10 +227,32 @@ export const assignSubsystems = <T extends { subsystem?: string }>(
   if (!defaultSubsystem) {
     return items;
   }
-
+  
   return items.map(item => ({
     ...item,
     subsystem: item.subsystem || defaultSubsystem
+  }));
+};
+
+/**
+ * 批量分配发货类型信息
+ * 用于处理明细数据，如果明细中没有指定发货类型，使用主表级别的发货类型
+ * 
+ * @param items 设备明细列表
+ * @param defaultShippingType 默认发货类型（从标题提取）
+ * @returns 添加了发货类型的明细列表
+ */
+export const assignShippingTypes = <T extends { shippingType?: string }>(
+  items: T[],
+  defaultShippingType?: string
+): T[] => {
+  if (!defaultShippingType) {
+    return items;
+  }
+  
+  return items.map(item => ({
+    ...item,
+    shippingType: item.shippingType || defaultShippingType
   }));
 };
 

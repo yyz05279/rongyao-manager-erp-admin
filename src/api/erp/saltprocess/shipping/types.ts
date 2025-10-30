@@ -163,6 +163,7 @@ export interface EnhancedShippingItemForm {
   unit: string;                       // 单位
   weight?: number | string;           // 重量（吨）
   specification?: string;             // 规格
+  shippingType?: string;              // 发货类型（如：机械、电控）
   equipmentType?: EquipmentType | string; // 设备类型（MECHANICAL/ELECTRICAL/PIPELINE等）
   subsystem?: string;                 // 子系统/所属系统（如：固态处理厂）
   sheetName?: string;                 // Sheet标签名称（如：第一批设备）
