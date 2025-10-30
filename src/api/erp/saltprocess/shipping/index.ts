@@ -17,7 +17,8 @@ import {
   ShippingExportParams,
   ShippingItemsExportParams,
   EnhancedShippingListForm,
-  EnhancedShippingItemForm
+  EnhancedShippingItemForm,
+  SubsystemWeight
 } from './types';
 import { ApiResponse, PageResult } from '../types';
 
@@ -363,6 +364,11 @@ export interface EnhancedShippingImportRequest {
   driverLicensePhotoUrls?: string[]; // 司机驾照照片URL列表
 
   remarks?: string;
+
+  // 子系统重量映射数组（推荐方案）
+  // 用于处理多个明细项共享同一重量的场景，避免重复计算
+  // 示例：[{ subsystem: "固态处理厂-机械", weight: 14.5, remarks: "平面输送机+粉碎机总重" }]
+  subsystemWeights?: SubsystemWeight[];
 
   // 设备明细
   shippingItems: EnhancedShippingItemForm[];
