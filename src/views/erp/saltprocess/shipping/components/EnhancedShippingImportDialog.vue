@@ -586,6 +586,9 @@ const handleFileChange = async (file: any) => {
       if (parsedData.value.equipmentDetails.length > 0 && !importConfig.batchNumber) {
         importConfig.batchNumber = parsedData.value.equipmentDetails[0].sheetName;
       }
+
+      // 📊 立即提取并输出子系统重量数组
+      previewSubsystemWeights();
     } else {
       ElMessage.error(parsedData.value.message);
     }
@@ -630,9 +633,9 @@ const handleProjectChange = async (projectId: string) => {
     return;
   }
 
-  console.log('✅ 开始检查批次是否存在', { 
-    projectId, 
-    batchNumber: importConfig.batchNumber 
+  console.log('✅ 开始检查批次是否存在', {
+    projectId,
+    batchNumber: importConfig.batchNumber
   });
 
   try {
@@ -645,16 +648,16 @@ const handleProjectChange = async (projectId: string) => {
 
     // 后端返回 boolean 值：true-已存在，false-不存在
     const exists = response.data === true || response.data === 'true';
-    
+
     if (exists) {
       // 批次已存在，显示提示对话框
       console.log('⚠️ 批次已存在，显示对话框');
-      
+
       // 保存批次信息，用于跳转详情页
       existingBatchInfo.projectId = projectId;
       existingBatchInfo.batchNumber = importConfig.batchNumber.trim();  // 去除首尾空格
       console.log('✅ 保存批次信息:', existingBatchInfo);
-      
+
       batchExistsDialogVisible.value = true;
     } else {
       // 批次不存在，可以继续导入
@@ -673,16 +676,16 @@ const handleViewExistingBatch = () => {
 
   // 关闭批次对话框
   batchExistsDialogVisible.value = false;
-  
+
   // 关闭主对话框
   emit('update:visible', false);
-  
+
   // 触发事件，让父组件（列表页）处理跳转
   emit('view-existing-batch', {
     projectId: existingBatchInfo.projectId,
     batchNumber: existingBatchInfo.batchNumber
   });
-  
+
   console.log('✅ 已触发 view-existing-batch 事件');
 };
 
@@ -786,32 +789,202 @@ const uploadImagesToServer = async (
 };
 
 /**
+ * Excel解析完成后，立即预览子系统重量数组
+ */
+const previewSubsystemWeights = () => {
+  console.log('\n');
+  console.log('='.repeat(80));
+  console.log('📊 Excel 解析完成 - 子系统重量预览');
+  console.log('='.repeat(80));
+
+  // 提取子系统重量
+  const subsystemWeights = extractSubsystemWeights();
+
+  if (subsystemWeights.length === 0) {
+    console.warn('⚠️  未检测到任何子系统重量数据');
+    console.log('可能原因：');
+    console.log('  1. Excel中没有填写重量数据');
+    console.log('  2. 重量列名称不匹配（应为：重量、重量（吨）、重量(吨)、重量吨）');
+    console.log('='.repeat(80));
+    return;
+  }
+
+  // 计算总重量
+  const totalWeight = subsystemWeights.reduce((sum, sw) => sum + sw.weight, 0);
+
+  console.log(`\n✅ 检测到 ${subsystemWeights.length} 个子系统`);
+  console.log(`📦 总重量: ${totalWeight.toFixed(2)} 吨\n`);
+
+  // 格式化输出JSON
+  console.log('📋 子系统重量数组（完整JSON）:');
+  console.log(JSON.stringify(subsystemWeights, null, 2));
+
+  // 表格展示
+  console.log('\n📊 子系统重量明细表:');
+  console.table(subsystemWeights.map((sw, index) => ({
+    序号: index + 1,
+    子系统: sw.subsystem,
+    重量: sw.weight + '吨',
+    备注: sw.remarks || '-'
+  })));
+
+  // 提示信息
+  console.log('\n💡 数据验证要点:');
+  console.log('  ✓ 子系统数量是否符合预期？');
+  console.log('  ✓ 总重量是否正确？');
+  console.log('  ✓ 子系统命名是否准确（多个设备用"+"连接）？');
+  console.log('  ✓ 备注信息是否清晰？');
+
+  console.log('\n' + '='.repeat(80));
+  console.log('');
+};
+
+/**
  * 转换设备明细数据格式
+ * 需要先提取子系统重量，才能知道每个设备属于哪个重量组
  */
 const convertEquipmentDetails = (): EnhancedShippingItemForm[] => {
   const allItems: EnhancedShippingItemForm[] = [];
 
   parsedData.value.equipmentDetails.forEach(sheet => {
+    // 构建重量组映射表：设备 -> 子系统组名称
+    const equipmentToSubsystemMap = new Map<string, string>();
+
+    let currentWeight: number | null = null;
+    let currentEquipments: string[] = [];
+
+    // 第一遍：按连续相同重量分组，构建映射表
+    for (let i = 0; i < sheet.data.length; i++) {
+      const detail = sheet.data[i];
+      const sequenceNo = typeof detail.序号 === 'string' ? parseInt(detail.序号, 10) : detail.序号;
+      const equipmentName = detail.名称 || '';
+      const weight = detail.重量 || detail['重量（吨）'] || detail['重量(吨)'] || detail.重量吨 || 0;
+      const numWeight = typeof weight === 'string' ? parseFloat(weight) : weight;
+      const equipmentKey = `序号${sequenceNo}-${equipmentName}`;
+
+      // 重量值改变，保存之前的分组
+      if (numWeight !== currentWeight) {
+        if (currentWeight !== null && currentWeight > 0 && currentEquipments.length > 0) {
+          const subsystemName = currentEquipments.join('+');
+          currentEquipments.forEach(eq => {
+            equipmentToSubsystemMap.set(eq, subsystemName);
+          });
+        }
+
+        currentWeight = numWeight > 0 ? numWeight : null;
+        currentEquipments = [];
+      }
+
+      // 添加到当前分组
+      if (numWeight > 0 && !currentEquipments.includes(equipmentKey)) {
+        currentEquipments.push(equipmentKey);
+      }
+    }
+
+    // 处理最后一个分组
+    if (currentWeight !== null && currentWeight > 0 && currentEquipments.length > 0) {
+      const subsystemName = currentEquipments.join('+');
+      currentEquipments.forEach(eq => {
+        equipmentToSubsystemMap.set(eq, subsystemName);
+      });
+    }
+
+    // 第二遍：转换数据，关联到正确的子系统
     sheet.data.forEach(detail => {
-      // 🔥 支持多种可能的重量字段名称
-      const weight = detail.重量 || detail['重量（吨）'] || detail['重量(吨)'] || detail.重量吨 || undefined;
-      
+      const sequenceNo = typeof detail.序号 === 'string' ? parseInt(detail.序号, 10) : detail.序号;
+      const equipmentName = detail.名称 || '';
+      const equipmentKey = `序号${sequenceNo}-${equipmentName}`;
+
+      // 从映射表中获取子系统名称
+      const subsystemName = equipmentToSubsystemMap.get(equipmentKey) || equipmentKey;
+
       allItems.push({
         sequenceNo: detail.序号,
-        equipmentName: detail.名称 || '',
+        equipmentName: equipmentName,
         subItemName: detail.分项,
         quantity: detail.数量 || 0,
         unit: detail.单位 || '套',
-        weight: weight,  // 使用动态提取的重量值
+        weight: undefined,  // 不在子项中填写重量,由subsystemWeights提供
         specification: detail.分项 || '',
-        equipmentType: inferEquipmentType(detail.名称 || ''),
+        equipmentType: inferEquipmentType(equipmentName),
         remarks1: detail.备注,
-        remarks: detail.备注
+        remarks: detail.备注,
+        subsystem: subsystemName  // 标记所属的子系统组
       });
     });
   });
 
   return allItems;
+};
+
+/**
+ * 提取子系统重量数据
+ * 子系统 = 连续相同重量值的所有设备（Excel中合并单元格的逻辑）
+ * 例如：序号1（平面输送机）+序号2（子输送）共享7吨 → 一个子系统
+ */
+const extractSubsystemWeights = (): Array<{ subsystem: string; weight: number; remarks?: string }> => {
+  const subsystemWeights: Array<{ subsystem: string; weight: number; remarks?: string }> = [];
+
+  parsedData.value.equipmentDetails.forEach(sheet => {
+    if (sheet.data.length === 0) return;
+
+    let currentWeight: number | null = null;
+    let currentEquipments: Set<string> = new Set();  // 使用Set避免重复
+
+    // 遍历所有行，按连续相同重量分组
+    for (let i = 0; i < sheet.data.length; i++) {
+      const detail = sheet.data[i];
+      const sequenceNo = typeof detail.序号 === 'string' ? parseInt(detail.序号, 10) : detail.序号;
+      const equipmentName = detail.名称 || '';
+      const weight = detail.重量 || detail['重量（吨）'] || detail['重量(吨)'] || detail.重量吨 || 0;
+      const numWeight = typeof weight === 'string' ? parseFloat(weight) : weight;
+
+      // 如果重量值改变了（且之前有有效重量）
+      if (numWeight !== currentWeight) {
+        // 保存之前的分组
+        if (currentWeight !== null && currentWeight > 0 && currentEquipments.size > 0) {
+          const equipmentList = Array.from(currentEquipments);
+          // 生成更易读的remarks
+          const equipmentNames = equipmentList.map(eq => {
+            // 移除"序号X-"前缀，只保留设备名称
+            return eq.replace(/^序号\d+-/, '');
+          });
+          subsystemWeights.push({
+            subsystem: equipmentList.join('+'),
+            weight: currentWeight,
+            remarks: equipmentNames.join('+') + '总重'
+          });
+        }
+
+        // 开始新的分组
+        currentWeight = numWeight > 0 ? numWeight : null;
+        currentEquipments = new Set();
+      }
+
+      // 添加当前设备到分组（如果有有效重量）
+      if (numWeight > 0) {
+        const equipmentKey = `序号${sequenceNo}-${equipmentName}`;
+        currentEquipments.add(equipmentKey);
+      }
+    }
+
+    // 处理最后一个分组
+    if (currentWeight !== null && currentWeight > 0 && currentEquipments.size > 0) {
+      const equipmentList = Array.from(currentEquipments);
+      // 生成更易读的remarks
+      const equipmentNames = equipmentList.map(eq => {
+        // 移除"序号X-"前缀，只保留设备名称
+        return eq.replace(/^序号\d+-/, '');
+      });
+      subsystemWeights.push({
+        subsystem: equipmentList.join('+'),
+        weight: currentWeight,
+        remarks: equipmentNames.join('+') + '总重'
+      });
+    }
+  });
+
+  return subsystemWeights;
 };
 
 /**
@@ -915,30 +1088,66 @@ const handleImport = async () => {
 
     // 4. 转换设备明细数据
     const shippingItems = convertEquipmentDetails();
-    
-    // 🔍 调试日志：检查重量数据是否正确提取
-    console.log('=== 设备明细数据检查 ===');
-    console.log('总数量:', shippingItems.length);
-    const itemsWithWeight = shippingItems.filter(item => item.weight);
-    console.log('包含重量数据的项:', itemsWithWeight.length);
-    if (itemsWithWeight.length > 0) {
-      console.log('重量数据示例:', itemsWithWeight.slice(0, 3).map(item => ({
-        名称: item.equipmentName,
-        重量: item.weight,
-        单位: '吨'
+
+    // 5. 提取子系统重量数据
+    const subsystemWeights = extractSubsystemWeights();
+
+    // 🔍 调试日志：检查数据提取情况
+    console.log('=== 📊 数据提取检查 ===');
+    console.log('设备明细总数量:', shippingItems.length);
+    console.log('\n📦 子系统重量数组（格式化）:');
+    console.log(JSON.stringify(subsystemWeights, null, 2));
+
+    console.log('\n子系统数量:', subsystemWeights.length);
+    if (subsystemWeights.length > 0) {
+      const totalWeight = subsystemWeights.reduce((sum, sw) => sum + sw.weight, 0);
+      console.log('所有子系统总重量:', totalWeight, '吨');
+
+      console.log('\n📋 子系统重量明细表:');
+      console.table(subsystemWeights.map(sw => ({
+        子系统: sw.subsystem,
+        重量: sw.weight + '吨',
+        备注: sw.remarks || '-'
+      })));
+
+      // 统计每个子系统的子项数量
+      const itemCountBySubsystem = new Map<string, number>();
+      shippingItems.forEach(item => {
+        if (item.subsystem) {
+          itemCountBySubsystem.set(item.subsystem, (itemCountBySubsystem.get(item.subsystem) || 0) + 1);
+        }
+      });
+
+      console.log('\n📊 每个子系统的子项数量:');
+      console.table(Array.from(itemCountBySubsystem.entries()).map(([subsystem, count]) => ({
+        子系统: subsystem,
+        子项数量: count + '项'
       })));
     } else {
-      console.warn('⚠️ 没有提取到任何重量数据！');
+      console.warn('⚠️ 没有提取到子系统重量数据！');
       console.log('原始数据示例:', parsedData.value.equipmentDetails.slice(0, 1).map(sheet => ({
         sheetName: sheet.sheetName,
-        字段名: Object.keys(sheet.data[0] || {})
+        字段名: Object.keys(sheet.data[0] || {}),
+        首行数据: sheet.data[0]
       })));
     }
 
-    // 5. 提取发货时间信息（使用第一条记录）
+    console.log('\n📝 子项示例（前3条）:');
+    console.table(shippingItems.slice(0, 3).map(item => ({
+      序号: item.sequenceNo,
+      设备名称: item.equipmentName,
+      子项名称: item.subItemName,
+      数量: item.quantity,
+      单位: item.unit,
+      重量: item.weight || '空',
+      所属子系统: item.subsystem
+    })));
+    console.log('=== 📊 数据提取检查结束 ===\n');
+
+    // 6. 提取发货时间信息（使用第一条记录）
     const firstTimeRecord = parsedData.value.shippingTimes[0];
 
-    // 6. 构建导入请求数据
+    // 7. 构建导入请求数据
     const importData: EnhancedShippingImportRequest = {
       // 基本信息
       projectId: importConfig.projectId,
@@ -962,11 +1171,14 @@ const handleImport = async () => {
       shippingPhotoUrls,
       driverLicensePhotoUrls,
 
+      // 子系统重量映射数组（推荐方案）
+      subsystemWeights,
+
       // 设备明细
       shippingItems
     };
 
-    // 7. 调用增强版导入接口
+    // 8. 调用增强版导入接口
     ElMessage.info('正在保存发货清单...');
     const response = await importEnhancedShippingList(importData);
 
