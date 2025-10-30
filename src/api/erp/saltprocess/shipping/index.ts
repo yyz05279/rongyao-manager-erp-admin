@@ -147,10 +147,7 @@ export const downloadShippingTemplate = (templateType: string): AxiosPromise<Blo
 /**
  * Excel数据导入
  */
-export const importShippingExcel = (
-  file: File,
-  config: ShippingExcelImportConfig
-): AxiosPromise<ShippingExcelImportResult> => {
+export const importShippingExcel = (file: File, config: ShippingExcelImportConfig): AxiosPromise<ShippingExcelImportResult> => {
   const formData = new FormData();
   formData.append('file', file);
   formData.append('config', JSON.stringify(config));
@@ -205,11 +202,7 @@ export const exportShippingItemsSummary = (query?: ShippingItemsExportParams): A
 /**
  * 获取发货统计数据
  */
-export const getShippingStatistics = (
-  startDate?: string,
-  endDate?: string,
-  projectId?: string
-): AxiosPromise<ShippingStatistics> => {
+export const getShippingStatistics = (startDate?: string, endDate?: string, projectId?: string): AxiosPromise<ShippingStatistics> => {
   return request({
     url: '/erp/saltprocess/shipping/statistics',
     method: 'get',
@@ -255,11 +248,7 @@ export const getShippingAttachments = (shippingListId: string): AxiosPromise<Shi
 /**
  * 上传发货清单附件
  */
-export const uploadShippingAttachment = (
-  shippingListId: string,
-  file: File,
-  attachmentType: string
-): AxiosPromise<ShippingAttachment> => {
+export const uploadShippingAttachment = (shippingListId: string, file: File, attachmentType: string): AxiosPromise<ShippingAttachment> => {
   const formData = new FormData();
   formData.append('file', file);
   formData.append('attachmentType', attachmentType);
@@ -331,7 +320,7 @@ export interface EnhancedShippingImportRequest {
   projectId: string;
   projectName?: string;
   batchNumber: string;
-  shippingType?: string;
+  shippingType?: string; // 发货类型（从Excel标题提取，如：机械、电控）
   shippingLocation?: string;
   responsiblePerson?: string;
   responsiblePersonId: number | string;
@@ -339,17 +328,20 @@ export interface EnhancedShippingImportRequest {
   expectedDeliveryDate?: string;
   shippingMethod?: string;
 
+  // 子系统信息（主表级别）
+  subsystem?: string; // 子系统/所属系统（如：固态处理厂），从Excel第二行提取
+
   // 兼容旧版字段
   vehicleInfo?: string;
   driverInfo?: string;
 
   // 增强版字段
-  vehiclePlate?: string;              // 车牌号
-  vehicleDescription?: string;        // 车辆描述
-  driverName?: string;                // 司机姓名
-  driverPhone?: string;               // 司机电话
-  shippingPhotoUrls?: string[];       // 发货照片URL列表
-  driverLicensePhotoUrls?: string[];  // 司机驾照照片URL列表
+  vehiclePlate?: string; // 车牌号
+  vehicleDescription?: string; // 车辆描述
+  driverName?: string; // 司机姓名
+  driverPhone?: string; // 司机电话
+  shippingPhotoUrls?: string[]; // 发货照片URL列表
+  driverLicensePhotoUrls?: string[]; // 司机驾照照片URL列表
 
   remarks?: string;
 
@@ -371,9 +363,7 @@ export interface EnhancedShippingImportResult {
 /**
  * 增强版发货清单导入接口
  */
-export const importEnhancedShippingList = (
-  data: EnhancedShippingImportRequest
-): AxiosPromise<EnhancedShippingImportResult> => {
+export const importEnhancedShippingList = (data: EnhancedShippingImportRequest): AxiosPromise<EnhancedShippingImportResult> => {
   return request({
     url: '/erp/saltprocess/shipping/import/data',
     method: 'post',
