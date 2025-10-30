@@ -41,28 +41,63 @@ export interface ShippingListVO {
   projectName: string;                // 项目名称
   batchNumber: string;                // 批次号（如：第一车、第二车）
   responsiblePerson: string;          // 负责人
-  responsiblePersonId?: string;       // 负责人ID
+  responsiblePersonId?: number | string; // 负责人ID
   shippingDate: string;               // 发货日期
   expectedDeliveryDate?: string;      // 预计送达日期
   actualDeliveryDate?: string;        // 实际送达日期
   status: ShippingStatus | string;    // 发货状态
+  statusDesc?: string;                // 状态描述（后端返回）
   statusName?: string;                // 状态名称（中文）
   shippingMethod: ShippingMethod | string; // 发货方式
+  shippingMethodDesc?: string;        // 发货方式描述（后端返回）
   shippingMethodName?: string;        // 发货方式名称（中文）
-  vehicleInfo?: string;               // 车辆信息
-  driverInfo?: string;                // 司机信息
+  
+  // 车辆和司机信息（基础字段）
+  vehicleInfo?: string;               // 车辆信息（兼容旧版）
+  driverInfo?: string;                // 司机信息（兼容旧版）
+  
+  // 车辆和司机信息（增强版字段）
+  vehiclePlate?: string;              // 车牌号
+  vehicleDescription?: string;        // 车辆描述
+  driverName?: string;                // 司机姓名
+  driverPhone?: string;               // 司机电话
+  
+  // 照片信息
+  shippingPhotoUrls?: string[];       // 发货照片URL列表
+  driverLicensePhotoUrls?: string[];  // 司机驾照照片URL列表
+  packingListPath?: string;           // 装箱清单文件路径
+  photoPath?: string;                 // 发货照片路径（兼容旧版）
+  
+  // 统计信息
   totalItems: number;                 // 总件数
   totalWeight: number | string;       // 总重量(kg)
   totalVolume?: number | string;      // 总体积(m³)
-  packingListPath?: string;           // 装箱清单文件路径
-  photoPath?: string;                 // 发货照片路径
+  
+  // 设备分类统计
+  mechanicalCount?: number;           // 机械设备数量
+  electricalCount?: number;           // 电控设备数量
+  pipelineCount?: number;             // 管路设备数量
+  fragileCount?: number;              // 易碎品数量
+  hazardousCount?: number;            // 危险品数量
+  
+  // 备注
   remarks?: string;                   // 备注
-  createTime: string;
-  updateTime: string;
-  createBy?: string;
-  updateBy?: string;
-  materialItems?: any;                // 物料明细
-  statistics?: any;                   // 统计信息
+  
+  // 审计字段
+  tenantId?: string;                  // 租户ID
+  createDept?: number;                // 创建部门
+  createTime: string;                 // 创建时间
+  updateTime: string;                 // 更新时间
+  createBy?: string | number;         // 创建人
+  updateBy?: string | number;         // 更新人
+  version?: number;                   // 版本号（乐观锁）
+  
+  // 关联数据
+  items?: ShippingItemVO[];           // 发货明细列表
+  materialItems?: any;                // 物料明细（兼容旧版）
+  trackingRecords?: ShippingTrackingRecord[]; // 跟踪记录
+  attachments?: ShippingAttachment[]; // 附件列表
+  statistics?: any;                   // 统计信息（兼容旧版）
 }
 
 // 发货清单明细表

@@ -37,6 +37,23 @@ export const checkBatchExists = apiImplementation.checkBatchExists;
 // 导出类型
 export type { EnhancedShippingImportRequest, EnhancedShippingImportResult } from './index';
 
+// 导出数据解析工具（解析工具不区分Mock和真实API，统一使用）
+export {
+  parseShippingListPageResponse,
+  parseShippingListVO,
+  parseShippingItemVO,
+  parseVehicleInfo,
+  parseDriverInfo,
+  formatWeight,
+  formatVolume,
+  getStatusTagType,
+  getEquipmentTypeName,
+  isShippingListEditable,
+  isShippingListDeletable,
+  getFullPhotoUrl,
+  getFullPhotoUrls
+} from './data-parser';
+
 // 导出配置信息
 export const API_CONFIG = {
   useMockData: USE_MOCK_DATA,
