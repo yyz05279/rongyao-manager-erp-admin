@@ -249,12 +249,30 @@
           </el-col>
           <el-col :span="6">
             <el-statistic
-              title="设备类型"
-              :value="equipmentTypeCount"
-              suffix="种"
+              title="子系统数量"
+              :value="subsystemCount"
+              suffix="个"
             />
           </el-col>
         </el-row>
+        
+        <!-- 子系统列表 -->
+        <div v-if="subsystemList.length > 0" class="subsystem-list">
+          <el-divider content-position="left">
+            <span class="subsystem-title">子系统列表</span>
+          </el-divider>
+          <div class="subsystem-tags">
+            <el-tag
+              v-for="(subsystem, index) in subsystemList"
+              :key="index"
+              size="large"
+              effect="plain"
+              type="info"
+            >
+              {{ subsystem }}
+            </el-tag>
+          </div>
+        </div>
       </el-card>
 
       <!-- 发货明细（按设备类型分组展示） -->
@@ -443,10 +461,14 @@ const shippingDetail = ref<ShippingListVO>({} as ShippingListVO);
 const shippingItems = ref<ShippingItemVO[]>([]);
 const trackingRecords = ref<ShippingTrackingRecord[]>([]);
 
-// 计算属性
-const equipmentTypeCount = computed(() => {
-  const types = new Set(shippingItems.value.map(item => item.equipmentType));
-  return types.size;
+// 计算属性 - 子系统数量
+const subsystemCount = computed(() => {
+  return groupedShippingItems.value.length;
+});
+
+// 计算属性 - 子系统列表
+const subsystemList = computed(() => {
+  return groupedShippingItems.value.map(group => group.groupName);
 });
 
 // 计算属性 - 发货照片URL列表
@@ -773,6 +795,38 @@ onMounted(() => {
 
       :deep(.el-card__body) {
         padding: 24px;
+      }
+    }
+
+    // 子系统列表样式
+    .subsystem-list {
+      margin-top: 24px;
+      padding-top: 20px;
+      border-top: 1px solid #e4e7ed;
+
+      .subsystem-title {
+        font-size: 14px;
+        font-weight: 600;
+        color: #606266;
+      }
+
+      .subsystem-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-top: 16px;
+
+        .el-tag {
+          padding: 8px 16px;
+          font-size: 14px;
+          font-weight: 500;
+          border-radius: 6px;
+          cursor: default;
+          
+          &:hover {
+            opacity: 0.8;
+          }
+        }
       }
     }
 
