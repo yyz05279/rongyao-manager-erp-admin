@@ -16,9 +16,12 @@
 
 ### 2. 从第二行提取子系统
 
-支持从 Excel 第二行提取子系统信息，例如：
+支持从 Excel 第二行提取子系统信息，自动清理前缀：
 
 - `固态处理厂` → `固态处理厂`
+- `一、固态处理厂` → `固态处理厂`
+- `1、固态处理厂` → `固态处理厂`
+- `（一）固态处理厂` → `固态处理厂`
 - 支持多种字段名称：`subsystem`、`子系统`、`所属系统` 等
 
 ### 3. 智能分配默认值
@@ -42,7 +45,7 @@ import { EnhancedShippingImportRequest } from '@/api/erp/saltprocess/shipping';
 
 // 假设已经解析了 Excel 文件
 const excelTitle = '淮安化盐系统-发货清单（机械）';
-const excelSecondRow = { A: '固态处理厂' };
+const excelSecondRow = { A: '一、固态处理厂' };
 const sheetName = '第一批设备';
 
 // 1. 提取元数据
@@ -57,7 +60,7 @@ console.log(metadata);
 // {
 //   shippingType: '机械',
 //   equipmentType: 'MECHANICAL',
-//   subsystem: '固态处理厂',
+//   subsystem: '固态处理厂',        // ✅ 自动清理"一、"前缀
 //   sheetName: '第一批设备'
 // }
 
@@ -66,8 +69,8 @@ const importRequest: EnhancedShippingImportRequest = {
   projectId: '1',
   projectName: '淮安化盐项目',
   batchNumber: '第一车',
-  shippingType: metadata.shippingType,      // ✅ 从标题提取
-  subsystem: metadata.subsystem,            // ✅ 从第二行提取
+  shippingType: metadata.shippingType,      // ✅ 从标题提取："机械"
+  subsystem: metadata.subsystem,            // ✅ 从第二行提取："固态处理厂"
   responsiblePersonId: 1,
   responsiblePerson: '张三',
   shippingDate: '2025-01-15',
@@ -77,6 +80,7 @@ const importRequest: EnhancedShippingImportRequest = {
       equipmentName: '螺旋给料机',
       quantity: 2,
       unit: '台',
+      shippingType: metadata.shippingType,   // ✅ 明细级别
       equipmentType: metadata.equipmentType, // ✅ 明细级别
       subsystem: metadata.subsystem,         // ✅ 明细级别
       sheetName: metadata.sheetName          // ✅ 明细级别
@@ -84,7 +88,7 @@ const importRequest: EnhancedShippingImportRequest = {
   ]
 };
 
-// 3. 批量分配设备类型和子系统
+// 3. 批量分配设备类型、子系统和发货类型
 let items = [
   { equipmentName: '螺旋给料机', quantity: 2, unit: '台' },
   { equipmentName: '输送带', quantity: 1, unit: '套', equipmentType: 'ELECTRICAL' }
@@ -99,6 +103,11 @@ items = assignEquipmentTypes(items, metadata.equipmentType);
 items = assignSubsystems(items, metadata.subsystem);
 // items[0].subsystem = '固态处理厂'
 // items[1].subsystem = '固态处理厂'
+
+// 为所有明细分配默认发货类型
+items = assignShippingTypes(items, metadata.shippingType);
+// items[0].shippingType = '机械'
+// items[1].shippingType = '机械'
 ```
 
 ### Vue 组件中的完整示例
@@ -111,7 +120,8 @@ import * as XLSX from 'xlsx';
 import {
   extractExcelMetadata,
   assignEquipmentTypes,
-  assignSubsystems
+  assignSubsystems,
+  assignShippingTypes
 } from '@/api/erp/saltprocess/shipping/excel-parser';
 import {
   importEnhancedShippingList,
@@ -124,7 +134,7 @@ const handleFileUpload = async (file: File) => {
   try {
     // 1. 读取 Excel 文件
     const workbook = await readExcelFile(file);
-    const sheetName = workbook.SheetNames[0];
+    const sheetName = workbook.SheetNames[0];       // ✅ 从 Excel 获取 Sheet 名称（如："第一车"）
     const worksheet = workbook.Sheets[sheetName];
 
     // 2. 解析数据
@@ -138,11 +148,11 @@ const handleFileUpload = async (file: File) => {
     const metadata = extractExcelMetadata({
       title: String(title),
       secondRow: secondRow,
-      sheetName: sheetName
+      sheetName: sheetName                          // ✅ 传入 Excel Sheet 名称
     });
 
     console.log('提取的元数据:', metadata);
-    // 输出: { shippingType: '机械', equipmentType: 'MECHANICAL', subsystem: '固态处理厂' }
+    // 输出: { shippingType: '机械', equipmentType: 'MECHANICAL', subsystem: '固态处理厂', sheetName: '第一车' }
 
     // 4. 解析明细数据
     let items: EnhancedShippingItemForm[] = dataRows.map((row: any[]) => ({
@@ -155,11 +165,12 @@ const handleFileUpload = async (file: File) => {
     }));
 
     // 5. 批量分配元数据到明细
-    items = assignEquipmentTypes(items, metadata.equipmentType);
-    items = assignSubsystems(items, metadata.subsystem);
+    items = assignEquipmentTypes(items, metadata.equipmentType);        // 设备类型
+    items = assignSubsystems(items, metadata.subsystem);                // 子系统
+    items = assignShippingTypes(items, metadata.shippingType);          // 发货类型
     items = items.map(item => ({
       ...item,
-      sheetName: metadata.sheetName
+      sheetName: metadata.sheetName                 // ✅ 为每个明细添加 Sheet 名称
     }));
 
     // 6. 构建导入请求
@@ -236,7 +247,8 @@ const readExcelFile = (file: File): Promise<XLSX.WorkBook> => {
   "equipmentName": "螺旋给料机",
   "quantity": 2,
   "unit": "台",
-  "equipmentType": "MECHANICAL",    // ✅ 从标题提取 (可选)
+  "shippingType": "机械",            // ✅ 从标题提取 (可选)
+  "equipmentType": "MECHANICAL",    // ✅ 从标题映射 (可选)
   "subsystem": "固态处理厂",         // ✅ 继承主表或独立设置 (可选)
   "sheetName": "第一批设备",         // ✅ 从 Sheet 名称获取 (可选)
   "specification": "规格型号",
@@ -307,10 +319,12 @@ A: `extractSubsystemFromSecondRow` 函数会智能识别多种格式：
 
 1. ✅ 标题包含括号的情况：`淮安化盐系统-发货清单（机械）`
 2. ✅ 标题不包含括号的情况：`机械设备发货清单`
-3. ✅ 第二行为字符串：`固态处理厂`
-4. ✅ 第二行为对象：`{ subsystem: '固态处理厂' }`
-5. ✅ 明细覆盖主表设置：部分明细有独立的设备类型
-6. ✅ 多 Sheet 场景：每个 Sheet 有不同的元数据
+3. ✅ 第二行带前缀：`一、固态处理厂`、`1、固态处理厂`
+4. ✅ 第二行不带前缀：`固态处理厂`
+5. ✅ 第二行为对象：`{ subsystem: '固态处理厂' }`
+6. ✅ 明细覆盖主表设置：部分明细有独立的设备类型
+7. ✅ 多 Sheet 场景：每个 Sheet 有不同的元数据
+8. ✅ shippingType 字段填充：主表和明细都正确填充
 
 ## 相关文档
 
