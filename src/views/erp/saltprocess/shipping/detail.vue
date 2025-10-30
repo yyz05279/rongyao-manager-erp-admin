@@ -132,6 +132,82 @@
         </el-row>
       </el-card>
 
+      <!-- 车辆和司机信息 -->
+      <el-card class="vehicle-driver-card" shadow="never">
+        <template #header>
+          <div class="card-header">
+            <span class="card-title">车辆和司机信息</span>
+          </div>
+        </template>
+
+        <el-row :gutter="24">
+          <!-- 车辆信息 -->
+          <el-col :span="12">
+            <div class="info-section">
+              <div class="section-header">
+                <el-icon :size="20" color="#409eff"><Van /></el-icon>
+                <span class="section-title">车辆信息</span>
+              </div>
+              <div class="info-content">
+                <div class="info-item-inline">
+                  <label>车牌号：</label>
+                  <el-tag type="success" size="large">{{ shippingDetail.vehiclePlate || '-' }}</el-tag>
+                </div>
+                <div class="info-item-inline">
+                  <label>车辆描述：</label>
+                  <span>{{ shippingDetail.vehicleDescription || '-' }}</span>
+                </div>
+              </div>
+            </div>
+          </el-col>
+
+          <!-- 司机信息 -->
+          <el-col :span="12">
+            <div class="info-section">
+              <div class="section-header">
+                <el-icon :size="20" color="#67c23a"><User /></el-icon>
+                <span class="section-title">司机信息</span>
+              </div>
+              <div class="info-content">
+                <div class="info-item-inline">
+                  <label>司机姓名：</label>
+                  <span>{{ shippingDetail.driverName || '-' }}</span>
+                </div>
+                <div class="info-item-inline">
+                  <label>联系电话：</label>
+                  <el-link v-if="shippingDetail.driverPhone" :href="`tel:${shippingDetail.driverPhone}`" type="primary">
+                    <el-icon><Phone /></el-icon>
+                    {{ shippingDetail.driverPhone }}
+                  </el-link>
+                  <span v-else>-</span>
+                </div>
+              </div>
+            </div>
+          </el-col>
+        </el-row>
+
+        <!-- 驾照照片 -->
+        <div v-if="driverLicenseUrls.length > 0" class="license-photos-section">
+          <el-divider content-position="left">
+            <div class="section-title-with-icon">
+              <el-icon><CreditCard /></el-icon>
+              <span>驾照照片</span>
+            </div>
+          </el-divider>
+          <div class="image-gallery">
+            <div v-for="(url, idx) in driverLicenseUrls" :key="idx" class="image-item">
+              <el-image
+                :src="url"
+                :preview-src-list="driverLicenseUrls"
+                :initial-index="idx"
+                fit="cover"
+                class="preview-image"
+              />
+            </div>
+          </div>
+        </div>
+      </el-card>
+
       <!-- 统计信息 -->
       <el-card class="stats-card" shadow="never">
         <template #header>
@@ -347,68 +423,44 @@
         </el-timeline>
       </el-card>
 
-      <!-- 附件信息 -->
-      <el-card class="attachments-card" shadow="never">
+      <!-- 发货照片 -->
+      <el-card class="shipping-photos-card" shadow="never">
         <template #header>
           <div class="card-header">
-            <span class="card-title">附件信息</span>
-            <el-upload
-              :action="uploadUrl"
-              :headers="uploadHeaders"
-              :data="{ shippingListId: shippingDetail.id }"
-              :show-file-list="false"
-              :before-upload="beforeUpload"
-              :on-success="handleUploadSuccess"
-              :on-error="handleUploadError"
-            >
-              <el-button type="primary" size="small" icon="Upload">
-                上传附件
-              </el-button>
-            </el-upload>
+            <div class="section-title-with-icon">
+              <el-icon><Picture /></el-icon>
+              <span class="card-title">发货照片</span>
+              <el-tag v-if="shippingPhotoUrls.length > 0" type="info" size="small">
+                {{ shippingPhotoUrls.length }} 张
+              </el-tag>
+            </div>
           </div>
         </template>
         
-        <div class="attachments-list">
-          <div
-            v-for="attachment in attachments"
-            :key="attachment.id"
-            class="attachment-item"
-          >
-            <div class="attachment-info">
-              <el-icon class="attachment-icon">
-                <document />
-              </el-icon>
-              <div class="attachment-meta">
-                <div class="attachment-name">{{ attachment.fileName }}</div>
-                <div class="attachment-details">
-                  <span>{{ formatFileSize(attachment.fileSize) }}</span>
-                  <span>{{ attachment.uploadTime }}</span>
-                  <span>{{ attachment.uploadBy }}</span>
+        <div v-if="shippingPhotoUrls.length === 0" class="no-images">
+          <el-empty description="暂无发货照片" />
+        </div>
+
+        <div v-else class="image-gallery">
+          <div v-for="(url, idx) in shippingPhotoUrls" :key="idx" class="image-item">
+            <el-image
+              :src="url"
+              :preview-src-list="shippingPhotoUrls"
+              :initial-index="idx"
+              fit="cover"
+              class="preview-image"
+            >
+              <template #error>
+                <div class="image-error">
+                  <el-icon :size="40"><Picture /></el-icon>
+                  <div>加载失败</div>
                 </div>
-              </div>
-            </div>
-            <div class="attachment-actions">
-              <el-button
-                type="primary"
-                link
-                size="small"
-                @click="handleDownloadAttachment(attachment)"
-              >
-                下载
-              </el-button>
-              <el-button
-                type="danger"
-                link
-                size="small"
-                @click="handleDeleteAttachment(attachment)"
-                v-hasPermi="['erp:saltprocess:shipping:edit']"
-              >
-                删除
-              </el-button>
+              </template>
+            </el-image>
+            <div class="image-overlay">
+              <span>照片 {{ idx + 1 }}</span>
             </div>
           </div>
-          
-          <el-empty v-if="attachments.length === 0" description="暂无附件" />
         </div>
       </el-card>
     </div>
@@ -428,23 +480,20 @@ import { ref, reactive, onMounted, computed, getCurrentInstance } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import type { ComponentInternalInstance } from 'vue';
-import { Location, Document } from '@element-plus/icons-vue';
+import { Location, Document, Picture, Phone, User, Van, CreditCard } from '@element-plus/icons-vue';
 // 根据环境配置自动选择API
 import {
   getShippingList,
-  getShippingItems,
-  getTrackingRecords,
-  getAttachments,
-  delShippingAttachment,
-  downloadShippingAttachment,
   exportSingleShippingList,
-  API_CONFIG
+  API_CONFIG,
+  // 导入数据解析工具
+  parseShippingListVO,
+  getFullPhotoUrls
 } from '@/api/erp/saltprocess/shipping/api-config';
 import type {
   ShippingListVO,
   ShippingItemVO,
   ShippingTrackingRecord,
-  ShippingAttachment,
   ShippingStatus,
   EquipmentType
 } from '@/api/erp/saltprocess/shipping/types';
@@ -459,13 +508,6 @@ const loading = ref(true);
 const shippingDetail = ref<ShippingListVO>({} as ShippingListVO);
 const shippingItems = ref<ShippingItemVO[]>([]);
 const trackingRecords = ref<ShippingTrackingRecord[]>([]);
-const attachments = ref<ShippingAttachment[]>([]);
-
-// 上传配置
-const uploadUrl = '/api/erp/saltprocess/shipping/attachment';
-const uploadHeaders = {
-  Authorization: `Bearer ${localStorage.getItem('token')}`
-};
 
 // 明细项对话框状态
 const itemDialog = reactive({
@@ -479,6 +521,24 @@ const equipmentTypeCount = computed(() => {
   return types.size;
 });
 
+// 计算属性 - 发货照片URL列表
+const shippingPhotoUrls = computed(() => {
+  if (!shippingDetail.value.shippingPhotoUrls?.length) {
+    return [];
+  }
+  // 使用统一的URL生成工具
+  return getFullPhotoUrls(shippingDetail.value.shippingPhotoUrls);
+});
+
+// 计算属性 - 驾照照片URL列表
+const driverLicenseUrls = computed(() => {
+  if (!shippingDetail.value.driverLicensePhotoUrls?.length) {
+    return [];
+  }
+  // 使用统一的URL生成工具
+  return getFullPhotoUrls(shippingDetail.value.driverLicensePhotoUrls);
+});
+
 // 方法
 const getShippingDetail = async () => {
   const id = route.params.id as string;
@@ -486,18 +546,39 @@ const getShippingDetail = async () => {
   
   loading.value = true;
   try {
-    const [detailRes, itemsRes, trackingRes, attachmentsRes] = await Promise.all([
-      getShippingList(id),
-      getShippingItems(id),
-      getTrackingRecords(id),
-      getAttachments(id)
-    ]);
+    // 🔥 后端详情接口已经返回所有数据（items、trackingRecords、attachments）
+    // 不需要再单独调用其他接口
+    const response = await getShippingList(id);
     
-    shippingDetail.value = detailRes.data;
-    shippingItems.value = itemsRes.data;
-    trackingRecords.value = trackingRes.data;
-    attachments.value = attachmentsRes.data;
+    // 🔥 使用解析工具处理后端数据
+    const parsedData = parseShippingListVO(response.data);
+    
+    // 设置详情数据
+    shippingDetail.value = parsedData;
+    
+    // 从详情数据中提取关联数据
+    shippingItems.value = parsedData.items || [];
+    trackingRecords.value = parsedData.trackingRecords || [];
+    
+    console.log('✅ 发货清单详情加载成功:', {
+      清单编号: parsedData.listCode,
+      项目名称: parsedData.projectName,
+      车牌号: parsedData.vehiclePlate,
+      司机姓名: parsedData.driverName,
+      明细数量: shippingItems.value.length,
+      跟踪记录: trackingRecords.value.length,
+      发货照片数量: parsedData.shippingPhotoUrls?.length || 0,
+      发货照片路径: parsedData.shippingPhotoUrls,
+      驾照照片数量: parsedData.driverLicensePhotoUrls?.length || 0,
+      驾照照片路径: parsedData.driverLicensePhotoUrls
+    });
+    
+    // 打印生成的完整URL，方便调试
+    console.log('📷 发货照片URL:', shippingPhotoUrls.value);
+    console.log('📄 驾照照片URL:', driverLicenseUrls.value);
+    
   } catch (error) {
+    console.error('❌ 获取发货清单详情失败:', error);
     ElMessage.error('获取发货清单详情失败');
   } finally {
     loading.value = false;
@@ -601,63 +682,6 @@ const handleAddTracking = () => {
   ElMessage.info('添加跟踪功能开发中');
 };
 
-const beforeUpload = (file: File) => {
-  const isValidType = ['image/jpeg', 'image/png', 'application/pdf', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'].includes(file.type);
-  const isLt10M = file.size / 1024 / 1024 < 10;
-  
-  if (!isValidType) {
-    ElMessage.error('只能上传图片、PDF或Excel文件');
-    return false;
-  }
-  if (!isLt10M) {
-    ElMessage.error('文件大小不能超过10MB');
-    return false;
-  }
-  return true;
-};
-
-const handleUploadSuccess = () => {
-  ElMessage.success('上传成功');
-  getShippingDetail();
-};
-
-const handleUploadError = () => {
-  ElMessage.error('上传失败');
-};
-
-const handleDownloadAttachment = async (attachment: ShippingAttachment) => {
-  try {
-    const response = await downloadShippingAttachment(attachment.id);
-    const blob = new Blob([response.data]);
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = attachment.fileName;
-    link.click();
-    window.URL.revokeObjectURL(url);
-  } catch (error) {
-    ElMessage.error('下载失败');
-  }
-};
-
-const handleDeleteAttachment = async (attachment: ShippingAttachment) => {
-  try {
-    await ElMessageBox.confirm(
-      `确定要删除附件"${attachment.fileName}"吗？`,
-      '确认删除',
-      { type: 'warning' }
-    );
-    
-    await delShippingAttachment(attachment.id);
-    ElMessage.success('删除成功');
-    getShippingDetail();
-  } catch (error) {
-    if (error !== 'cancel') {
-      ElMessage.error('删除失败');
-    }
-  }
-};
-
 // 辅助方法
 const getStatusTagType = (status: ShippingStatus): string => {
   const typeMap = {
@@ -707,12 +731,6 @@ const getEquipmentTypeLabel = (type: EquipmentType): string => {
   return typeMap[type] || type;
 };
 
-const formatFileSize = (size: number): string => {
-  if (size < 1024) return `${size} B`;
-  if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`;
-  return `${(size / (1024 * 1024)).toFixed(1)} MB`;
-};
-
 // 生命周期
 onMounted(() => {
   getShippingDetail();
@@ -759,7 +777,8 @@ onMounted(() => {
     .stats-card,
     .items-card,
     .tracking-card,
-    .attachments-card {
+    .vehicle-driver-card,
+    .shipping-photos-card {
       margin-bottom: 20px;
 
       :deep(.el-card__body) {
@@ -804,6 +823,154 @@ onMounted(() => {
       display: flex;
       gap: 4px;
       flex-wrap: wrap;
+    }
+
+    // 车辆和司机信息区域样式
+    .vehicle-driver-card {
+      .info-section {
+        padding: 20px;
+        background: #f8f9fa;
+        border-radius: 8px;
+        min-height: 180px;
+
+        .section-header {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          margin-bottom: 16px;
+          padding-bottom: 12px;
+          border-bottom: 2px solid #e4e7ed;
+
+          .section-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #303133;
+          }
+        }
+
+        .info-content {
+          .info-item-inline {
+            display: flex;
+            align-items: center;
+            margin-bottom: 16px;
+
+            label {
+              min-width: 90px;
+              color: #606266;
+              font-weight: 500;
+              font-size: 14px;
+            }
+
+            span {
+              color: #303133;
+              font-size: 15px;
+            }
+
+            .el-tag {
+              font-size: 16px;
+              font-weight: 600;
+              padding: 8px 16px;
+            }
+
+            .el-link {
+              font-size: 14px;
+            }
+          }
+        }
+      }
+
+      .license-photos-section {
+        margin-top: 24px;
+        padding-top: 24px;
+        border-top: 1px solid #e4e7ed;
+      }
+    }
+
+    .section-title-with-icon {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      color: #303133;
+    }
+
+    // 图片画廊样式（参考导入弹窗）
+    .image-gallery {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 16px;
+      padding: 20px 0;
+
+      .image-item {
+        position: relative;
+        aspect-ratio: 1;
+        border: 2px solid #dcdfe6;
+        border-radius: 8px;
+        overflow: hidden;
+        transition: all 0.3s ease;
+        background: #f5f7fa;
+
+        &:hover {
+          border-color: #409eff;
+          transform: translateY(-4px);
+          box-shadow: 0 8px 16px rgba(64, 158, 255, 0.2);
+
+          .image-overlay {
+            opacity: 1;
+          }
+        }
+
+        .preview-image {
+          width: 100%;
+          height: 100%;
+          cursor: pointer;
+
+          :deep(.el-image__inner) {
+            transition: transform 0.3s ease;
+          }
+
+          &:hover :deep(.el-image__inner) {
+            transform: scale(1.05);
+          }
+        }
+
+        .image-error {
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          align-items: center;
+          height: 100%;
+          color: #909399;
+          background: #f5f7fa;
+
+          div {
+            margin-top: 8px;
+            font-size: 14px;
+          }
+        }
+
+        .image-overlay {
+          position: absolute;
+          bottom: 0;
+          left: 0;
+          right: 0;
+          background: linear-gradient(to top, rgba(0, 0, 0, 0.7), transparent);
+          color: white;
+          padding: 12px;
+          opacity: 0;
+          transition: opacity 0.3s ease;
+
+          span {
+            font-size: 14px;
+            font-weight: 500;
+          }
+        }
+      }
+    }
+
+    .no-images {
+      padding: 40px 0;
     }
 
     .tracking-item {

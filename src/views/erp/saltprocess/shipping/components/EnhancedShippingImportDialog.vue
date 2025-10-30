@@ -285,7 +285,7 @@
               size="default"
               max-height="500"
               class="equipment-detail-table"
-              :span-method="(params) => getSpanMethod(params, detail.data)"
+              :span-method="createSpanMethod(detail.data)"
             >
               <el-table-column
                 v-for="(column, colIndex) in getTableColumns(detail.data)"
@@ -793,13 +793,16 @@ const convertEquipmentDetails = (): EnhancedShippingItemForm[] => {
 
   parsedData.value.equipmentDetails.forEach(sheet => {
     sheet.data.forEach(detail => {
+      // 🔥 支持多种可能的重量字段名称
+      const weight = detail.重量 || detail['重量（吨）'] || detail['重量(吨)'] || detail.重量吨 || undefined;
+      
       allItems.push({
         sequenceNo: detail.序号,
         equipmentName: detail.名称 || '',
         subItemName: detail.分项,
         quantity: detail.数量 || 0,
         unit: detail.单位 || '套',
-        weight: detail.重量,
+        weight: weight,  // 使用动态提取的重量值
         specification: detail.分项 || '',
         equipmentType: inferEquipmentType(detail.名称 || ''),
         remarks1: detail.备注,
@@ -912,6 +915,25 @@ const handleImport = async () => {
 
     // 4. 转换设备明细数据
     const shippingItems = convertEquipmentDetails();
+    
+    // 🔍 调试日志：检查重量数据是否正确提取
+    console.log('=== 设备明细数据检查 ===');
+    console.log('总数量:', shippingItems.length);
+    const itemsWithWeight = shippingItems.filter(item => item.weight);
+    console.log('包含重量数据的项:', itemsWithWeight.length);
+    if (itemsWithWeight.length > 0) {
+      console.log('重量数据示例:', itemsWithWeight.slice(0, 3).map(item => ({
+        名称: item.equipmentName,
+        重量: item.weight,
+        单位: '吨'
+      })));
+    } else {
+      console.warn('⚠️ 没有提取到任何重量数据！');
+      console.log('原始数据示例:', parsedData.value.equipmentDetails.slice(0, 1).map(sheet => ({
+        sheetName: sheet.sheetName,
+        字段名: Object.keys(sheet.data[0] || {})
+      })));
+    }
 
     // 5. 提取发货时间信息（使用第一条记录）
     const firstTimeRecord = parsedData.value.shippingTimes[0];
@@ -1034,10 +1056,21 @@ const formatCellValue = (value: any): string => {
 };
 
 /**
+ * 创建span method函数的工厂函数
+ * 用于解决Vue模板中的类型推断问题
+ */
+const createSpanMethod = (data: any[]) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return (params: any) => getSpanMethod(params, data);
+};
+
+/**
  * 计算表格合并单元格
  * 合并相同的"名称"、"序号"和"重量"列
  */
-const getSpanMethod = ({ row, column, rowIndex }: any, data: any[]) => {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const getSpanMethod = (params: any, data: any[]) => {
+  const { row, column, rowIndex } = params;
   // 需要合并的列名
   const mergeColumns = ['序号', '名称', '重量', '重量（吨）', '重量(吨)'];
 

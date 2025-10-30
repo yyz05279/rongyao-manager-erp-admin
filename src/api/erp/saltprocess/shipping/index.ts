@@ -389,3 +389,20 @@ export const importEnhancedShippingList = (data: EnhancedShippingImportRequest):
     data
   });
 };
+
+// 导出数据解析工具
+export {
+  parseShippingListPageResponse,
+  parseShippingListVO,
+  parseShippingItemVO,
+  parseVehicleInfo,
+  parseDriverInfo,
+  formatWeight,
+  formatVolume,
+  getStatusTagType,
+  getEquipmentTypeName,
+  isShippingListEditable,
+  isShippingListDeletable,
+  getFullPhotoUrl,
+  getFullPhotoUrls
+} from './data-parser';
