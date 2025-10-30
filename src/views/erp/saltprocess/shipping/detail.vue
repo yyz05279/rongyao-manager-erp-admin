@@ -257,136 +257,62 @@
         </el-row>
       </el-card>
 
-      <!-- 发货明细 -->
+      <!-- 发货明细（按设备类型分组展示） -->
       <el-card class="items-card" shadow="never">
         <template #header>
           <div class="card-header">
             <span class="card-title">发货明细</span>
-            <div class="header-actions">
-              <el-button
-                type="primary"
-                size="small"
-                icon="Plus"
-                @click="handleAddItem"
-                v-hasPermi="['erp:saltprocess:shipping:edit']"
-              >
-                添加明细
-              </el-button>
-            </div>
           </div>
         </template>
         
-        <el-table
-          :data="shippingItems"
-          border
-          stripe
-          max-height="500"
+        <!-- 按设备类型分组展示 -->
+        <div
+          v-for="(group, index) in groupedShippingItems"
+          :key="index"
+          class="equipment-detail-section"
         >
-          <el-table-column label="序号" type="index" width="60" />
-          <el-table-column
-            label="物品名称"
-            prop="itemName"
-            min-width="150"
-            show-overflow-tooltip
-          />
-          <el-table-column
-            label="规格型号"
-            prop="specification"
-            min-width="120"
-            show-overflow-tooltip
-          />
-          <el-table-column
-            label="设备类型"
-            prop="equipmentType"
-            width="100"
-            align="center"
+          <el-divider content-position="left">
+            <div class="section-title">
+              <el-icon><Box /></el-icon>
+              <span>{{ group.groupName }}</span>
+              <el-tag size="small" type="info" class="count-tag">
+                共 {{ group.items.length }} 项
+              </el-tag>
+            </div>
+          </el-divider>
+
+          <!-- 动态表格：根据实际数据字段生成列 -->
+          <el-table
+            :data="group.items"
+            border
+            stripe
+            size="default"
+            max-height="500"
+            class="equipment-detail-table"
           >
-            <template #default="{ row }">
-              <el-tag size="small">{{ getEquipmentTypeLabel(row.equipmentType) }}</el-tag>
-            </template>
-          </el-table-column>
-          <el-table-column label="数量" prop="quantity" width="80" align="center" />
-          <el-table-column label="单位" prop="unit" width="60" align="center" />
-          <el-table-column
-            label="单重(kg)"
-            prop="unitWeight"
-            width="90"
-            align="center"
-          >
-            <template #default="{ row }">
-              {{ row.unitWeight?.toFixed(2) || '-' }}
-            </template>
-          </el-table-column>
-          <el-table-column
-            label="总重(kg)"
-            prop="totalWeight"
-            width="90"
-            align="center"
-          >
-            <template #default="{ row }">
-              {{ row.totalWeight?.toFixed(2) || '-' }}
-            </template>
-          </el-table-column>
-          <el-table-column
-            label="制造商"
-            prop="manufacturer"
-            min-width="120"
-            show-overflow-tooltip
-          />
-          <el-table-column
-            label="型号"
-            prop="model"
-            min-width="100"
-            show-overflow-tooltip
-          />
-          <el-table-column
-            label="包装方式"
-            prop="packageType"
-            width="100"
-            align="center"
-          />
-          <el-table-column label="特殊标识" width="100" align="center">
-            <template #default="{ row }">
-              <div class="special-tags">
-                <el-tag v-if="row.isFragile" type="warning" size="small">易碎</el-tag>
-                <el-tag v-if="row.isHazardous" type="danger" size="small">危险</el-tag>
-              </div>
-            </template>
-          </el-table-column>
-          <el-table-column
-            label="备注"
-            prop="remarks"
-            min-width="120"
-            show-overflow-tooltip
-          />
-          <el-table-column
-            label="操作"
-            width="120"
-            align="center"
-            fixed="right"
-          >
-            <template #default="{ row }">
-              <el-button
-                type="primary"
-                link
-                size="small"
-                @click="handleEditItem(row)"
-                v-hasPermi="['erp:saltprocess:shipping:edit']"
-              >
-                编辑
-              </el-button>
-              <el-button
-                type="danger"
-                link
-                size="small"
-                @click="handleDeleteItem(row)"
-                v-hasPermi="['erp:saltprocess:shipping:edit']"
-              >
-                删除
-              </el-button>
-            </template>
-          </el-table-column>
-        </el-table>
+            <el-table-column
+              v-for="(column, colIndex) in getDetailTableColumns(group.items)"
+              :key="colIndex"
+              :label="column.label"
+              :prop="column.prop"
+              :min-width="column.width"
+              :align="column.align"
+              show-overflow-tooltip
+            >
+              <template #default="{ row }">
+                <template v-if="column.formatter">
+                  {{ column.formatter(row[column.prop]) }}
+                </template>
+                <template v-else>
+                  {{ formatDetailCellValue(row[column.prop]) }}
+                </template>
+              </template>
+            </el-table-column>
+          </el-table>
+        </div>
+
+        <!-- 空状态提示 -->
+        <el-empty v-if="groupedShippingItems.length === 0" description="暂无发货明细" />
       </el-card>
 
       <!-- 发货跟踪 -->
@@ -481,14 +407,6 @@
         </div>
       </el-card>
     </div>
-
-    <!-- 明细项编辑对话框 -->
-    <ItemEditDialog
-      v-model:visible="itemDialog.visible"
-      :item-data="itemDialog.data"
-      :is-edit="!!itemDialog.data?.id"
-      @confirm="handleItemConfirm"
-    />
   </div>
 </template>
 
@@ -497,7 +415,7 @@ import { ref, reactive, onMounted, computed, getCurrentInstance } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import type { ComponentInternalInstance } from 'vue';
-import { Location, Document, Picture, Phone, User, Van, CreditCard, Loading } from '@element-plus/icons-vue';
+import { Location, Document, Picture, Phone, User, Van, CreditCard, Loading, Box } from '@element-plus/icons-vue';
 // 根据环境配置自动选择API
 import {
   getShippingList,
@@ -514,7 +432,6 @@ import type {
   ShippingStatus,
   EquipmentType
 } from '@/api/erp/saltprocess/shipping/types';
-import ItemEditDialog from './components/ItemEditDialog.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -525,12 +442,6 @@ const loading = ref(true);
 const shippingDetail = ref<ShippingListVO>({} as ShippingListVO);
 const shippingItems = ref<ShippingItemVO[]>([]);
 const trackingRecords = ref<ShippingTrackingRecord[]>([]);
-
-// 明细项对话框状态
-const itemDialog = reactive({
-  visible: false,
-  data: null as any
-});
 
 // 计算属性
 const equipmentTypeCount = computed(() => {
@@ -555,6 +466,58 @@ const driverLicenseUrls = computed(() => {
   // 使用统一的URL生成工具
   return getFullPhotoUrls(shippingDetail.value.driverLicensePhotoUrls);
 });
+
+// 计算属性 - 按设备名称前缀分组的明细数据（仿Excel导入弹窗效果）
+const groupedShippingItems = computed(() => {
+  if (!shippingItems.value || shippingItems.value.length === 0) {
+    return [];
+  }
+
+  // 按设备名称前缀分组
+  const groups = new Map<string, ShippingItemVO[]>();
+  
+  shippingItems.value.forEach(item => {
+    // 提取设备名称的前缀（如：平面输送机-输送主体 → 平面输送机）
+    const groupName = extractGroupName(item.itemName);
+    
+    if (!groups.has(groupName)) {
+      groups.set(groupName, []);
+    }
+    groups.get(groupName)!.push(item);
+  });
+
+  // 转换为数组格式
+  return Array.from(groups.entries()).map(([groupName, items]) => ({
+    groupName,
+    items
+  }));
+});
+
+/**
+ * 从物品名称中提取分组名称
+ * 例如：
+ * - "平面输送机-输送主体" → "平面输送机"
+ * - "子输送-卸料罩壳" → "子输送"
+ * - "粉碎机-粉碎机本体" → "粉碎机"
+ */
+const extractGroupName = (itemName: string): string => {
+  if (!itemName) return '其他';
+  
+  // 按"-"分割，取第一部分作为分组名称
+  const parts = itemName.split('-');
+  if (parts.length > 1) {
+    return parts[0].trim();
+  }
+  
+  // 如果没有"-"，尝试其他分隔符
+  const otherParts = itemName.split(/[_|、]/).filter(p => p.trim());
+  if (otherParts.length > 1) {
+    return otherParts[0].trim();
+  }
+  
+  // 如果都没有分隔符，返回原名称
+  return itemName.trim();
+};
 
 // 方法
 const getShippingDetail = async () => {
@@ -639,66 +602,6 @@ const handlePrint = () => {
   window.print();
 };
 
-const handleAddItem = () => {
-  itemDialog.data = {
-    itemName: '',
-    specification: '',
-    equipmentType: 'AUXILIARY',
-    quantity: 1,
-    unit: '个',
-    unitWeight: 0,
-    unitVolume: 0,
-    manufacturer: '',
-    model: '',
-    serialNumber: '',
-    packageType: '',
-    packageQuantity: 1,
-    isFragile: false,
-    isHazardous: false,
-    storageRequirement: '',
-    remarks: ''
-  };
-  itemDialog.visible = true;
-};
-
-const handleEditItem = (item: ShippingItemVO) => {
-  itemDialog.data = { ...item };
-  itemDialog.visible = true;
-};
-
-const handleItemConfirm = async (itemData: any) => {
-  try {
-    // 这里应该调用API保存或更新明细项
-    // 如果是新增，调用添加API
-    // 如果是编辑，调用更新API
-
-    ElMessage.success(itemData.id ? '明细更新成功' : '明细添加成功');
-    itemDialog.visible = false;
-
-    // 重新加载明细数据
-    getShippingDetail();
-  } catch (error) {
-    ElMessage.error(itemData.id ? '明细更新失败' : '明细添加失败');
-  }
-};
-
-const handleDeleteItem = async (item: ShippingItemVO) => {
-  try {
-    await ElMessageBox.confirm(
-      `确定要删除物品"${item.itemName}"吗？`,
-      '确认删除',
-      { type: 'warning' }
-    );
-    // 调用删除API
-    ElMessage.success('删除成功');
-    getShippingDetail();
-  } catch (error) {
-    if (error !== 'cancel') {
-      ElMessage.error('删除失败');
-    }
-  }
-};
-
 const handleAddTracking = () => {
   // 添加跟踪记录
   ElMessage.info('添加跟踪功能开发中');
@@ -751,6 +654,71 @@ const getEquipmentTypeLabel = (type: EquipmentType): string => {
     STANDARD_PARTS: '标准件'
   };
   return typeMap[type] || type;
+};
+
+/**
+ * 获取明细表格的列配置
+ * 根据数据动态生成表格列
+ */
+interface TableColumn {
+  label: string;
+  prop: string;
+  width: number;
+  align: string;
+  formatter?: (value: any) => string;
+}
+
+const getDetailTableColumns = (items: ShippingItemVO[]): TableColumn[] => {
+  if (!items || items.length === 0) return [];
+
+  // 定义列配置（与Excel导入弹窗保持一致）
+  const columns: TableColumn[] = [
+    { label: '序号', prop: 'index', width: 80, align: 'center' },
+    { label: '物品名称', prop: 'itemName', width: 200, align: 'left' },
+    { label: '规格型号', prop: 'specification', width: 150, align: 'left' },
+    { 
+      label: '数量', 
+      prop: 'quantity', 
+      width: 100, 
+      align: 'center',
+      formatter: (value) => value || '-'
+    },
+    { label: '单位', prop: 'unit', width: 80, align: 'center' },
+    { 
+      label: '单重(kg)', 
+      prop: 'unitWeight', 
+      width: 120, 
+      align: 'center',
+      formatter: (value) => value ? Number(value).toFixed(2) : '-'
+    },
+    { 
+      label: '总重(kg)', 
+      prop: 'totalWeight', 
+      width: 120, 
+      align: 'center',
+      formatter: (value) => value ? Number(value).toFixed(2) : '-'
+    },
+    { label: '制造商', prop: 'manufacturer', width: 150, align: 'left' },
+    { label: '型号', prop: 'model', width: 150, align: 'left' },
+    { label: '包装方式', prop: 'packageType', width: 120, align: 'center' },
+    { label: '备注', prop: 'remarks', width: 180, align: 'left' }
+  ];
+
+  // 为每行添加序号
+  items.forEach((item: any, index: number) => {
+    item.index = index + 1;
+  });
+
+  return columns;
+};
+
+/**
+ * 格式化单元格值
+ */
+const formatDetailCellValue = (value: any): string => {
+  if (value === null || value === undefined || value === '') return '-';
+  if (typeof value === 'number') return String(value);
+  return String(value);
 };
 
 // 生命周期
@@ -1083,6 +1051,66 @@ onMounted(() => {
         .attachment-actions {
           display: flex;
           gap: 8px;
+        }
+      }
+    }
+
+    // 设备明细分组展示样式
+    .equipment-detail-section {
+      margin-bottom: 32px;
+
+      &:last-child {
+        margin-bottom: 0;
+      }
+
+      .el-divider {
+        margin: 24px 0 20px;
+
+        .section-title {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          font-size: 16px;
+          font-weight: 600;
+          color: #303133;
+
+          .el-icon {
+            font-size: 18px;
+            color: #409eff;
+          }
+
+          .count-tag {
+            margin-left: 8px;
+            font-weight: normal;
+          }
+        }
+      }
+
+      .equipment-detail-table {
+        border-radius: 4px;
+        overflow: hidden;
+
+        :deep(.el-table__header-wrapper) {
+          th {
+            background-color: #f5f7fa;
+            color: #606266;
+            font-weight: 600;
+          }
+        }
+
+        :deep(.el-table__body-wrapper) {
+          .el-table__row {
+            &:hover {
+              background-color: #f5f7fa;
+            }
+          }
+        }
+
+        .special-tags {
+          display: flex;
+          gap: 4px;
+          justify-content: center;
+          flex-wrap: wrap;
         }
       }
     }
