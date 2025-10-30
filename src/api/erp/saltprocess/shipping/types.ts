@@ -51,38 +51,38 @@ export interface ShippingListVO {
   shippingMethod: ShippingMethod | string; // 发货方式
   shippingMethodDesc?: string;        // 发货方式描述（后端返回）
   shippingMethodName?: string;        // 发货方式名称（中文）
-  
+
   // 车辆和司机信息（基础字段）
   vehicleInfo?: string;               // 车辆信息（兼容旧版）
   driverInfo?: string;                // 司机信息（兼容旧版）
-  
+
   // 车辆和司机信息（增强版字段）
   vehiclePlate?: string;              // 车牌号
   vehicleDescription?: string;        // 车辆描述
   driverName?: string;                // 司机姓名
   driverPhone?: string;               // 司机电话
-  
+
   // 照片信息
   shippingPhotoUrls?: string[];       // 发货照片URL列表
   driverLicensePhotoUrls?: string[];  // 司机驾照照片URL列表
   packingListPath?: string;           // 装箱清单文件路径
   photoPath?: string;                 // 发货照片路径（兼容旧版）
-  
+
   // 统计信息
   totalItems: number;                 // 总件数
   totalWeight: number | string;       // 总重量(kg)
   totalVolume?: number | string;      // 总体积(m³)
-  
+
   // 设备分类统计
   mechanicalCount?: number;           // 机械设备数量
   electricalCount?: number;           // 电控设备数量
   pipelineCount?: number;             // 管路设备数量
   fragileCount?: number;              // 易碎品数量
   hazardousCount?: number;            // 危险品数量
-  
+
   // 备注
   remarks?: string;                   // 备注
-  
+
   // 审计字段
   tenantId?: string;                  // 租户ID
   createDept?: number;                // 创建部门
@@ -91,7 +91,7 @@ export interface ShippingListVO {
   createBy?: string | number;         // 创建人
   updateBy?: string | number;         // 更新人
   version?: number;                   // 版本号（乐观锁）
-  
+
   // 关联数据
   items?: ShippingItemVO[];           // 发货明细列表
   materialItems?: any;                // 物料明细（兼容旧版）
@@ -189,6 +189,13 @@ export interface ShippingItemForm {
   remarks?: string;
 }
 
+// 子系统重量映射（用于处理多个明细项共享同一重量的场景）
+export interface SubsystemWeight {
+  subsystem: string;                  // 子系统名称（必填）
+  weight: number | string;            // 重量（吨，必填）
+  remarks?: string;                   // 备注（可选）
+}
+
 // 增强版发货清单明细表单数据（来自Excel解析）
 export interface EnhancedShippingItemForm {
   sequenceNo?: number | string;      // 序号
@@ -196,11 +203,11 @@ export interface EnhancedShippingItemForm {
   subItemName?: string;               // 子项名称（原：分项）
   quantity: number | string;          // 数量
   unit: string;                       // 单位
-  weight?: number | string;           // 重量（吨）
+  weight?: number | string;           // 重量（吨）- 可选，如果 subsystem 匹配到 subsystemWeights 则从那里获取
   specification?: string;             // 规格
   shippingType?: string;              // 发货类型（如：机械、电控）
   equipmentType?: EquipmentType | string; // 设备类型（MECHANICAL/ELECTRICAL/PIPELINE等）
-  subsystem?: string;                 // 子系统/所属系统（如：固态处理厂）
+  subsystem?: string;                 // 子系统/所属系统（如：固态处理厂）- 用于匹配 subsystemWeights
   sheetName?: string;                 // Sheet标签名称（如：第一批设备）
   remarks1?: string;                  // 备注1（Excel中的"备注"列）
   remarks?: string;                   // 备注2
