@@ -403,6 +403,7 @@ export {
   parseShippingItemVO,
   parseVehicleInfo,
   parseDriverInfo,
+  parseSubsystemWeights,
   formatWeight,
   formatVolume,
   getStatusTagType,

@@ -83,6 +83,9 @@ export interface ShippingListVO {
   // 备注
   remarks?: string;                   // 备注
 
+  // 子系统重量映射数组
+  subsystemWeights?: SubsystemWeight[];  // 子系统重量列表
+
   // 审计字段
   tenantId?: string;                  // 租户ID
   createDept?: number;                // 创建部门
