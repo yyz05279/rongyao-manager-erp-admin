@@ -28,9 +28,7 @@
           :on-exceed="handleExceed"
         >
           <el-icon class="el-icon--upload"><upload-filled /></el-icon>
-          <div class="el-upload__text">
-            将发货清单Excel文件拖到此处，或<em>点击上传</em>
-          </div>
+          <div class="el-upload__text">将发货清单Excel文件拖到此处，或<em>点击上传</em></div>
           <template #tip>
             <div class="el-upload__tip">
               支持.xlsx和.xls格式，文件大小不超过10MB
@@ -94,39 +92,20 @@
                       @focus="() => console.log('✅ 项目选择器获得焦点')"
                       @blur="() => console.log('✅ 项目选择器失去焦点')"
                     >
-                      <el-option
-                        v-for="project in projectList"
-                        :key="project.id"
-                        :label="project.name"
-                        :value="project.id"
-                      />
+                      <el-option v-for="project in projectList" :key="project.id" :label="project.name" :value="project.id" />
                     </el-select>
                   </el-form-item>
                 </el-col>
                 <el-col :span="8">
                   <el-form-item label="负责人" required>
-                    <el-select
-                      v-model="importConfig.responsiblePersonId"
-                      placeholder="请选择负责人"
-                      filterable
-                      style="width: 100%"
-                    >
-                      <el-option
-                        v-for="person in responsiblePersonList"
-                        :key="person.id"
-                        :label="person.name"
-                        :value="person.id"
-                      />
+                    <el-select v-model="importConfig.responsiblePersonId" placeholder="请选择负责人" filterable style="width: 100%">
+                      <el-option v-for="person in responsiblePersonList" :key="person.id" :label="person.name" :value="person.id" />
                     </el-select>
                   </el-form-item>
                 </el-col>
                 <el-col :span="8">
                   <el-form-item label="批次号" required>
-                    <el-input
-                      v-model="importConfig.batchNumber"
-                      placeholder="请输入批次号，如：第一车"
-                      maxlength="50"
-                    />
+                    <el-input v-model="importConfig.batchNumber" placeholder="请输入批次号，如：第一车" maxlength="50" />
                   </el-form-item>
                 </el-col>
               </el-row>
@@ -142,13 +121,7 @@
               </div>
             </el-divider>
 
-            <el-table
-              :data="parsedData.shippingTimes"
-              border
-              stripe
-              size="default"
-              class="shipping-time-table"
-            >
+            <el-table :data="parsedData.shippingTimes" border stripe size="default" class="shipping-time-table">
               <el-table-column label="序号" prop="序号" width="100" align="center" />
               <el-table-column label="名称" prop="名称" width="400" show-overflow-tooltip />
               <el-table-column label="明细" prop="明细" width="200" align="center" />
@@ -172,11 +145,7 @@
               </div>
             </el-divider>
 
-            <div
-              v-for="(record, idx) in parsedData.shippingTimes"
-              :key="idx"
-              class="driver-info-card"
-            >
+            <div v-for="(record, idx) in parsedData.shippingTimes" :key="idx" class="driver-info-card">
               <div class="info-section">
                 <div class="info-row">
                   <div class="info-label">车牌号：</div>
@@ -206,13 +175,7 @@
                 </div>
 
                 <div v-if="driverLicenseImages.length === 0" class="license-upload-empty">
-                  <el-upload
-                    :auto-upload="false"
-                    :show-file-list="false"
-                    accept="image/*"
-                    :limit="1"
-                    :on-change="handleLicenseUpload"
-                  >
+                  <el-upload :auto-upload="false" :show-file-list="false" accept="image/*" :limit="1" :on-change="handleLicenseUpload">
                     <div class="upload-box">
                       <el-icon :size="36" class="upload-icon"><plus /></el-icon>
                       <div class="upload-text">点击上传驾照</div>
@@ -228,22 +191,8 @@
                     class="license-img"
                   />
                   <div class="license-actions">
-                    <el-button
-                      type="primary"
-                      size="small"
-                      :icon="Plus"
-                      @click="triggerLicenseUpload"
-                    >
-                      更换
-                    </el-button>
-                    <el-button
-                      type="danger"
-                      size="small"
-                      :icon="Delete"
-                      @click="removeLicenseImage(0)"
-                    >
-                      删除
-                    </el-button>
+                    <el-button type="primary" size="small" :icon="Plus" @click="triggerLicenseUpload"> 更换 </el-button>
+                    <el-button type="danger" size="small" :icon="Delete" @click="removeLicenseImage(0)"> 删除 </el-button>
                   </div>
                 </div>
               </div>
@@ -262,18 +211,12 @@
           </div>
 
           <!-- 第四部分：设备明细（按sheet分组） -->
-          <div
-            v-for="(detail, index) in parsedData.equipmentDetails"
-            :key="index"
-            class="section equipment-detail-section"
-          >
+          <div v-for="(detail, index) in parsedData.equipmentDetails" :key="index" class="section equipment-detail-section">
             <el-divider content-position="left">
               <div class="section-title">
                 <el-icon><box /></el-icon>
                 <span>{{ detail.sheetName }} - 设备明细</span>
-                <el-tag size="small" type="info" class="count-tag">
-                  共 {{ detail.data.length }} 项
-                </el-tag>
+                <el-tag size="small" type="info" class="count-tag"> 共 {{ detail.data.length }} 项 </el-tag>
               </div>
             </el-divider>
 
@@ -314,13 +257,7 @@
 
             <div v-if="uploadedImages.length === 0" class="no-images">
               <el-empty description="暂无图片">
-                <el-upload
-                  :auto-upload="false"
-                  :show-file-list="false"
-                  accept="image/*"
-                  multiple
-                  :on-change="handleImageUpload"
-                >
+                <el-upload :auto-upload="false" :show-file-list="false" accept="image/*" multiple :on-change="handleImageUpload">
                   <el-button type="primary" :icon="Plus">添加发货照片</el-button>
                 </el-upload>
               </el-empty>
@@ -336,25 +273,13 @@
                   class="preview-image"
                 />
                 <div class="image-actions">
-                  <el-button
-                    type="danger"
-                    size="small"
-                    :icon="Delete"
-                    circle
-                    @click="removeImage(idx)"
-                  />
+                  <el-button type="danger" size="small" :icon="Delete" circle @click="removeImage(idx)" />
                 </div>
               </div>
 
               <!-- 添加更多按钮 -->
               <div class="image-item add-more">
-                <el-upload
-                  :auto-upload="false"
-                  :show-file-list="false"
-                  accept="image/*"
-                  multiple
-                  :on-change="handleImageUpload"
-                >
+                <el-upload :auto-upload="false" :show-file-list="false" accept="image/*" multiple :on-change="handleImageUpload">
                   <div class="add-image-btn">
                     <el-icon :size="40"><plus /></el-icon>
                     <div class="add-text">添加照片</div>
@@ -363,17 +288,12 @@
               </div>
             </div>
           </div>
-
         </template>
       </div>
 
       <!-- 步骤3：完成 -->
       <div v-show="currentStep === 2" class="step-content">
-        <el-result
-          icon="success"
-          title="导入完成"
-          sub-title="发货清单已成功导入系统"
-        >
+        <el-result icon="success" title="导入完成" sub-title="发货清单已成功导入系统">
           <template #extra>
             <el-button type="primary" @click="handleViewList">查看清单</el-button>
             <el-button @click="handleClose">关闭</el-button>
@@ -386,62 +306,28 @@
       <div class="dialog-footer">
         <el-button @click="handleClose">取消</el-button>
         <el-button v-if="currentStep > 0 && currentStep < 2" @click="prevStep">上一步</el-button>
-        <el-button
-          v-if="currentStep === 0"
-          type="primary"
-          :disabled="!canGoNext"
-          :loading="parsing"
-          @click="nextStep"
-        >
-          下一步
-        </el-button>
-        <el-button
-          v-if="currentStep === 1"
-          type="primary"
-          :disabled="!canImport"
-          :loading="importing"
-          @click="handleImport"
-        >
-          确认导入
-        </el-button>
+        <el-button v-if="currentStep === 0" type="primary" :disabled="!canGoNext" :loading="parsing" @click="nextStep"> 下一步 </el-button>
+        <el-button v-if="currentStep === 1" type="primary" :disabled="!canImport" :loading="importing" @click="handleImport"> 确认导入 </el-button>
       </div>
     </template>
   </el-dialog>
 
   <!-- 批次已存在提示对话框 -->
-  <el-dialog
-    v-model="batchExistsDialogVisible"
-    title="批次已存在"
-    width="500px"
-    :close-on-click-modal="false"
-    @close="handleBatchExistsDialogClose"
-  >
-    <el-alert
-      type="warning"
-      :closable="false"
-      show-icon
-    >
+  <el-dialog v-model="batchExistsDialogVisible" title="批次已存在" width="500px" :close-on-click-modal="false" @close="handleBatchExistsDialogClose">
+    <el-alert type="warning" :closable="false" show-icon>
       <template #title>
-        <span style="font-size: 16px; font-weight: bold;">
-          该项目的批次"{{ importConfig.batchNumber }}"已存在发货清单
-        </span>
+        <span style="font-size: 16px; font-weight: bold;"> 该项目的批次"{{ importConfig.batchNumber }}"已存在发货清单 </span>
       </template>
     </el-alert>
 
     <div style="margin-top: 20px; padding: 15px; background: #f5f7fa; border-radius: 4px;">
-      <p style="margin: 0; color: #606266;">
-        继续导入将会覆盖或重复创建数据，建议先查看已存在的清单详情。
-      </p>
+      <p style="margin: 0; color: #606266;">继续导入将会覆盖或重复创建数据，建议先查看已存在的清单详情。</p>
     </div>
 
     <template #footer>
       <span class="dialog-footer">
-        <el-button @click="batchExistsDialogVisible = false">
-          关闭
-        </el-button>
-        <el-button type="primary" @click="handleViewExistingBatch">
-          查看清单详情
-        </el-button>
+        <el-button @click="batchExistsDialogVisible = false"> 关闭 </el-button>
+        <el-button type="primary" @click="handleViewExistingBatch"> 查看清单详情 </el-button>
       </span>
     </template>
   </el-dialog>
@@ -1018,7 +904,7 @@ const inferEquipmentType = (name: string): string => {
 /**
  * 构建按子系统分组的数据结构
  * 将 subsystemWeights 和 shippingItems 转换为更清晰的分组格式
- * 
+ *
  * @param subsystemWeights 子系统重量映射数组
  * @param shippingItems 设备明细数组
  * @returns 按子系统分组的数据
@@ -1126,6 +1012,31 @@ const handleImport = async () => {
     // 4. 转换设备明细数据
     const shippingItems = convertEquipmentDetails();
 
+    // 🔍 调试日志：检查单位字段
+    console.log('=== 📋 单位字段检查 ===');
+    console.log('设备明细总数:', shippingItems.length);
+    const sampleItems = shippingItems.slice(0, 5);
+    console.log('前5条数据示例:');
+    console.table(sampleItems.map(item => ({
+      设备名称: item.equipmentName,
+      子项名称: item.subItemName,
+      数量: item.quantity,
+      单位: item.unit,
+      规格: item.specification
+    })));
+
+    // 统计单位使用情况
+    const unitStats = new Map<string, number>();
+    shippingItems.forEach(item => {
+      const unit = item.unit || '(空)';
+      unitStats.set(unit, (unitStats.get(unit) || 0) + 1);
+    });
+    console.log('\n单位统计:');
+    console.table(Array.from(unitStats.entries()).map(([unit, count]) => ({
+      单位: unit,
+      数量: count
+    })));
+
     // 5. 提取子系统重量数据
     const subsystemWeights = extractSubsystemWeights();
 
@@ -1186,7 +1097,7 @@ const handleImport = async () => {
 
     // 7. 构建按子系统分组的数据结构（推荐格式）
     const subsystems = buildSubsystemGroups(subsystemWeights, shippingItems);
-    
+
     console.log('\n📦 生成的子系统分组数据:');
     console.log(JSON.stringify(subsystems, null, 2));
 
@@ -1225,6 +1136,19 @@ const handleImport = async () => {
     };
 
     // 8. 调用增强版导入接口
+    console.log('=== 📤 提交数据检查 ===');
+    console.log('shippingItems总数:', importData.shippingItems?.length || 0);
+    if (importData.shippingItems && importData.shippingItems.length > 0) {
+      console.log('前3条shippingItems数据:');
+      console.table(importData.shippingItems.slice(0, 3).map(item => ({
+        设备名称: item.equipmentName,
+        子项名称: item.subItemName,
+        数量: item.quantity,
+        单位: item.unit,
+        序号: item.sequenceNo
+      })));
+    }
+
     ElMessage.info('正在保存发货清单...');
     const response = await importEnhancedShippingList(importData);
 
@@ -1829,4 +1753,3 @@ onMounted(() => {
   }
 }
 </style>
-
