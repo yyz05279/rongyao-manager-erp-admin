@@ -22,7 +22,7 @@
           <template #header>
             <span class="card-title">基本信息</span>
           </template>
-          
+
           <el-row :gutter="24">
             <el-col :span="12">
               <el-form-item label="项目" prop="projectId">
@@ -42,7 +42,7 @@
                 </el-select>
               </el-form-item>
             </el-col>
-            
+
             <el-col :span="12">
               <el-form-item label="批次号" prop="batchNumber">
                 <el-input
@@ -51,7 +51,7 @@
                 />
               </el-form-item>
             </el-col>
-            
+
             <el-col :span="12">
               <el-form-item label="负责人" prop="responsiblePersonId">
                 <el-select
@@ -69,7 +69,7 @@
                 </el-select>
               </el-form-item>
             </el-col>
-            
+
             <el-col :span="12">
               <el-form-item label="发货日期" prop="shippingDate">
                 <el-date-picker
@@ -82,7 +82,7 @@
                 />
               </el-form-item>
             </el-col>
-            
+
             <el-col :span="12">
               <el-form-item label="预计送达日期">
                 <el-date-picker
@@ -95,7 +95,7 @@
                 />
               </el-form-item>
             </el-col>
-            
+
             <el-col :span="12">
               <el-form-item label="发货方式" prop="shippingMethod">
                 <el-select
@@ -110,7 +110,7 @@
                 </el-select>
               </el-form-item>
             </el-col>
-            
+
             <el-col :span="12">
               <el-form-item label="车辆信息">
                 <el-input
@@ -119,7 +119,7 @@
                 />
               </el-form-item>
             </el-col>
-            
+
             <el-col :span="12">
               <el-form-item label="司机信息">
                 <el-input
@@ -128,7 +128,7 @@
                 />
               </el-form-item>
             </el-col>
-            
+
             <el-col :span="24">
               <el-form-item label="备注">
                 <el-input
@@ -167,7 +167,7 @@
               </div>
             </div>
           </template>
-          
+
           <el-table
             :data="formData.items"
             border
@@ -175,7 +175,7 @@
             max-height="400"
           >
             <el-table-column label="序号" type="index" width="60" />
-            
+
             <el-table-column label="物品名称" min-width="150">
               <template #default="{ row, $index }">
                 <el-input
@@ -185,7 +185,7 @@
                 />
               </template>
             </el-table-column>
-            
+
             <el-table-column label="规格型号" min-width="120">
               <template #default="{ row }">
                 <el-input
@@ -194,7 +194,7 @@
                 />
               </template>
             </el-table-column>
-            
+
             <el-table-column label="设备类型" width="120">
               <template #default="{ row }">
                 <el-select
@@ -211,9 +211,9 @@
                 </el-select>
               </template>
             </el-table-column>
-            
+
             <el-table-column label="数量" width="100">
-              <template #default="{ row, $index }">
+              <template #default="{ row }">
                 <el-input-number
                   v-model="row.quantity"
                   :min="1"
@@ -224,7 +224,7 @@
                 />
               </template>
             </el-table-column>
-            
+
             <el-table-column label="单位" width="80">
               <template #default="{ row }">
                 <el-input
@@ -234,7 +234,7 @@
                 />
               </template>
             </el-table-column>
-            
+
             <el-table-column label="单重(kg)" width="100">
               <template #default="{ row }">
                 <el-input-number
@@ -247,7 +247,7 @@
                 />
               </template>
             </el-table-column>
-            
+
             <el-table-column label="总重(kg)" width="100">
               <template #default="{ row }">
                 <el-input-number
@@ -260,7 +260,7 @@
                 />
               </template>
             </el-table-column>
-            
+
             <el-table-column label="制造商" min-width="120">
               <template #default="{ row }">
                 <el-input
@@ -270,7 +270,7 @@
                 />
               </template>
             </el-table-column>
-            
+
             <el-table-column label="特殊标识" width="120">
               <template #default="{ row }">
                 <div class="special-flags">
@@ -279,7 +279,7 @@
                 </div>
               </template>
             </el-table-column>
-            
+
             <el-table-column label="操作" width="80" fixed="right">
               <template #default="{ $index }">
                 <el-button
@@ -293,7 +293,7 @@
               </template>
             </el-table-column>
           </el-table>
-          
+
           <div v-if="formData.items.length === 0" class="empty-items">
             <el-empty description="暂无发货明细，请添加明细项" />
           </div>
@@ -319,12 +319,6 @@
       :item-data="itemDialog.data"
       @confirm="handleItemConfirm"
     />
-
-    <!-- Excel导入对话框 -->
-    <ItemImportDialog
-      v-model:visible="importDialog.visible"
-      @success="handleImportSuccess"
-    />
   </div>
 </template>
 
@@ -336,18 +330,22 @@ import { ElMessage, ElMessageBox } from 'element-plus';
 import {
   getShippingList,
   addShippingList,
-  updateShippingList,
   getProjectSimpleList,
-  getResponsiblePersonList
+  getResponsiblePersonList,
+  parseShippingListVO
 } from '@/api/erp/saltprocess/shipping/api-config';
+import { updateShippingList } from '@/api/erp/saltprocess/shipping/index';
 import type {
   ShippingListForm,
+  ShippingListVO,
   ShippingItemForm,
+  ShippingItemVO,
   ShippingMethod,
-  EquipmentType
+  EquipmentType,
+  SubsystemWeight,
+  EnhancedShippingListForm
 } from '@/api/erp/saltprocess/shipping/types';
 import ItemEditDialog from './components/ItemEditDialog.vue';
-import ItemImportDialog from './components/ItemImportDialog.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -359,8 +357,12 @@ const formRef = ref();
 const projectList = ref<{ id: string; name: string }[]>([]);
 const responsiblePersonList = ref<{ id: string; name: string }[]>([]);
 
-// 表单数据
-const formData = reactive<ShippingListForm>({
+// 表单数据 - 使用增强版表单类型以支持所有字段
+interface ExtendedShippingListForm extends EnhancedShippingListForm {
+  subsystemWeights?: SubsystemWeight[];
+}
+
+const formData = reactive<ExtendedShippingListForm>({
   projectId: '',
   batchNumber: '',
   responsiblePersonId: '',
@@ -369,6 +371,15 @@ const formData = reactive<ShippingListForm>({
   shippingMethod: 'TRUCK' as ShippingMethod,
   vehicleInfo: '',
   driverInfo: '',
+  // 增强版字段
+  vehiclePlate: '',
+  vehicleDescription: '',
+  driverName: '',
+  driverPhone: '',
+  shippingPhotoUrls: [],
+  driverLicensePhotoUrls: [],
+  // 子系统重量
+  subsystemWeights: [],
   remarks: '',
   items: []
 });
@@ -398,10 +409,6 @@ const itemDialog = reactive({
   data: {} as ShippingItemForm
 });
 
-const importDialog = reactive({
-  visible: false
-});
-
 // 计算属性
 const isEdit = computed(() => !!route.params.id);
 
@@ -414,35 +421,99 @@ const initData = async () => {
       getProjectSimpleList(),
       getResponsiblePersonList()
     ]);
-    
+
     projectList.value = projects.data;
     responsiblePersonList.value = persons.data;
-    
+
     // 如果是编辑模式，加载详情数据
     if (isEdit.value) {
       const id = route.params.id as string;
       const response = await getShippingList(id);
-      const detail = response.data;
-      
+
+      // 使用解析工具处理后端数据
+      const detail: ShippingListVO = parseShippingListVO(response.data);
+
+      console.log('✅ 编辑模式 - 加载发货清单详情:', {
+        清单编号: detail.listCode,
+        项目名称: detail.projectName,
+        明细数量: detail.items?.length || 0,
+        子系统重量数量: detail.subsystemWeights?.length || 0,
+        发货照片数量: detail.shippingPhotoUrls?.length || 0,
+        驾照照片数量: detail.driverLicensePhotoUrls?.length || 0
+      });
+
+      // 填充表单数据，保留所有增强字段
       Object.assign(formData, {
-        id: detail.id,
+        id: detail.id || detail.shippingListId,
         projectId: detail.projectId,
         batchNumber: detail.batchNumber,
-        responsiblePersonId: detail.responsiblePersonId,
+        responsiblePersonId: detail.responsiblePersonId || detail.responsiblePerson,
         shippingDate: detail.shippingDate,
         expectedDeliveryDate: detail.expectedDeliveryDate,
         shippingMethod: detail.shippingMethod,
+
+        // 基础车辆和司机信息（兼容旧版）
         vehicleInfo: detail.vehicleInfo,
         driverInfo: detail.driverInfo,
+
+        // 增强版字段
+        vehiclePlate: detail.vehiclePlate,
+        vehicleDescription: detail.vehicleDescription,
+        driverName: detail.driverName,
+        driverPhone: detail.driverPhone,
+
+        // 照片字段
+        shippingPhotoUrls: detail.shippingPhotoUrls || [],
+        driverLicensePhotoUrls: detail.driverLicensePhotoUrls || [],
+
+        // 子系统重量
+        subsystemWeights: detail.subsystemWeights || [],
+
+        // 备注
         remarks: detail.remarks,
-        items: [] // 明细项需要单独加载
+
+        // 发货明细 - 从详情中提取
+        items: convertShippingItemsToForm(detail.items || [])
+      });
+
+      console.log('✅ 表单数据填充完成:', {
+        明细项数量: formData.items.length,
+        子系统重量: formData.subsystemWeights?.length || 0,
+        发货照片: formData.shippingPhotoUrls?.length || 0,
+        驾照照片: formData.driverLicensePhotoUrls?.length || 0
       });
     }
   } catch (error) {
+    console.error('❌ 初始化数据失败:', error);
     ElMessage.error('初始化数据失败');
   } finally {
     loading.value = false;
   }
+};
+
+/**
+ * 将详情中的ShippingItemVO转换为表单ShippingItemForm
+ */
+const convertShippingItemsToForm = (items: ShippingItemVO[]): ShippingItemForm[] => {
+  return items.map(item => ({
+    id: item.id,
+    itemName: item.itemName,
+    specification: item.specification,
+    equipmentType: item.equipmentType,
+    quantity: item.quantity,
+    unit: item.unit,
+    unitWeight: item.unitWeight,
+    unitVolume: item.unitVolume,
+    manufacturer: item.manufacturer,
+    model: item.model,
+    serialNumber: item.serialNumber,
+    packageType: item.packageType,
+    packageQuantity: item.packageQuantity,
+    isFragile: item.isFragile,
+    isHazardous: item.isHazardous,
+    storageRequirement: item.storageRequirement,
+    remarks: item.remarks
+  }));
 };
 
 const handleProjectChange = (projectId: string) => {
@@ -470,7 +541,7 @@ const handleAddItem = () => {
     storageRequirement: '',
     remarks: ''
   };
-  
+
   formData.items.push(newItem);
 };
 
@@ -479,15 +550,17 @@ const handleRemoveItem = (index: number) => {
 };
 
 const handleImportItems = () => {
-  importDialog.visible = true;
+  ElMessage.info('Excel导入功能开发中，请使用增强版导入或手动添加明细');
 };
 
-const handleImportSuccess = (items: ShippingItemForm[]) => {
-  formData.items.push(...items);
-  ElMessage.success(`成功导入 ${items.length} 条明细`);
+/**
+ * 计算明细项的总重量
+ */
+const calculateTotalWeight = (row: ShippingItemForm) => {
+  if (row.quantity && row.unitWeight) {
+    row.totalWeight = row.quantity * row.unitWeight;
+  }
 };
-
-// 总重量通过计算属性动态计算，不需要存储在数据中
 
 const validateItem = (index: number, field: string) => {
   const item = formData.items[index];
@@ -503,34 +576,51 @@ const handleItemConfirm = (itemData: ShippingItemForm) => {
 
 const handleSubmit = async () => {
   if (!formRef.value) return;
-  
+
   try {
     await formRef.value.validate();
-    
+
     if (formData.items.length === 0) {
       ElMessage.warning('请至少添加一条发货明细');
       return;
     }
-    
+
     // 验证明细项
     const invalidItems = formData.items.filter(item => !item.itemName || !item.quantity);
     if (invalidItems.length > 0) {
       ElMessage.warning('请完善发货明细信息');
       return;
     }
-    
+
     submitting.value = true;
-    
+
+    // 准备提交数据，保留所有增强字段
+    const submitData: ExtendedShippingListForm = {
+      ...formData,
+      // 确保ID字段正确
+      id: formData.id
+    };
+
+    console.log('📤 提交发货清单数据:', {
+      模式: isEdit.value ? '编辑' : '新增',
+      清单ID: submitData.id,
+      明细数量: submitData.items.length,
+      子系统重量: submitData.subsystemWeights?.length || 0,
+      发货照片: submitData.shippingPhotoUrls?.length || 0,
+      驾照照片: submitData.driverLicensePhotoUrls?.length || 0
+    });
+
     if (isEdit.value) {
-      await updateShippingList(route.params.id as string, formData);
+      await updateShippingList(submitData);
       ElMessage.success('更新成功');
     } else {
-      await addShippingList(formData);
+      await addShippingList(submitData);
       ElMessage.success('保存成功');
     }
-    
+
     router.push('/saltprocess/shipping');
   } catch (error) {
+    console.error('❌ 提交失败:', error);
     if (error !== 'validation failed') {
       ElMessage.error(isEdit.value ? '更新失败' : '保存失败');
     }

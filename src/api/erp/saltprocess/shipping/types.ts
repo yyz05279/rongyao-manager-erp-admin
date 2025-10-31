@@ -180,7 +180,9 @@ export interface ShippingItemForm {
   quantity: number;
   unit: string;
   unitWeight?: number;
+  totalWeight?: number;              // 总重量(kg) - 计算属性
   unitVolume?: number;
+  totalVolume?: number;              // 总体积(m³) - 计算属性
   manufacturer?: string;
   model?: string;
   serialNumber?: string;
