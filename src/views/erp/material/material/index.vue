@@ -9,9 +9,6 @@
           <el-form-item label="物料编码" prop="itemCode">
             <el-input v-model="queryParams.itemCode" placeholder="请输入物料编码" clearable style="width: 240px" @keyup.enter="handleQuery" />
           </el-form-item>
-          <el-form-item label="设备类型" prop="equipmentType">
-            <el-input v-model="queryParams.equipmentType" placeholder="请输入设备类型" clearable style="width: 240px" @keyup.enter="handleQuery" />
-          </el-form-item>
           <el-form-item label="生产日期" prop="productionDateRange">
             <el-date-picker
               v-model="productionDateRange"
@@ -41,10 +38,14 @@
             <el-button type="primary" plain icon="Plus" @click="handleAdd" v-hasPermi="['erp:material:item:add']">新增</el-button>
           </el-col>
           <el-col :span="1.5">
-            <el-button type="success" plain icon="Edit" :disabled="single" @click="handleUpdate()" v-hasPermi="['erp:material:item:edit']">修改</el-button>
+            <el-button type="success" plain icon="Edit" :disabled="single" @click="handleUpdate()" v-hasPermi="['erp:material:item:edit']"
+              >修改</el-button
+            >
           </el-col>
           <el-col :span="1.5">
-            <el-button type="danger" plain icon="Delete" :disabled="multiple" @click="handleDelete()" v-hasPermi="['erp:material:item:remove']">删除</el-button>
+            <el-button type="danger" plain icon="Delete" :disabled="multiple" @click="handleDelete()" v-hasPermi="['erp:material:item:remove']"
+              >删除</el-button
+            >
           </el-col>
           <el-col :span="1.5">
             <el-button type="warning" plain icon="Download" @click="handleExport" v-hasPermi="['erp:material:item:export']">导出</el-button>
@@ -55,10 +56,9 @@
 
       <el-table v-loading="loading" :data="materialList" @selection-change="handleSelectionChange">
         <el-table-column type="selection" width="55" align="center" />
-        <el-table-column label="物料编码" align="center" prop="itemCode" width="120" />
-        <el-table-column label="物料名称" align="center" prop="itemName" width="150" />
+        <el-table-column label="物料编码" align="center" prop="materialCode" width="180" />
+        <el-table-column label="物料名称" align="center" prop="materialName" width="150" />
         <el-table-column label="规格型号" align="center" prop="specification" width="120" />
-        <el-table-column label="设备类型" align="center" prop="equipmentType" width="120" />
         <el-table-column label="数量" align="center" prop="quantity" width="80" />
         <el-table-column label="单位" align="center" prop="unit" width="80" />
         <el-table-column label="单重(kg)" align="center" prop="unitWeight" width="100" />
@@ -96,13 +96,7 @@
         </el-table-column>
       </el-table>
 
-      <pagination
-          v-show="total>0"
-          :total="total"
-          v-model:page="queryParams.pageNum"
-          v-model:limit="queryParams.pageSize"
-          @pagination="getList"
-      />
+      <pagination v-show="total>0" :total="total" v-model:page="queryParams.pageNum" v-model:limit="queryParams.pageSize" @pagination="getList" />
     </el-card>
 
     <!-- 添加或修改物料信息对话框 -->
@@ -126,22 +120,11 @@
               <el-input v-model="form.specification" placeholder="请输入规格型号" />
             </el-form-item>
           </el-col>
-          <el-col :span="12">
-            <el-form-item label="设备类型" prop="equipmentType">
-              <el-input v-model="form.equipmentType" placeholder="请输入设备类型" />
-            </el-form-item>
-          </el-col>
         </el-row>
         <el-row>
           <el-col :span="12">
             <el-form-item label="数量" prop="quantity">
-              <el-input-number
-                v-model="form.quantity"
-                placeholder="请输入数量"
-                :min="0"
-                :precision="0"
-                class="!w-1/1"
-              />
+              <el-input-number v-model="form.quantity" placeholder="请输入数量" :min="0" :precision="0" class="!w-1/1" />
             </el-form-item>
           </el-col>
           <el-col :span="12">
@@ -153,48 +136,24 @@
         <el-row>
           <el-col :span="12">
             <el-form-item label="单重(kg)" prop="unitWeight">
-              <el-input-number
-                v-model="form.unitWeight"
-                placeholder="请输入单重"
-                :min="0"
-                :precision="2"
-                class="!w-1/1"
-              />
+              <el-input-number v-model="form.unitWeight" placeholder="请输入单重" :min="0" :precision="2" class="!w-1/1" />
             </el-form-item>
           </el-col>
           <el-col :span="12">
             <el-form-item label="总重(kg)" prop="totalWeight">
-              <el-input-number
-                v-model="form.totalWeight"
-                placeholder="请输入总重"
-                :min="0"
-                :precision="2"
-                class="!w-1/1"
-              />
+              <el-input-number v-model="form.totalWeight" placeholder="请输入总重" :min="0" :precision="2" class="!w-1/1" />
             </el-form-item>
           </el-col>
         </el-row>
         <el-row>
           <el-col :span="12">
             <el-form-item label="单体积(m³)" prop="unitVolume">
-              <el-input-number
-                v-model="form.unitVolume"
-                placeholder="请输入单体积"
-                :min="0"
-                :precision="2"
-                class="!w-1/1"
-              />
+              <el-input-number v-model="form.unitVolume" placeholder="请输入单体积" :min="0" :precision="2" class="!w-1/1" />
             </el-form-item>
           </el-col>
           <el-col :span="12">
             <el-form-item label="总体积(m³)" prop="totalVolume">
-              <el-input-number
-                v-model="form.totalVolume"
-                placeholder="请输入总体积"
-                :min="0"
-                :precision="2"
-                class="!w-1/1"
-              />
+              <el-input-number v-model="form.totalVolume" placeholder="请输入总体积" :min="0" :precision="2" class="!w-1/1" />
             </el-form-item>
           </el-col>
         </el-row>
@@ -297,7 +256,6 @@ const initFormData: MaterialForm = {
   itemCode: undefined,
   itemName: undefined,
   specification: undefined,
-  equipmentType: undefined,
   quantity: undefined,
   unit: undefined,
   unitWeight: undefined,
@@ -321,7 +279,6 @@ const data = reactive<PageData<MaterialForm, MaterialQuery>>({
     pageSize: 10,
     name: undefined,
     itemCode: undefined,
-    equipmentType: undefined,
     params: {}
   },
   rules: {
@@ -444,4 +401,3 @@ onMounted(() => {
   getList();
 });
 </script>
-

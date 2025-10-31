@@ -83,8 +83,12 @@ export interface ShippingListVO {
   // 备注
   remarks?: string;                   // 备注
 
-  // 子系统重量映射数组
+  // 子系统重量映射数组（保留用于向后兼容）
   subsystemWeights?: SubsystemWeight[];  // 子系统重量列表
+
+  // 【推荐】按子系统分组的数据结构（更清晰）
+  // 将明细项按子系统组织，每个子系统包含名称、总重量和明细项列表
+  subsystems?: SubsystemGroup[];
 
   // 审计字段
   tenantId?: string;                  // 租户ID
@@ -176,6 +180,7 @@ export interface ShippingItemForm {
   id?: string;
   itemName: string;
   specification?: string;
+  subsystem?: string;                // 所属子系统名称
   equipmentType: EquipmentType;
   quantity: number;
   unit: string;
@@ -199,6 +204,14 @@ export interface SubsystemWeight {
   subsystem: string;                  // 子系统名称（必填）
   weight: number | string;            // 重量（吨，必填）
   remarks?: string;                   // 备注（可选）
+}
+
+// 子系统分组数据（用于更清晰的数据结构）
+export interface SubsystemGroup {
+  systemName: string;                 // 子系统名称（如：平面输送系统）
+  weight: number | string;            // 子系统总重量（吨）
+  remark?: string;                    // 备注信息
+  items: ShippingItemVO[] | EnhancedShippingItemForm[];  // 该子系统下的明细项（支持两种格式）
 }
 
 // 增强版发货清单明细表单数据（来自Excel解析）
