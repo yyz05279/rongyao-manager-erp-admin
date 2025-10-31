@@ -2,7 +2,7 @@
  * 发货清单数据解析工具
  * 用于解析和标准化后端返回的发货清单数据
  */
-import { ShippingListVO, ShippingItemVO, SubsystemWeight } from './types';
+import { ShippingListVO, ShippingItemVO, SubsystemWeight, SubsystemGroup } from './types';
 
 /**
  * 后端分页响应格式
@@ -142,8 +142,17 @@ export function parseShippingListVO(data: any): ShippingListVO {
     // 备注
     remarks: data.remarks || null,
 
-    // 子系统重量映射数组
+    // 子系统重量映射数组（保留用于向后兼容）
     subsystemWeights: parseSubsystemWeights(data.subsystemWeights),
+
+    // 【推荐】按子系统分组的数据结构（更清晰）
+    // 优先使用后端返回的 subsystems 字段，如果不存在则从 subsystemWeights 和 items 构建
+    subsystems:
+      data.subsystems ||
+      buildSubsystems(
+        parseSubsystemWeights(data.subsystemWeights),
+        Array.isArray(data.items) ? data.items.map((item: any) => parseShippingItemVO(item)) : []
+      ),
 
     // 审计字段
     tenantId: data.tenantId,
@@ -581,4 +590,101 @@ export function parseSubsystemWeights(data: any): SubsystemWeight[] {
   }
 
   return [];
+}
+
+/**
+ * 构建按子系统分组的数据结构
+ * 将 subsystemWeights 和 items 转换为更清晰的分组格式
+ *
+ * @param subsystemWeights 子系统重量映射数组
+ * @param items 发货明细数组
+ * @returns 按子系统分组的数据
+ *
+ * @example
+ * ```typescript
+ * const subsystems = buildSubsystems(
+ *   [
+ *     { subsystem: "序号1-平面输送机+序号2-子输送", weight: 7, remarks: "平面输送机+子输送总重" }
+ *   ],
+ *   [
+ *     { id: "1", itemName: "序号1-平面输送机-输送主体", ... },
+ *     { id: "2", itemName: "序号2-子输送-子输送体", ... }
+ *   ]
+ * );
+ * // 返回: [
+ * //   {
+ * //     systemName: "平面输送机+子输送",
+ * //     weight: 7,
+ * //     remark: "平面输送机+子输送总重",
+ * //     items: [...]
+ * //   }
+ * // ]
+ * ```
+ */
+export function buildSubsystems(subsystemWeights: SubsystemWeight[], items: ShippingItemVO[]): SubsystemGroup[] {
+  if (!subsystemWeights || subsystemWeights.length === 0) {
+    return [];
+  }
+
+  if (!items || items.length === 0) {
+    // 如果没有明细项，也返回子系统信息（只是items为空数组）
+    return subsystemWeights.map((sw) => ({
+      systemName: extractSystemName(sw.subsystem),
+      weight: sw.weight,
+      remark: sw.remarks,
+      items: []
+    }));
+  }
+
+  const subsystemGroups: SubsystemGroup[] = [];
+
+  subsystemWeights.forEach((sw) => {
+    // 提取子系统名称（去除"序号X-"前缀）
+    const systemName = extractSystemName(sw.subsystem);
+
+    // 筛选属于该子系统的所有明细项
+    // 根据itemName中包含的子系统标识进行匹配
+    const subsystemItems = items.filter((item) => {
+      // 如果明细项的itemName包含子系统的任何一个设备名称，则认为属于该子系统
+      // 例如：sw.subsystem = "序号1-平面输送机+序号2-子输送"
+      //      item.itemName = "序号1-平面输送机-输送主体" 或 "平面输送机-输送主体"
+      const subsystemParts = sw.subsystem.split('+');
+      return subsystemParts.some((part) => {
+        // 提取设备名称（去除"序号X-"前缀）
+        const equipmentName = part.replace(/^序号\d+-/, '');
+        return item.itemName.includes(equipmentName) || item.itemName.includes(part);
+      });
+    });
+
+    subsystemGroups.push({
+      systemName,
+      weight: sw.weight,
+      remark: sw.remarks,
+      items: subsystemItems
+    });
+  });
+
+  return subsystemGroups;
+}
+
+/**
+ * 提取子系统名称（去除"序号X-"前缀）
+ *
+ * @param subsystem 原始子系统名称（如："序号1-平面输送机+序号2-子输送"）
+ * @returns 清理后的子系统名称（如："平面输送机+子输送"）
+ *
+ * @example
+ * ```typescript
+ * extractSystemName("序号1-平面输送机+序号2-子输送");
+ * // 返回: "平面输送机+子输送"
+ *
+ * extractSystemName("序号3-粉碎机");
+ * // 返回: "粉碎机"
+ * ```
+ */
+function extractSystemName(subsystem: string): string {
+  return subsystem
+    .split('+')
+    .map((name) => name.replace(/^序号\d+-/, ''))
+    .join('+');
 }

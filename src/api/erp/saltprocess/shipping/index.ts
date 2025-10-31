@@ -18,7 +18,8 @@ import {
   ShippingItemsExportParams,
   EnhancedShippingListForm,
   EnhancedShippingItemForm,
-  SubsystemWeight
+  SubsystemWeight,
+  SubsystemGroup
 } from './types';
 import { ApiResponse, PageResult } from '../types';
 
@@ -290,21 +291,51 @@ export const downloadShippingAttachment = (id: string): AxiosPromise<Blob> => {
 /**
  * 获取项目简化列表（用于下拉选择）
  */
-export const getProjectSimpleList = (): AxiosPromise<{ id: string; name: string }[]> => {
-  return request({
+export const getProjectSimpleList = async (): Promise<{ data: { id: string; name: string }[] }> => {
+  const response: any = await request({
     url: '/erp/saltprocess/project/simple-list',
     method: 'get'
   });
+  
+  // 确保返回的数据格式正确
+  const projects = response.data || [];
+  const simplifiedList = projects.map((project: any) => ({
+    id: String(project.id || project.projectId || ''),
+    name: project.name || project.projectName || `项目${project.id}`
+  }));
+  
+  console.log('🔄 项目列表数据转换:', {
+    原始数据数量: projects.length,
+    转换后数据: simplifiedList
+  });
+  
+  return { data: simplifiedList };
 };
 
 /**
  * 获取负责人简化列表（用于下拉选择）
+ * 调用系统用户接口，转换UserVO为简化格式
  */
-export const getResponsiblePersonList = (): AxiosPromise<{ id: string; name: string }[]> => {
-  return request({
+export const getResponsiblePersonList = async (): Promise<{ data: { id: number | string; name: string }[] }> => {
+  const response: any = await request({
     url: '/system/user/simple-list',
     method: 'get'
   });
+  
+  // 转换后端UserVO数据结构为简化格式
+  // UserVO包含: userId, userName, nickName 等字段
+  const users = response.data || [];
+  const simplifiedList = users.map((user: any) => ({
+    id: user.userId,
+    name: user.nickName || user.userName || `用户${user.userId}`
+  }));
+  
+  console.log('🔄 负责人列表数据转换:', {
+    原始数据数量: users.length,
+    转换后数据: simplifiedList
+  });
+  
+  return { data: simplifiedList };
 };
 
 /**
@@ -330,6 +361,16 @@ export const checkBatchExists = (projectId: string | number, batchNumber: string
 export const getShippingItems = listShippingItems;
 export const getTrackingRecords = getShippingTrackingRecords;
 export const getAttachments = getShippingAttachments;
+
+/**
+ * 子系统分组数据（用于更清晰的数据结构）
+ */
+export interface SubsystemGroup {
+  systemName: string;          // 子系统名称（如：平面输送系统）
+  weight: number | string;      // 子系统总重量（吨）
+  remark?: string;              // 备注信息
+  items: EnhancedShippingItemForm[];  // 该子系统下的明细项
+}
 
 /**
  * 增强版发货清单导入接口
@@ -365,13 +406,17 @@ export interface EnhancedShippingImportRequest {
 
   remarks?: string;
 
-  // 子系统重量映射数组（推荐方案）
+  // 子系统重量映射数组（保留用于向后兼容）
   // 用于处理多个明细项共享同一重量的场景，避免重复计算
   // 示例：[{ subsystem: "固态处理厂-机械", weight: 14.5, remarks: "平面输送机+粉碎机总重" }]
   subsystemWeights?: SubsystemWeight[];
 
-  // 设备明细
-  shippingItems: EnhancedShippingItemForm[];
+  // 【推荐】按子系统分组的数据结构（更清晰）
+  // 将明细项按子系统组织，每个子系统包含名称、总重量和明细项列表
+  subsystems?: SubsystemGroup[];
+
+  // 设备明细（平铺结构，保留用于向后兼容）
+  shippingItems?: EnhancedShippingItemForm[];
 }
 
 /**
@@ -404,6 +449,7 @@ export {
   parseVehicleInfo,
   parseDriverInfo,
   parseSubsystemWeights,
+  buildSubsystems,
   formatWeight,
   formatVolume,
   getStatusTagType,

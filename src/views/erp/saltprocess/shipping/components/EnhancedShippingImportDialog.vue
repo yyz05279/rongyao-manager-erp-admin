@@ -472,7 +472,7 @@ import {
   checkBatchExists,
   type EnhancedShippingImportRequest
 } from '@/api/erp/saltprocess/shipping/api-config';
-import type { EnhancedShippingItemForm } from '@/api/erp/saltprocess/shipping/types';
+import type { EnhancedShippingItemForm, SubsystemGroup } from '@/api/erp/saltprocess/shipping/types';
 import { uploadImages } from '@/api/erp/common/upload';
 import type { BizType } from '@/api/erp/common/upload/types';
 
@@ -1016,6 +1016,43 @@ const inferEquipmentType = (name: string): string => {
 };
 
 /**
+ * 构建按子系统分组的数据结构
+ * 将 subsystemWeights 和 shippingItems 转换为更清晰的分组格式
+ * 
+ * @param subsystemWeights 子系统重量映射数组
+ * @param shippingItems 设备明细数组
+ * @returns 按子系统分组的数据
+ */
+const buildSubsystemGroups = (
+  subsystemWeights: Array<{ subsystem: string; weight: number; remarks?: string }>,
+  shippingItems: EnhancedShippingItemForm[]
+): SubsystemGroup[] => {
+  const subsystemGroups: SubsystemGroup[] = [];
+
+  // 为每个子系统创建分组
+  subsystemWeights.forEach(sw => {
+    // 提取子系统名称（去除"序号X-"前缀，只保留设备名称）
+    // 例如：从 "序号1-平面输送机+序号2-子输送" 提取为 "平面输送机+子输送"
+    const systemName = sw.subsystem
+      .split('+')
+      .map(name => name.replace(/^序号\d+-/, ''))
+      .join('+');
+
+    // 筛选属于该子系统的所有明细项
+    const items = shippingItems.filter(item => item.subsystem === sw.subsystem);
+
+    subsystemGroups.push({
+      systemName,           // 子系统名称（如：平面输送系统）
+      weight: sw.weight,    // 子系统总重量（吨）
+      remark: sw.remarks,   // 备注信息
+      items                 // 该子系统下的明细项
+    });
+  });
+
+  return subsystemGroups;
+};
+
+/**
  * 执行导入
  */
 const handleImport = async () => {
@@ -1147,7 +1184,13 @@ const handleImport = async () => {
     // 6. 提取发货时间信息（使用第一条记录）
     const firstTimeRecord = parsedData.value.shippingTimes[0];
 
-    // 7. 构建导入请求数据
+    // 7. 构建按子系统分组的数据结构（推荐格式）
+    const subsystems = buildSubsystemGroups(subsystemWeights, shippingItems);
+    
+    console.log('\n📦 生成的子系统分组数据:');
+    console.log(JSON.stringify(subsystems, null, 2));
+
+    // 8. 构建导入请求数据
     const importData: EnhancedShippingImportRequest = {
       // 基本信息
       projectId: importConfig.projectId,
@@ -1171,10 +1214,13 @@ const handleImport = async () => {
       shippingPhotoUrls,
       driverLicensePhotoUrls,
 
-      // 子系统重量映射数组（推荐方案）
+      // 子系统重量映射数组（保留用于向后兼容）
       subsystemWeights,
 
-      // 设备明细
+      // 【推荐】按子系统分组的数据结构（更清晰）
+      subsystems,
+
+      // 设备明细（平铺结构，保留用于向后兼容）
       shippingItems
     };
 

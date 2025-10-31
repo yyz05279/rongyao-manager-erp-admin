@@ -18,11 +18,6 @@ export interface MaterialQuery extends PageQuery {
   shippingListId?: string | number;
 
   /**
-   * 设备类型
-   */
-  equipmentType?: string;
-
-  /**
    * 物料状态
    */
   status?: number;
@@ -56,16 +51,31 @@ export interface MaterialVO {
    * 物料清单ID
    */
   shippingListId?: string | number;
+  
+  /**
+   * 物料清单ID（后端字段）
+   */
+  materialListId?: string | number;
 
   /**
-   * 物料编码
+   * 物料编码（前端字段）
    */
   itemCode?: string;
+  
+  /**
+   * 物料编码（后端字段）
+   */
+  materialCode?: string;
 
   /**
-   * 物料名称
+   * 物料名称（前端字段）
    */
-  itemName: string;
+  itemName?: string;
+  
+  /**
+   * 物料名称（后端字段）
+   */
+  materialName?: string;
 
   /**
    * 规格型号
@@ -73,9 +83,14 @@ export interface MaterialVO {
   specification?: string;
 
   /**
-   * 设备类型
+   * 设备类型（前端字段）
    */
   equipmentType?: string;
+  
+  /**
+   * 物料类型（后端字段）
+   */
+  materialType?: string;
 
   /**
    * 数量
@@ -191,11 +206,6 @@ export interface MaterialForm extends BaseEntity {
    * 规格型号
    */
   specification?: string;
-
-  /**
-   * 设备类型
-   */
-  equipmentType?: string;
 
   /**
    * 数量
