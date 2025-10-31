@@ -155,10 +155,15 @@ export class MockShippingService {
   /**
    * 更新发货清单
    */
-  static async updateShippingList(id: string, data: ShippingListForm): Promise<ApiResponse<null>> {
+  static async updateShippingList(data: ShippingListForm): Promise<ApiResponse<null>> {
     await delay();
 
     try {
+      const id = data.id;
+      if (!id) {
+        return errorResponse('发货清单ID不能为空');
+      }
+
       const index = this.shippingLists.findIndex(list => list.id === id);
       if (index === -1) {
         return errorResponse('发货清单不存在');
