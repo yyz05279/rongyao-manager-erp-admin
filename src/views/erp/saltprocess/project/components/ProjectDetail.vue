@@ -250,6 +250,8 @@
           ref="materialDetailRef"
           :project-id="projectId"
           :sheet-names="projectData.sheetNames || []"
+          @import-success="handleImportSuccess"
+          @refresh-project="handleRefreshProject"
         />
       </el-tab-pane>
     </el-tabs>
@@ -309,12 +311,38 @@ const loadProjectData = async () => {
   try {
     const { data } = await getSaltProject(props.projectId);
     projectData.value = data;
+    console.log('✅ 项目数据加载完成:', projectData.value);
+    console.log('📋 项目sheetNames:', projectData.value.sheetNames);
   } catch (error) {
     console.error('加载项目详情失败:', error);
     ElMessage.error('加载项目详情失败');
   } finally {
     loading.value = false;
   }
+};
+
+/**
+ * 处理物料导入成功事件
+ */
+const handleImportSuccess = () => {
+  console.log('📥 收到物料导入成功事件');
+  // 导入成功后，可能需要刷新其他数据
+};
+
+/**
+ * 处理刷新项目事件
+ */
+const handleRefreshProject = async () => {
+  console.log('🔄 收到刷新项目事件，重新加载项目详情');
+  await loadProjectData();
+
+  // 等待数据更新后，重新初始化物料列表
+  setTimeout(() => {
+    if (materialDetailRef.value && typeof materialDetailRef.value.initializeData === 'function') {
+      console.log('🔄 重新初始化物料明细数据');
+      materialDetailRef.value.initializeData();
+    }
+  }, 200);
 };
 
 // 工具方法 - 使用导入的转换函数

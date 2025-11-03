@@ -59,7 +59,7 @@
         <el-table-column label="物料编码" align="center" prop="materialCode" width="180" />
         <el-table-column label="物料名称" align="center" prop="materialName" width="150" />
         <el-table-column label="规格型号" align="center" prop="specification" width="120" />
-        <el-table-column label="数量" align="center" prop="quantity" width="80" />
+        <!-- <el-table-column label="数量" align="center" prop="quantity" width="80" /> -->
         <el-table-column label="单位" align="center" prop="unit" width="80" />
         <el-table-column label="单重(kg)" align="center" prop="unitWeight" width="100" />
         <el-table-column label="总重(kg)" align="center" prop="totalWeight" width="100" />
@@ -122,11 +122,11 @@
           </el-col>
         </el-row>
         <el-row>
-          <el-col :span="12">
+          <!-- <el-col :span="12">
             <el-form-item label="数量" prop="quantity">
               <el-input-number v-model="form.quantity" placeholder="请输入数量" :min="0" :precision="0" class="!w-1/1" />
             </el-form-item>
-          </el-col>
+          </el-col> -->
           <el-col :span="12">
             <el-form-item label="单位" prop="unit">
               <el-input v-model="form.unit" placeholder="请输入单位" />
@@ -285,9 +285,9 @@ const data = reactive<PageData<MaterialForm, MaterialQuery>>({
     itemName: [
       { required: true, message: "物料名称不能为空", trigger: "blur" }
     ],
-    quantity: [
-      { required: true, message: "数量不能为空", trigger: "blur" }
-    ]
+    // quantity: [
+    //   { required: true, message: "数量不能为空", trigger: "blur" }
+    // ]
   }
 });
 
