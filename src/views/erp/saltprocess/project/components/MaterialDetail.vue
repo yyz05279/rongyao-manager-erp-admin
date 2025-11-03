@@ -199,28 +199,26 @@
         >
           <el-table v-if="activeImportedSheetTab === sheetName" :data="materialList" style="width: 100%" border>
             <el-table-column type="index" label="序号" width="60" align="center" />
-            <el-table-column prop="itemName" label="物料名称" min-width="180" show-overflow-tooltip />
-            <el-table-column prop="specification" label="规格型号" min-width="160" show-overflow-tooltip />
-            <el-table-column prop="quantity" label="汇总数量" width="120" align="center">
+            <el-table-column prop="materialCode" label="物料编码" align="center" width="180" />
+            <el-table-column prop="materialName" label="物料名称" align="center" width="150" show-overflow-tooltip />
+            <el-table-column prop="specification" label="规格型号" align="center" width="120" show-overflow-tooltip />
+            <el-table-column prop="quantity" label="数量" align="center" width="80" />
+            <el-table-column prop="unit" label="单位" align="center" width="80" />
+            <el-table-column prop="totalWeight" label="总重(kg)" align="center" width="100" />
+            <el-table-column prop="manufacturer" label="制造商" align="center" width="120" show-overflow-tooltip />
+            <el-table-column prop="materialType" label="物料类型" width="100" align="center">
               <template #default="{ row }">
-                <el-tag type="success" size="large">{{ row.quantity }} {{ row.unit }}</el-tag>
+                <el-tag :type="getMaterialTypeTag(row.materialType)" size="small">
+                  {{ getMaterialTypeName(row.materialType) }}
+                </el-tag>
               </template>
             </el-table-column>
-            <el-table-column prop="batchCount" label="批次数" width="100" align="center">
-              <template #default="{ row }">
-                <el-tag type="info" size="small">{{ row.batchCount }}</el-tag>
-              </template>
-            </el-table-column>
-            <el-table-column prop="equipmentType" label="设备类型" width="120" align="center" show-overflow-tooltip />
-            <el-table-column prop="materialCategory" label="材质" width="100" show-overflow-tooltip />
-            <el-table-column prop="manufacturer" label="制造商" width="120" show-overflow-tooltip />
-            <!-- <el-table-column prop="model" label="型号" width="120" show-overflow-tooltip /> -->
           </el-table>
         </el-tab-pane>
       </el-tabs>
 
       <!-- 无数据时显示 -->
-      <el-empty v-else description="暂无物料数据，请先选择工作表" />
+      <el-empty v-else description="暂无物料数据，请先导入物料清单" />
 
       <!-- 分页 -->
       <pagination
@@ -263,38 +261,27 @@
         <!-- 总体统计 -->
         <div class="result-stats">
           <el-row :gutter="16">
-            <el-col :span="8">
-              <el-statistic title="总记录数" :value="importResult.totalRecords">
+            <el-col :span="6">
+              <el-statistic title="总记录数" :value="importResult.totalRecords || importResult.totalUploadedRecords || 0">
                 <template #suffix>条</template>
               </el-statistic>
             </el-col>
-            <el-col :span="8">
-              <el-statistic title="成功记录" :value="importResult.successRecords" class="success-stat">
-                <template #suffix>条</template>
+            <el-col :span="6">
+              <el-statistic title="物料种类数" :value="importResult.uniqueMaterialCount || 0" class="primary-stat">
+                <template #suffix>种</template>
               </el-statistic>
             </el-col>
-            <el-col :span="8">
-              <el-statistic title="失败记录" :value="importResult.failedRecords" class="error-stat">
-                <template #suffix>条</template>
-              </el-statistic>
-            </el-col>
-          </el-row>
-          <el-row :gutter="16" style="margin-top: 20px;">
-            <el-col :span="8">
-              <el-statistic title="重复跳过" :value="importResult.skippedRecords" class="warning-stat">
-                <template #suffix>条</template>
-              </el-statistic>
-            </el-col>
-            <el-col :span="8">
-              <el-statistic title="新建产品" :value="importResult.newProductRecords" class="primary-stat">
+            <el-col :span="6">
+              <el-statistic title="新建产品" :value="importResult.newProductRecords || 0" class="success-stat">
                 <template #suffix>个</template>
               </el-statistic>
             </el-col>
-            <el-col :span="8">
-              <el-statistic title="匹配产品" :value="importResult.matchedProductRecords" class="info-stat">
+            <!-- 匹配产品已隐藏 -->
+            <!-- <el-col :span="6">
+              <el-statistic title="匹配产品" :value="importResult.matchedProductRecords || 0" class="info-stat">
                 <template #suffix>个</template>
               </el-statistic>
-            </el-col>
+            </el-col> -->
           </el-row>
         </div>
 
@@ -335,7 +322,8 @@
               </template>
             </el-table-column>
             <el-table-column prop="newProductRecords" label="新建产品" width="90" align="center" />
-            <el-table-column prop="matchedProductRecords" label="匹配产品" width="90" align="center" />
+            <!-- 匹配产品列已隐藏 -->
+            <!-- <el-table-column prop="matchedProductRecords" label="匹配产品" width="90" align="center" /> -->
             <el-table-column label="状态" width="100" align="center">
               <template #default="{ row }">
                 <el-tag v-if="row.skipped" type="info" size="small">已跳过</el-tag>
@@ -345,18 +333,6 @@
               </template>
             </el-table-column>
           </el-table>
-        </div>
-
-        <!-- 重复物料提示（已隐藏详细列表，会自动合并） -->
-        <div v-if="importResult.skippedRecords > 0" style="margin-top: 20px;">
-          <el-alert type="success" :closable="false">
-            <template #title>
-              <div style="display: flex; align-items: center;">
-                <el-icon style="margin-right: 5px;"><InfoFilled /></el-icon>
-                <span>检测到 {{ importResult.skippedRecords }} 条重复物料，系统已自动合并相同物料的数量</span>
-              </div>
-            </template>
-          </el-alert>
         </div>
 
         <!-- 错误信息 -->
@@ -381,14 +357,17 @@
 <script setup name="MaterialDetail" lang="ts">
 import { ref, computed, watch, onMounted, nextTick, shallowRef } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import { Check, Close, CircleCloseFilled, InfoFilled } from '@element-plus/icons-vue';
+import { Check, Close, CircleCloseFilled } from '@element-plus/icons-vue';
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
 import { ExcelParser, MaterialDataValidator } from '@/utils/excel-parser';
 import {
   listMaterialSummary,
   importParsedMaterialData,
-  exportMaterialList
+  exportMaterialList,
+  createUploadBatch,
+  getBatchStatistics,
+  completeBatch
 } from '@/api/erp/saltprocess/material';
 import type { MaterialImportBo, MaterialSummaryQuery, MaterialSummaryVO } from '@/api/erp/saltprocess/material/types';
 import MaterialImportConfigDialog from './MaterialImportConfigDialog.vue';
@@ -403,11 +382,32 @@ const props = withDefaults(defineProps<Props>(), {
   sheetNames: () => []
 });
 
+// Emits
+const emit = defineEmits<{
+  'import-success': []; // 导入成功事件
+  'refresh-project': []; // 刷新项目详情事件
+}>();
+
 // 响应式数据
 const uploadRef = ref();
 const loading = ref(false);
 // 使用 shallowRef 减少大数组的深层响应式开销
 const materialData = shallowRef<any[]>([]);
+
+// 监听 props.sheetNames 的变化
+watch(() => props.sheetNames, (newSheetNames, oldSheetNames) => {
+  console.log('📋 sheetNames发生变化:', {
+    old: oldSheetNames,
+    new: newSheetNames
+  });
+
+  // 如果之前没有sheetNames，现在有了，自动加载第一个sheet的数据
+  if ((!oldSheetNames || oldSheetNames.length === 0) && newSheetNames && newSheetNames.length > 0) {
+    console.log('🔄 检测到sheetNames从空变为有数据，自动加载第一个sheet');
+    activeImportedSheetTab.value = newSheetNames[0];
+    loadMaterialList(newSheetNames[0]);
+  }
+}, { immediate: false, deep: true });
 const parsing = ref(false);
 const parseProgress = ref(0);
 const parseStatus = ref<'success' | 'exception' | 'warning' | ''>('');
@@ -449,7 +449,7 @@ const listTotal = ref(0);
 const listQuery = ref<MaterialSummaryQuery>({
   pageNum: 1,
   pageSize: 50, // 使用后端分页，每页50条
-  projectId: Number(props.projectId)
+  projectId: props.projectId // 保持字符串类型，避免大数精度丢失
 });
 
 // 计算属性
@@ -624,15 +624,18 @@ const updateCurrentSheetData = () => {
  * 当切换到物料明细标签时调用此方法
  */
 const initializeData = () => {
-  console.log('初始化物料明细数据');
-  console.log('sheetNames:', props.sheetNames);
+  console.log('🔧 初始化物料明细数据');
+  console.log('📋 当前props.sheetNames:', props.sheetNames);
+  console.log('📋 sheetNames长度:', props.sheetNames?.length);
+  console.log('📋 sheetNames是否为数组:', Array.isArray(props.sheetNames));
 
   // 如果有 sheetNames，使用第一个 sheetName 加载数据
   if (props.sheetNames && props.sheetNames.length > 0) {
+    console.log('✅ 有sheetNames，加载第一个sheet:', props.sheetNames[0]);
     activeImportedSheetTab.value = props.sheetNames[0];
     loadMaterialList(props.sheetNames[0]);
   } else {
-    ElMessage.warning('项目暂无物料清单工作表');
+    console.log('⚠️ 暂无物料清单工作表，等待导入数据或父组件传递sheetNames');
   }
 };
 
@@ -705,6 +708,9 @@ const handleImportedTabChange = async (tabName: string) => {
 // 生命周期
 onMounted(() => {
   // 移除自动加载，改为由父组件在标签切换时触发
+  console.log('🎨 MaterialDetail组件已挂载');
+  console.log('📋 挂载时的props.sheetNames:', props.sheetNames);
+  console.log('📋 挂载时的props.projectId:', props.projectId);
 });
 
 // 方法
@@ -844,7 +850,9 @@ const handleSheetPagination = () => {
 
 // 物料列表分页处理
 const handleMaterialPagination = () => {
-  loadMaterialList();
+  if (activeImportedSheetTab.value) {
+    loadMaterialList(activeImportedSheetTab.value);
+  }
 };
 
 // 打开导入配置弹窗
@@ -1228,7 +1236,12 @@ const submitData = async () => {
       }
       // 如果有部分数据导入成功，刷新列表
       if (totalSuccess > 0) {
-        loadMaterialList();
+        emit('import-success');
+        setTimeout(() => {
+          if (props.sheetNames && props.sheetNames.length > 0) {
+            loadMaterialList(props.sheetNames[0]);
+          }
+        }, 500);
       }
     } else if (importResult.value.success) {
       ElMessage.success('数据导入成功！相同物料已自动合并数量');
@@ -1236,7 +1249,12 @@ const submitData = async () => {
       materialData.value = [];
       uploadRef.value?.clearFiles();
       // 刷新列表
-      loadMaterialList();
+      emit('import-success');
+      setTimeout(() => {
+        if (props.sheetNames && props.sheetNames.length > 0) {
+          loadMaterialList(props.sheetNames[0]);
+        }
+      }, 500);
     } else {
       ElMessage.error('部分或全部数据导入失败，请查看详细信息');
     }
@@ -1248,9 +1266,10 @@ const submitData = async () => {
   }
 };
 
-// 使用配置提交数据 - 支持Sheet选择和自定义批次大小
+// 使用配置提交数据 - 支持Sheet选择和自定义批次大小（三步法）
 const submitDataWithConfig = async (config: any) => {
   submitting.value = true;
+  let preUploadId: number | null = null; // ⭐ 预上传ID
 
   try {
     const { selectedSheets, batchSizeMap } = config;
@@ -1258,8 +1277,6 @@ const submitDataWithConfig = async (config: any) => {
     const importResults: any[] = [];
     let totalSuccess = 0;
     let totalFailed = 0;
-    let totalNewProducts = 0;
-    let totalMatchedProducts = 0;
     let totalSkipped = 0;
 
     // 过滤选中的Sheet
@@ -1293,6 +1310,27 @@ const submitDataWithConfig = async (config: any) => {
       totalCount: totalMaterialCount,
       message: '准备开始导入...'
     };
+
+    // ⭐⭐⭐ 步骤1：获取预上传ID ⭐⭐⭐
+    try {
+      importProgress.value.message = '⭐ 步骤1：正在获取预上传ID...';
+      const batchResponse = await createUploadBatch({
+        batchName: `物料导入-${new Date().toLocaleString()}`,
+        projectId: props.projectId,
+        projectName: undefined,
+        responsiblePerson: undefined,
+        remarks: `分批导入 ${totalMaterialCount} 条物料，共 ${totalBatchCount} 批次`
+      });
+      preUploadId = batchResponse.data;
+      console.log('✅ 步骤1完成 - 预上传ID:', preUploadId);
+      importProgress.value.message = `✅ 步骤1完成 - 预上传ID: ${preUploadId}`;
+      // 显示一下，让用户看到
+      await new Promise(resolve => setTimeout(resolve, 500));
+    } catch (error: any) {
+      console.error('❌ 获取预上传ID失败:', error);
+      ElMessage.error('获取预上传ID失败: ' + (error.message || '未知错误'));
+      throw error;
+    }
 
     let currentGlobalBatch = 0; // 全局批次计数器
 
@@ -1340,8 +1378,6 @@ const submitDataWithConfig = async (config: any) => {
 
       let sheetSuccessCount = 0;
       let sheetFailedCount = 0;
-      let sheetNewProducts = 0;
-      let sheetMatchedProducts = 0;
       const sheetErrors: any[] = [];
 
       // 分批上传
@@ -1403,7 +1439,9 @@ const submitDataWithConfig = async (config: any) => {
           continue;
         }
 
+        // ⭐⭐⭐ 步骤2：分批上传物料（携带预上传ID） ⭐⭐⭐
         const importData: MaterialImportBo = {
+          uploadBatchId: preUploadId!, // ⭐ 传入预上传ID
           projectId: props.projectId,
           batchNumber: `${batchNumber}_${group.sheetName}_${batchIndex + 1}`,
           fileSource: '前端Excel解析-物料清单批量导入',
@@ -1429,16 +1467,16 @@ const submitDataWithConfig = async (config: any) => {
             duplicateItems: result.duplicateItems,
             newProductRecords: result.newProductRecords,
             matchedProductRecords: result.matchedProductRecords,
+            uniqueMaterialCount: result.uniqueMaterialCount,
             fullResult: result
           });
 
           if (result && result.success) {
             const batchSuccess = result.successCount || batchMaterials.length;
             sheetSuccessCount += batchSuccess;
-            // 修复：使用正确的字段名 newProductRecords 和 matchedProductRecords
-            sheetNewProducts += result.newProductRecords || 0;
-            sheetMatchedProducts += result.matchedProductRecords || 0;
-            console.log(`✅ 批次累加 - 本批次新建: ${result.newProductRecords || 0}, 匹配: ${result.matchedProductRecords || 0} | 累计新建: ${sheetNewProducts}, 累计匹配: ${sheetMatchedProducts}`);
+
+            // 注意：单次上传返回的统计是累积的，但完整统计由步骤3获取
+            console.log(`📊 本批次上传成功 - 成功: ${batchSuccess}条`);
 
             // 收集重复物料信息（优先使用新结构 existedItems）
             if (result.existedItems && result.existedItems.length > 0) {
@@ -1538,9 +1576,7 @@ const submitDataWithConfig = async (config: any) => {
       // 累加每个Sheet的统计结果到总计
       totalSuccess += sheetSuccessCount;
       totalFailed += sheetFailedCount;
-      totalNewProducts += sheetNewProducts;
-      totalMatchedProducts += sheetMatchedProducts;
-      console.log(`📊 Sheet累加完成 [${group.sheetName}] - 本Sheet新建: ${sheetNewProducts}, 匹配: ${sheetMatchedProducts} | 全局累计新建: ${totalNewProducts}, 累计匹配: ${totalMatchedProducts}`);
+      console.log(`📊 Sheet累加完成 [${group.sheetName}] - 成功: ${sheetSuccessCount}, 失败: ${sheetFailedCount}`);
 
       importResults.push({
         sheetName: group.sheetName,
@@ -1548,8 +1584,8 @@ const submitDataWithConfig = async (config: any) => {
         totalRecords: validMaterials.length,
         successRecords: sheetSuccessCount,
         failedRecords: sheetFailedCount,
-        newProductRecords: sheetNewProducts,
-        matchedProductRecords: sheetMatchedProducts,
+        newProductRecords: 0, // 由步骤3统计接口获取完整数据
+        matchedProductRecords: 0, // 由步骤3统计接口获取完整数据
         batchCount: totalBatches,
         errors: sheetErrors
       });
@@ -1559,8 +1595,44 @@ const submitDataWithConfig = async (config: any) => {
     importProgress.value.percentage = 100;
     importProgress.value.status = totalSuccess > 0 ? 'success' : 'exception';
     importProgress.value.message = totalSuccess > 0
-      ? `🎉 导入完成！成功导入 ${totalSuccess} 条，失败 ${totalFailed} 条`
+      ? `🎉 步骤2完成！成功导入 ${totalSuccess} 条，失败 ${totalFailed} 条`
       : '❌ 导入失败，请查看详细信息';
+
+    // ⭐⭐⭐ 步骤3：获取统计数据（使用预上传ID） ⭐⭐⭐
+    let batchStatistics: any = null;
+    if (preUploadId && totalSuccess > 0) {
+      try {
+        importProgress.value.message = '⭐ 步骤3：正在获取完整批次统计数据...';
+        await new Promise(resolve => setTimeout(resolve, 300));
+
+        const statisticsResponse = await getBatchStatistics(preUploadId);
+        batchStatistics = statisticsResponse.data;
+        console.log('✅ 步骤3完成 - 完整批次统计:', JSON.stringify(batchStatistics, null, 2));
+        console.log('📊 关键数据提取:', {
+          totalUploadedRecords: batchStatistics?.totalUploadedRecords,
+          uniqueMaterialCount: batchStatistics?.uniqueMaterialCount,
+          newMaterialRecords: batchStatistics?.newMaterialRecords,
+          matchedMaterialRecords: batchStatistics?.matchedMaterialRecords,
+          totalWeight: batchStatistics?.totalWeight,
+          totalVolume: batchStatistics?.totalVolume,
+          fileSourceStats: batchStatistics?.fileSourceStats
+        });
+
+        importProgress.value.message = `✅ 步骤3完成 - 获取到完整统计数据`;
+        await new Promise(resolve => setTimeout(resolve, 500));
+      } catch (error: any) {
+        console.error('⚠️ 获取批次统计失败（不影响导入结果）:', error);
+        ElMessage.warning('获取批次统计失败，将使用上传返回的基础数据');
+        // 不抛出错误，继续显示结果
+      }
+    }
+
+    console.log('🔍 最终batchStatistics值:', batchStatistics);
+    console.log('🔍 batchStatistics是否存在:', !!batchStatistics);
+    if (batchStatistics) {
+      console.log('🔍 batchStatistics.newMaterialRecords:', batchStatistics.newMaterialRecords);
+      console.log('🔍 batchStatistics.matchedMaterialRecords:', batchStatistics.matchedMaterialRecords);
+    }
 
     // 转换 Map 为数组
     const existedItemsList = Array.from(existedItemsMap.values());
@@ -1573,28 +1645,71 @@ const submitDataWithConfig = async (config: any) => {
       existedItemsList: existedItemsList
     });
 
-    // 显示导入结果
+    // ⭐ 使用步骤3统计接口的数据构建Sheet导入详情
+    let finalSheetResults = importResults;
+    if (batchStatistics && batchStatistics.fileSourceStats && batchStatistics.fileSourceStats.length > 0) {
+      // 使用步骤3返回的统计数据
+      finalSheetResults = batchStatistics.fileSourceStats.map((stat: any) => {
+        // 查找对应的原始结果（如果有）
+        const originalResult = importResults.find((r: any) => r.sheetName === stat.sheetName);
+
+        return {
+          sheetName: stat.sheetName,
+          fileName: stat.fileName,
+          totalRecords: stat.recordCount, // ⭐ 使用统计接口的记录数
+          successRecords: totalSuccess, // 所有批次成功数
+          failedRecords: totalFailed,
+          newProductRecords: batchStatistics.newMaterialRecords || 0, // ⭐ 使用统计接口的新建数
+          matchedProductRecords: batchStatistics.matchedMaterialRecords || 0, // ⭐ 使用统计接口的匹配数
+          batchCount: originalResult?.batchCount || 0,
+          success: totalSuccess > 0,
+          errors: originalResult?.errors || []
+        };
+      });
+    }
+
+    // 显示导入结果（优先使用步骤3返回的完整统计数据）
+    const newProductRecords = batchStatistics?.newMaterialRecords || 0;
+    const matchedProductRecords = batchStatistics?.matchedMaterialRecords || 0;
+
+    console.log('🔍 准备赋值给importResult:', {
+      'batchStatistics?.newMaterialRecords': batchStatistics?.newMaterialRecords,
+      'batchStatistics?.matchedMaterialRecords': batchStatistics?.matchedMaterialRecords,
+      'newProductRecords': newProductRecords,
+      'matchedProductRecords': matchedProductRecords
+    });
+
     importResult.value = {
       success: totalSuccess > 0,
       summary: totalSkipped > 0
         ? `成功导入 ${totalSuccess} 条，失败 ${totalFailed} 条，重复跳过 ${totalSkipped} 条`
         : `成功导入 ${totalSuccess} 条，失败 ${totalFailed} 条`,
-      totalRecords: totalSuccess + totalFailed, // 总记录数 = 成功 + 失败
+      totalRecords: batchStatistics?.totalUploadedRecords || (totalSuccess + totalFailed), // ⭐ 优先使用步骤3的统计
       successRecords: totalSuccess,
       failedRecords: totalFailed,
       skippedRecords: totalSkipped,
-      newProductRecords: totalNewProducts,
-      matchedProductRecords: totalMatchedProducts,
-      sheetResults: importResults,
+      uniqueMaterialCount: batchStatistics?.uniqueMaterialCount || 0, // ⭐ 使用步骤3的完整统计
+      newProductRecords: newProductRecords, // ⭐ 使用步骤3的完整统计
+      matchedProductRecords: matchedProductRecords, // ⭐ 使用步骤3的完整统计
+      totalWeight: batchStatistics?.totalWeight, // ⭐ 额外的统计数据
+      totalVolume: batchStatistics?.totalVolume, // ⭐ 额外的统计数据
+      sheetResults: finalSheetResults, // ⭐ 使用步骤3构建的Sheet结果
       errors: importResults.flatMap(r => r.errors),
-      existedItems: existedItemsList // 已存在物料信息（v2.0新结构），不再过滤空数组
+      existedItems: existedItemsList, // 已存在物料信息（v2.0新结构），不再过滤空数组
+      batchStatistics: batchStatistics // ⭐ 完整批次统计数据
     };
+
+    console.log('🔍 importResult.value最终值:', {
+      newProductRecords: importResult.value.newProductRecords,
+      matchedProductRecords: importResult.value.matchedProductRecords,
+      uniqueMaterialCount: importResult.value.uniqueMaterialCount
+    });
 
     console.log('📋 最终导入结果:', importResult.value);
     console.log('🔍 importResult.value.skippedRecords:', importResult.value.skippedRecords);
     console.log('🔍 importResult.value.existedItems:', importResult.value.existedItems);
     console.log('🔍 importResult.value.existedItems.length:', importResult.value.existedItems?.length);
-    console.log('✅ 产品统计 - 新建产品:', importResult.value.newProductRecords, '| 匹配产品:', importResult.value.matchedProductRecords);
+    console.log('✅ 产品统计（步骤3完整批次统计） - 总记录:', importResult.value.totalRecords, '| 物料种类:', importResult.value.uniqueMaterialCount, '| 新建:', importResult.value.newProductRecords, '| 匹配:', importResult.value.matchedProductRecords);
 
     showResult.value = true;
 
@@ -1603,17 +1718,63 @@ const submitDataWithConfig = async (config: any) => {
     console.log('🔍 DOM 更新后检查: showResult.value =', showResult.value);
     console.log('🔍 DOM 更新后检查: importResult.value =', importResult.value);
 
-    // 刷新物料列表
+    // （可选）完成批次上传
+    if (preUploadId && totalSuccess > 0) {
+      try {
+        await completeBatch(preUploadId);
+        console.log('✅ 批次已标记为完成');
+      } catch (error: any) {
+        console.error('⚠️ 标记批次完成失败（不影响导入结果）:', error);
+      }
+    }
+
+    // 导入完成处理
     if (totalSuccess > 0) {
-      await loadMaterialList();
-      ElMessage.success(`成功导入 ${totalSuccess} 条数据！相同物料已自动合并数量`);
+      // ⭐ 标记所有已上传的数据为"已导入"状态
+      selectedGroups.forEach(group => {
+        const validMaterials = group.materials.filter((item) => {
+          const itemSheetName = (item.sheetName || '').toLowerCase();
+          return !itemSheetName.includes('发货') && !itemSheetName.includes('装车') && !item.hasErrors;
+        });
+        validMaterials.forEach(material => {
+          (material as any).imported = true;
+        });
+      });
+
+      // 触发响应式更新
+      materialData.value = [...materialData.value];
+      console.log('✅ 已标记所有导入数据的状态，已导入数量:', importedCount.value);
+
+
+      // ⭐ 发送导入成功事件，通知父组件刷新项目详情
+      emit('import-success');
+      emit('refresh-project');
+
+      // ⭐ 等待父组件刷新sheetNames后，重新加载物料列表
+      await nextTick();
+      setTimeout(() => {
+        // 从步骤3统计数据中获取sheetName
+        if (batchStatistics && batchStatistics.fileSourceStats && batchStatistics.fileSourceStats.length > 0) {
+          const firstSheetName = batchStatistics.fileSourceStats[0].sheetName;
+          console.log('📊 使用步骤3返回的sheetName加载物料列表:', firstSheetName);
+          activeImportedSheetTab.value = firstSheetName;
+          loadMaterialList(firstSheetName);
+        } else if (props.sheetNames && props.sheetNames.length > 0) {
+          // 备用方案：使用props中的sheetNames
+          console.log('📊 使用props.sheetNames加载物料列表');
+          activeImportedSheetTab.value = props.sheetNames[0];
+          loadMaterialList(props.sheetNames[0]);
+        }
+      }, 500); // 延迟500ms，等待父组件更新
+
+      ElMessage.success(`✅ 三步法导入完成！成功导入 ${totalSuccess} 条数据，${importResult.value.uniqueMaterialCount} 种物料`);
     } else {
       ElMessage.error('导入失败，请查看详细信息');
     }
 
   } catch (error) {
     console.error('导入失败:', error);
-    ElMessage.error('导入失败');
+    ElMessage.error('导入失败: ' + (error instanceof Error ? error.message : '未知错误'));
     // 设置错误状态
     importProgress.value.percentage = 100;
     importProgress.value.status = 'exception';
@@ -1654,7 +1815,7 @@ const downloadTemplate = () => {
 // 导出数据
 const handleExport = async () => {
   try {
-    // 构建导出参数，将 projectId 转换为 string
+    // 构建导出参数，确保 projectId 为字符串类型
     const exportQuery = {
       projectId: String(listQuery.value.projectId),
       sheetName: listQuery.value.sheetName,

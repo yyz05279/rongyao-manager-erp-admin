@@ -177,3 +177,40 @@ export function listMaterialSummary(query: MaterialSummaryQuery): AxiosPromise<{
     params: query
   });
 }
+
+/**
+ * ⭐ 步骤1：创建预上传批次，获取预上传ID
+ */
+export function createUploadBatch(data: {
+  batchName: string;
+  projectId: string;
+  projectName?: string;
+  responsiblePerson?: string;
+  remarks?: string;
+}): AxiosPromise<number> {
+  return request({
+    url: '/erp/material/upload-batch',
+    method: 'post',
+    data: data
+  });
+}
+
+/**
+ * ⭐ 步骤3：获取批次统计数据（使用预上传ID）
+ */
+export function getBatchStatistics(batchId: number): AxiosPromise<any> {
+  return request({
+    url: `/erp/material/upload-batch/${batchId}/statistics`,
+    method: 'get'
+  });
+}
+
+/**
+ * 完成批次上传（可选）
+ */
+export function completeBatch(batchId: number): AxiosPromise<void> {
+  return request({
+    url: `/erp/material/upload-batch/${batchId}/complete`,
+    method: 'put'
+  });
+}

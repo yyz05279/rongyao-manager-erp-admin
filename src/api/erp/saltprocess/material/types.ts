@@ -46,6 +46,9 @@ export interface MaterialVO {
  * 物料导入业务对象 - 完整版（100%匹配后端接口文档）
  */
 export interface MaterialImportBo {
+  // ⭐ 预上传ID（批次ID）- 分批上传时必传
+  uploadBatchId?: number;
+
   // 项目信息
   projectId: string;
   projectName?: string;
@@ -132,12 +135,75 @@ export interface MaterialImportResultVo {
   newProductRecords: number;
   matchedProductRecords: number;
   skippedRecords?: number; // 跳过的记录数（重复物料）
+  uniqueMaterialCount?: number; // 不同物料的种类数（去重后的唯一物料数量：根据物料名称+规格）
+  totalUploadedRecords?: number; // 总共上传的记录数（包括重复的物料）
   shippingListId?: string;
   listCode?: string;
   errors?: MaterialImportError[];
   warnings?: MaterialImportWarning[];
   existedItems?: ExistedItemVo[]; // 已存在物料信息（v2.0新结构）
   duplicateItems?: DuplicateMaterialItem[]; // 重复物料明细（兼容v1.0）
+  sheetResults?: SheetImportResult[]; // 各Sheet导入详情
+  startTime?: string;
+  endTime?: string;
+  duration?: number;
+  statistics?: ImportStatistics;
+}
+
+/**
+ * Sheet导入结果
+ */
+export interface SheetImportResult {
+  sheetName: string;
+  totalRecords: number;
+  successRecords: number;
+  failedRecords: number;
+  newProductRecords: number;
+  matchedProductRecords: number;
+  batchCount?: number;
+  success: boolean;
+  skipped?: boolean;
+}
+
+/**
+ * 导入统计信息
+ */
+export interface ImportStatistics {
+  materialTypeStats?: MaterialTypeStatistic[];
+  fileSourceStats?: FileSourceStatistic[];
+  dataQuality?: DataQualityStatistic;
+}
+
+/**
+ * 物料类型统计
+ */
+export interface MaterialTypeStatistic {
+  materialType: string;
+  typeName: string;
+  count: number;
+  percentage: number;
+}
+
+/**
+ * 文件来源统计
+ */
+export interface FileSourceStatistic {
+  fileName: string;
+  recordCount: number;
+  successCount: number;
+  failedCount: number;
+}
+
+/**
+ * 数据质量统计
+ */
+export interface DataQualityStatistic {
+  completenessScore: number;
+  accuracyScore: number;
+  consistencyScore: number;
+  overallScore: number;
+  qualityLevel: string;
+  suggestions: string[];
 }
 
 /**
@@ -238,7 +304,7 @@ export interface MaterialSummaryVO {
  * 物料汇总查询参数
  */
 export interface MaterialSummaryQuery {
-  projectId: number;
+  projectId: string | number; // 支持字符串类型，避免大数精度丢失
   sheetName?: string;
   pageNum?: number;
   pageSize?: number;
