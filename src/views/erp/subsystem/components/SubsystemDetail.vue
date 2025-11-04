@@ -8,7 +8,7 @@
         </div>
       </template>
       <el-descriptions :column="2" border>
-        <el-descriptions-item label="子系统编码">
+        <el-descriptions-item label="子系统编号">
           {{ subsystemInfo.subsystemCode }}
         </el-descriptions-item>
         <el-descriptions-item label="子系统名称">
@@ -17,22 +17,34 @@
         <el-descriptions-item label="关联项目">
           {{ subsystemInfo.projectName || '-' }}
         </el-descriptions-item>
+        <el-descriptions-item label="分类">
+          {{ subsystemInfo.category || '-' }}
+        </el-descriptions-item>
+        <el-descriptions-item label="负责人">
+          {{ subsystemInfo.responsiblePerson || '-' }}
+        </el-descriptions-item>
         <el-descriptions-item label="状态">
-          <el-tag :type="subsystemInfo.status === 1 ? 'success' : 'info'" size="small">
-            {{ subsystemInfo.status === 1 ? '启用' : '禁用' }}
+          <el-tag :type="getStatusTagType(subsystemInfo.status)" size="small">
+            {{ getStatusText(subsystemInfo.status) }}
           </el-tag>
         </el-descriptions-item>
         <el-descriptions-item label="子项数量">
-          <el-tag type="primary">{{ subsystemInfo.subItemCount || 0 }}</el-tag>
+          <el-tag type="primary">{{ subsystemInfo.totalItems || 0 }}</el-tag>
         </el-descriptions-item>
         <el-descriptions-item label="物料数量">
-          <el-tag type="warning">{{ subsystemInfo.materialCount || 0 }}</el-tag>
+          <el-tag type="warning">{{ subsystemInfo.totalMaterials || 0 }}</el-tag>
         </el-descriptions-item>
         <el-descriptions-item label="总重量">
           {{ subsystemInfo.totalWeight?.toFixed(2) || '-' }} kg
         </el-descriptions-item>
-        <el-descriptions-item label="总体积">
-          {{ subsystemInfo.totalVolume?.toFixed(2) || '-' }} m³
+        <el-descriptions-item label="优先级">
+          {{ subsystemInfo.priority || '-' }}
+        </el-descriptions-item>
+        <el-descriptions-item label="开始日期">
+          {{ subsystemInfo.startDate || '-' }}
+        </el-descriptions-item>
+        <el-descriptions-item label="结束日期">
+          {{ subsystemInfo.endDate || '-' }}
         </el-descriptions-item>
         <el-descriptions-item label="描述" :span="2">
           {{ subsystemInfo.description || '-' }}
@@ -40,8 +52,8 @@
         <el-descriptions-item label="创建时间">
           {{ parseTime(subsystemInfo.createTime) }}
         </el-descriptions-item>
-        <el-descriptions-item label="创建人">
-          {{ subsystemInfo.createBy || '-' }}
+        <el-descriptions-item label="更新时间">
+          {{ parseTime(subsystemInfo.updateTime) }}
         </el-descriptions-item>
       </el-descriptions>
     </el-card>
@@ -70,8 +82,8 @@
             <div class="subitem-header">
               <div class="subitem-info">
                 <el-tag type="primary" size="small">子项</el-tag>
-                <span class="subitem-code">{{ subItem.subItemCode }}</span>
-                <span class="subitem-name">{{ subItem.subItemName }}</span>
+                <span class="subitem-code">{{ subItem.itemCode }}</span>
+                <span class="subitem-name">{{ subItem.itemName }}</span>
                 <el-tag type="info" size="small">
                   物料: {{ subItem.materialCount || 0 }}
                 </el-tag>
@@ -195,15 +207,15 @@
 <script setup name="SubsystemDetail" lang="ts">
 import { ref, reactive, onMounted } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import { getSubsystemDetail, delSubItem, delSubsystemMaterial } from '@/api/erp/subsystem';
-import type { SubsystemDetail, SubItemDetail, SubsystemMaterialVO } from '@/api/erp/subsystem/types';
+import { getSubsystem, delSubsystemItem, delSubsystemMaterial, listSubsystemMaterial } from '@/api/erp/subsystem';
+import type { SubsystemDetailVO, SubsystemItemVO, SubsystemMaterialVO } from '@/api/erp/subsystem/types';
 import { parseTime } from '@/utils/ruoyi';
 import SubItemForm from './SubItemForm.vue';
 import MaterialForm from './MaterialForm.vue';
 
 // Props
 interface Props {
-  subsystemId: string;
+  subsystemId: string | number;
 }
 
 const props = defineProps<Props>();
@@ -213,11 +225,16 @@ const emit = defineEmits<{
   close: [];
 }>();
 
+// 子项详情（包含物料列表）
+interface SubItemDetail extends SubsystemItemVO {
+  materials?: SubsystemMaterialVO[];
+}
+
 // 响应式数据
 const loading = ref(false);
-const subsystemInfo = ref<Partial<SubsystemDetail>>({});
+const subsystemInfo = ref<Partial<SubsystemDetailVO>>({});
 const subItemList = ref<SubItemDetail[]>([]);
-const activeSubItems = ref<string[]>([]);
+const activeSubItems = ref<(string | number)[]>([]);
 
 // 对话框
 const subItemDialog = reactive({
@@ -229,6 +246,7 @@ const subItemDialog = reactive({
 const materialDialog = reactive({
   visible: false,
   title: '',
+  subsystemId: '',
   subItemId: '',
   materialId: ''
 });
@@ -242,14 +260,36 @@ onMounted(() => {
 const getDetail = async () => {
   loading.value = true;
   try {
-    const res = await getSubsystemDetail(props.subsystemId);
+    const res = await getSubsystem(props.subsystemId);
     subsystemInfo.value = res.data;
-    subItemList.value = res.data.subItems || [];
+    subItemList.value = res.data.items || [];
+
+    // 为每个子项加载物料列表
+    await loadSubItemMaterials();
   } catch (error) {
     console.error('获取子系统详情失败:', error);
     ElMessage.error('获取子系统详情失败');
   } finally {
     loading.value = false;
+  }
+};
+
+// 加载子项的物料列表
+const loadSubItemMaterials = async () => {
+  for (const subItem of subItemList.value) {
+    try {
+      const res = await listSubsystemMaterial({
+        subsystemId: Number(props.subsystemId),
+        itemId: subItem.id,
+        pageNum: 1,
+        pageSize: 100
+      });
+      const actualResponse = res as any;
+      subItem.materials = actualResponse.rows || [];
+    } catch (error) {
+      console.error(`加载子项 ${subItem.id} 的物料列表失败:`, error);
+      subItem.materials = [];
+    }
   }
 };
 
@@ -273,7 +313,7 @@ const handleEditSubItem = (subItem: SubItemDetail) => {
 const handleDeleteSubItem = async (subItem: SubItemDetail) => {
   try {
     await ElMessageBox.confirm(
-      `是否确认删除子项"${subItem.subItemName}"？删除后其下的物料也将被删除。`,
+      `是否确认删除子项"${subItem.itemName}"？删除后其下的物料也将被删除。`,
       '警告',
       {
         confirmButtonText: '确定',
@@ -282,7 +322,7 @@ const handleDeleteSubItem = async (subItem: SubItemDetail) => {
       }
     );
 
-    await delSubItem(subItem.id);
+    await delSubsystemItem(subItem.id);
     ElMessage.success('删除成功');
     getDetail();
   } catch (error) {
@@ -304,7 +344,8 @@ const handleSubItemFormSuccess = () => {
 // 新增物料
 const handleAddMaterial = (subItem: SubItemDetail) => {
   materialDialog.title = '新增物料';
-  materialDialog.subItemId = subItem.id;
+  materialDialog.subItemId = String(subItem.id);
+  materialDialog.subsystemId = String(props.subsystemId);
   materialDialog.materialId = '';
   materialDialog.visible = true;
 };
@@ -312,8 +353,9 @@ const handleAddMaterial = (subItem: SubItemDetail) => {
 // 编辑物料
 const handleEditMaterial = (material: SubsystemMaterialVO) => {
   materialDialog.title = '编辑物料';
-  materialDialog.subItemId = material.subItemId;
-  materialDialog.materialId = material.id;
+  materialDialog.subsystemId = String(props.subsystemId);
+  materialDialog.subItemId = String(material.itemId);
+  materialDialog.materialId = String(material.id);
   materialDialog.visible = true;
 };
 
@@ -345,6 +387,30 @@ const handleDeleteMaterial = async (material: SubsystemMaterialVO) => {
 const handleMaterialFormSuccess = () => {
   materialDialog.visible = false;
   getDetail();
+};
+
+// 获取状态标签类型
+const getStatusTagType = (status: string | undefined): string => {
+  if (!status) return 'info';
+  const typeMap: Record<string, string> = {
+    DRAFT: 'info',
+    ACTIVE: 'success',
+    INACTIVE: 'warning',
+    ARCHIVED: 'danger'
+  };
+  return typeMap[status] || 'info';
+};
+
+// 获取状态文本
+const getStatusText = (status: string | undefined): string => {
+  if (!status) return '-';
+  const textMap: Record<string, string> = {
+    DRAFT: '草稿',
+    ACTIVE: '生效',
+    INACTIVE: '停用',
+    ARCHIVED: '归档'
+  };
+  return textMap[status] || status;
 };
 </script>
 

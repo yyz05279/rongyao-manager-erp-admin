@@ -22,10 +22,30 @@
               @keyup.enter="handleQuery"
             />
           </el-form-item>
+          <el-form-item label="项目名称" prop="projectName">
+            <el-input
+              v-model="queryParams.projectName"
+              placeholder="请输入项目名称"
+              clearable
+              style="width: 200px"
+              @keyup.enter="handleQuery"
+            />
+          </el-form-item>
+          <el-form-item label="分类" prop="category">
+            <el-input
+              v-model="queryParams.category"
+              placeholder="请输入分类"
+              clearable
+              style="width: 150px"
+              @keyup.enter="handleQuery"
+            />
+          </el-form-item>
           <el-form-item label="状态" prop="status">
             <el-select v-model="queryParams.status" placeholder="请选择状态" clearable style="width: 150px">
-              <el-option label="启用" :value="1" />
-              <el-option label="禁用" :value="0" />
+              <el-option label="草稿" value="DRAFT" />
+              <el-option label="生效" value="ACTIVE" />
+              <el-option label="停用" value="INACTIVE" />
+              <el-option label="归档" value="ARCHIVED" />
             </el-select>
           </el-form-item>
           <el-form-item>
@@ -102,21 +122,23 @@
         <el-table-column label="子系统编码" prop="subsystemCode" width="150" />
         <el-table-column label="子系统名称" prop="subsystemName" min-width="180" show-overflow-tooltip />
         <el-table-column label="项目名称" prop="projectName" width="150" show-overflow-tooltip />
+        <el-table-column label="分类" prop="category" width="100" align="center" />
+        <el-table-column label="负责人" prop="responsiblePerson" width="100" align="center" />
         <el-table-column label="状态" prop="status" width="100" align="center">
           <template #default="scope">
-            <el-tag :type="scope.row.status === 1 ? 'success' : 'info'" size="small">
-              {{ scope.row.status === 1 ? '启用' : '禁用' }}
+            <el-tag :type="getStatusTagType(scope.row.status)" size="small">
+              {{ getStatusText(scope.row.status) }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="子项数量" prop="subItemCount" width="100" align="center">
+        <el-table-column label="子项数量" prop="totalItems" width="100" align="center">
           <template #default="scope">
-            <el-tag type="primary" size="small">{{ scope.row.subItemCount || 0 }}</el-tag>
+            <el-tag type="primary" size="small">{{ scope.row.totalItems || 0 }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="物料数量" prop="materialCount" width="100" align="center">
+        <el-table-column label="物料数量" prop="totalMaterials" width="100" align="center">
           <template #default="scope">
-            <el-tag type="warning" size="small">{{ scope.row.materialCount || 0 }}</el-tag>
+            <el-tag type="warning" size="small">{{ scope.row.totalMaterials || 0 }}</el-tag>
           </template>
         </el-table-column>
         <el-table-column label="总重量(kg)" prop="totalWeight" width="120" align="center">
@@ -124,17 +146,12 @@
             <span>{{ scope.row.totalWeight?.toFixed(2) || '-' }}</span>
           </template>
         </el-table-column>
-        <el-table-column label="总体积(m³)" prop="totalVolume" width="120" align="center">
-          <template #default="scope">
-            <span>{{ scope.row.totalVolume?.toFixed(2) || '-' }}</span>
-          </template>
-        </el-table-column>
         <el-table-column label="创建时间" prop="createTime" width="160" align="center">
           <template #default="scope">
             <span>{{ parseTime(scope.row.createTime) }}</span>
           </template>
         </el-table-column>
-        <el-table-column label="操作" align="center" width="200" class-name="small-padding fixed-width" fixed="right">
+        <el-table-column label="操作" align="center" width="280" class-name="small-padding fixed-width" fixed="right">
           <template #default="scope">
             <el-tooltip content="查看详情" placement="top">
               <el-button
@@ -154,6 +171,31 @@
                 v-hasPermi="['erp:subsystem:edit']"
               />
             </el-tooltip>
+            <el-tooltip content="复制" placement="top">
+              <el-button
+                link
+                type="success"
+                icon="DocumentCopy"
+                @click.stop="handleCopy(scope.row)"
+                v-hasPermi="['erp:subsystem:add']"
+              />
+            </el-tooltip>
+            <el-dropdown @command="(cmd) => handleCommand(cmd, scope.row)" v-hasPermi="['erp:subsystem:edit']">
+              <el-button link type="info" icon="More" />
+              <template #dropdown>
+                <el-dropdown-menu>
+                  <el-dropdown-item command="active" :disabled="scope.row.status === 'ACTIVE'">
+                    <el-icon><Check /></el-icon> 生效
+                  </el-dropdown-item>
+                  <el-dropdown-item command="inactive" :disabled="scope.row.status === 'INACTIVE'">
+                    <el-icon><Close /></el-icon> 停用
+                  </el-dropdown-item>
+                  <el-dropdown-item command="archived" :disabled="scope.row.status === 'ARCHIVED'">
+                    <el-icon><FolderOpened /></el-icon> 归档
+                  </el-dropdown-item>
+                </el-dropdown-menu>
+              </template>
+            </el-dropdown>
             <el-tooltip content="删除" placement="top">
               <el-button
                 link
@@ -201,7 +243,13 @@
 <script setup name="SubsystemManagement" lang="ts">
 import { ref, reactive, onMounted, getCurrentInstance, ComponentInternalInstance } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import { listSubsystem, delSubsystem, getSubsystemStatistics } from '@/api/erp/subsystem';
+import { Check, Close, FolderOpened } from '@element-plus/icons-vue';
+import {
+  listSubsystem,
+  delSubsystem,
+  updateSubsystemStatus,
+  copySubsystem
+} from '@/api/erp/subsystem';
 import type { SubsystemQuery, SubsystemVO } from '@/api/erp/subsystem/types';
 import { parseTime } from '@/utils/ruoyi';
 import SubsystemForm from './components/SubsystemForm.vue';
@@ -224,6 +272,8 @@ const queryParams = reactive<SubsystemQuery>({
   pageSize: 10,
   subsystemName: '',
   subsystemCode: '',
+  projectName: '',
+  category: '',
   status: undefined
 });
 
@@ -342,6 +392,73 @@ const handleExport = () => {
   proxy?.download('erp/subsystem/export', {
     ...queryParams
   }, `subsystem_${new Date().getTime()}.xlsx`);
+};
+
+// 复制子系统
+const handleCopy = async (row: SubsystemVO) => {
+  try {
+    await ElMessageBox.confirm(
+      `是否确认复制子系统"${row.subsystemName}"?`,
+      '提示',
+      {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'info'
+      }
+    );
+
+    const response = await copySubsystem(row.id);
+    ElMessage.success(`复制成功,新子系统ID: ${response.data}`);
+    getList();
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error('复制子系统失败:', error);
+      ElMessage.error('复制失败');
+    }
+  }
+};
+
+// 下拉菜单命令处理
+const handleCommand = async (command: string, row: SubsystemVO) => {
+  const statusMap: Record<string, { status: string; text: string }> = {
+    active: { status: 'ACTIVE', text: '生效' },
+    inactive: { status: 'INACTIVE', text: '停用' },
+    archived: { status: 'ARCHIVED', text: '归档' }
+  };
+
+  const config = statusMap[command];
+  if (!config) return;
+
+  try {
+    await updateSubsystemStatus(row.id, config.status);
+    ElMessage.success(`已设置为${config.text}状态`);
+    getList();
+  } catch (error) {
+    console.error('更新状态失败:', error);
+    ElMessage.error('更新状态失败');
+  }
+};
+
+// 获取状态标签类型
+const getStatusTagType = (status: string): string => {
+  const typeMap: Record<string, string> = {
+    DRAFT: 'info',
+    ACTIVE: 'success',
+    INACTIVE: 'warning',
+    ARCHIVED: 'danger'
+  };
+  return typeMap[status] || 'info';
+};
+
+// 获取状态文本
+const getStatusText = (status: string): string => {
+  const textMap: Record<string, string> = {
+    DRAFT: '草稿',
+    ACTIVE: '生效',
+    INACTIVE: '停用',
+    ARCHIVED: '归档'
+  };
+  return textMap[status] || status;
 };
 
 // 表单提交成功
