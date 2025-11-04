@@ -42,8 +42,8 @@
               <el-option
                 v-for="project in projectList"
                 :key="project.id"
-                :label="project.projectName"
-                :value="project.id"
+                :label="project.name"
+                :value="Number(project.id)"
               />
             </el-select>
           </el-form-item>
@@ -57,8 +57,22 @@
 
       <el-row :gutter="20">
         <el-col :span="12">
-          <el-form-item label="负责人" prop="responsiblePerson">
-            <el-input v-model="form.responsiblePerson" placeholder="请输入负责人姓名" />
+          <el-form-item label="负责人" prop="responsiblePersonId">
+            <el-select
+              v-model="form.responsiblePersonId"
+              placeholder="请选择负责人"
+              clearable
+              filterable
+              style="width: 100%"
+              @change="handleResponsiblePersonChange"
+            >
+              <el-option
+                v-for="user in userList"
+                :key="user.id"
+                :label="user.name"
+                :value="user.id"
+              />
+            </el-select>
           </el-form-item>
         </el-col>
         <el-col :span="12">
@@ -139,7 +153,7 @@
 </template>
 
 <script setup name="SubsystemForm" lang="ts">
-import { ref, reactive, onMounted, watch, computed } from 'vue';
+import { ref, reactive, onMounted, watch } from 'vue';
 import { ElMessage } from 'element-plus';
 import type { FormInstance, FormRules } from 'element-plus';
 import {
@@ -149,9 +163,8 @@ import {
   generateSubsystemCode,
   checkSubsystemCodeUnique
 } from '@/api/erp/subsystem';
-import { listProject } from '@/api/erp/project';
+import { getProjectSimpleList, getUserSimpleList } from '@/api/erp/saltprocess/project';
 import type { SubsystemForm } from '@/api/erp/subsystem/types';
-import type { ProjectVO } from '@/api/erp/project/types';
 
 // Props
 interface Props {
@@ -166,11 +179,24 @@ const emit = defineEmits<{
   cancel: [];
 }>();
 
+// 项目简化类型
+interface ProjectSimple {
+  id: string;
+  name: string;
+}
+
+// 用户简化类型
+interface UserSimple {
+  id: number;
+  name: string;
+}
+
 // 响应式数据
 const formRef = ref<FormInstance>();
 const buttonLoading = ref(false);
 const generateCodeLoading = ref(false);
-const projectList = ref<ProjectVO[]>([]);
+const projectList = ref<ProjectSimple[]>([]);
+const userList = ref<UserSimple[]>([]);
 
 // 表单数据
 const initFormData: SubsystemForm = {
@@ -192,29 +218,24 @@ const initFormData: SubsystemForm = {
 
 const form = reactive<SubsystemForm>({ ...initFormData });
 
-// 当前选中的项目编码
-const selectedProjectCode = computed(() => {
-  const project = projectList.value.find(p => p.id === form.projectId);
-  return project?.projectCode || '';
-});
-
 // 自定义编号唯一性校验
-const validateCodeUnique = async (rule: any, value: any, callback: any) => {
+const validateCodeUnique = (rule: any, value: any, callback: any) => {
   if (!value) {
     callback();
     return;
   }
 
-  try {
-    const response = await checkSubsystemCodeUnique(value, form.id);
-    if (response.data === false) {
-      callback(new Error('子系统编号已存在'));
-    } else {
+  checkSubsystemCodeUnique(value, form.id)
+    .then((response) => {
+      if (response.data === false) {
+        callback(new Error('子系统编号已存在'));
+      } else {
+        callback();
+      }
+    })
+    .catch(() => {
       callback();
-    }
-  } catch (error) {
-    callback();
-  }
+    });
 };
 
 // 表单验证规则
@@ -236,6 +257,7 @@ const rules = reactive<FormRules>({
 // 生命周期
 onMounted(() => {
   getProjectList();
+  getUserList();
   if (props.subsystemId) {
     getSubsystemDetail();
   }
@@ -250,14 +272,27 @@ watch(() => props.subsystemId, (newVal) => {
   }
 });
 
-// 获取项目列表
+// 获取项目简化列表
 const getProjectList = async () => {
   try {
-    const response = await listProject({ pageNum: 1, pageSize: 100 });
-    const actualResponse = response as any;
-    projectList.value = actualResponse.rows || [];
+    const response = await getProjectSimpleList();
+    projectList.value = response.data || [];
+    console.log('📋 获取项目列表成功:', projectList.value);
   } catch (error) {
-    console.error('获取项目列表失败:', error);
+    console.error('❌ 获取项目列表失败:', error);
+    ElMessage.error('获取项目列表失败');
+  }
+};
+
+// 获取用户简化列表
+const getUserList = async () => {
+  try {
+    const response = await getUserSimpleList();
+    userList.value = response.data || [];
+    console.log('📋 获取用户列表成功:', userList.value);
+  } catch (error) {
+    console.error('❌ 获取用户列表失败:', error);
+    ElMessage.error('获取用户列表失败');
   }
 };
 
@@ -279,14 +314,10 @@ const handleGenerateCode = async () => {
     return;
   }
 
-  if (!selectedProjectCode.value) {
-    ElMessage.warning('所选项目没有项目编号');
-    return;
-  }
-
   generateCodeLoading.value = true;
   try {
-    const response = await generateSubsystemCode(selectedProjectCode.value);
+    // 使用项目ID生成编号
+    const response = await generateSubsystemCode(String(form.projectId));
     form.subsystemCode = response.data;
     ElMessage.success('编号生成成功');
   } catch (error) {
@@ -299,13 +330,21 @@ const handleGenerateCode = async () => {
 
 // 项目变更事件
 const handleProjectChange = (projectId: number) => {
-  const project = projectList.value.find(p => p.id === projectId);
+  const project = projectList.value.find(p => String(p.id) === String(projectId));
   if (project) {
-    form.projectName = project.projectName;
+    form.projectName = project.name;
     // 清空编号,因为项目变了
     if (!form.id) {
       form.subsystemCode = '';
     }
+  }
+};
+
+// 负责人变更事件
+const handleResponsiblePersonChange = (userId: number) => {
+  const user = userList.value.find(u => u.id === userId);
+  if (user) {
+    form.responsiblePerson = user.name;
   }
 };
 

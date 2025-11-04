@@ -312,3 +312,51 @@ export const exportProjectReport = (id: string): AxiosPromise<Blob> => {
     responseType: 'blob'
   });
 };
+
+/**
+ * 获取项目简化列表（用于下拉选择）
+ */
+export const getProjectSimpleList = async (): Promise<{ data: { id: string; name: string }[] }> => {
+  const response: any = await request({
+    url: '/erp/saltprocess/project/simple-list',
+    method: 'get'
+  });
+
+  // 确保返回的数据格式正确
+  const projects = response.data || [];
+  const simplifiedList = projects.map((project: any) => ({
+    id: String(project.id || project.projectId || ''),
+    name: project.name || project.projectName || `项目${project.id}`
+  }));
+
+  console.log('📋 项目简化列表数据:', {
+    原始数据数量: projects.length,
+    转换后数据: simplifiedList
+  });
+
+  return { data: simplifiedList };
+};
+
+/**
+ * 获取用户简化列表（用于负责人下拉选择）
+ */
+export const getUserSimpleList = async (): Promise<{ data: { id: number; name: string }[] }> => {
+  const response: any = await request({
+    url: '/system/user/simple-list',
+    method: 'get'
+  });
+
+  // 转换后端UserVO数据结构为简化格式
+  const users = response.data || [];
+  const simplifiedList = users.map((user: any) => ({
+    id: user.userId,
+    name: user.nickName || user.userName || `用户${user.userId}`
+  }));
+
+  console.log('📋 用户简化列表数据:', {
+    原始数据数量: users.length,
+    转换后数据: simplifiedList
+  });
+
+  return { data: simplifiedList };
+};

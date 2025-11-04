@@ -3,22 +3,22 @@
     <!-- 搜索筛选区域 -->
     <transition :enter-active-class="proxy?.animate.searchAnimate.enter" :leave-active-class="proxy?.animate.searchAnimate.leave">
       <div class="search" v-show="showSearch">
-        <el-form :model="queryParams" ref="queryFormRef" :inline="true" label-width="80px">
+        <el-form :model="queryParams" ref="queryFormRef" :inline="true" label-width="90px">
           <el-form-item label="子系统名称" prop="subsystemName">
             <el-input
               v-model="queryParams.subsystemName"
               placeholder="请输入子系统名称"
               clearable
-              style="width: 200px"
+              style="width: 240px"
               @keyup.enter="handleQuery"
             />
           </el-form-item>
-          <el-form-item label="子系统编码" prop="subsystemCode">
+          <el-form-item label="子系统编号" prop="subsystemCode">
             <el-input
               v-model="queryParams.subsystemCode"
-              placeholder="请输入子系统编码"
+              placeholder="请输入子系统编号"
               clearable
-              style="width: 200px"
+              style="width: 240px"
               @keyup.enter="handleQuery"
             />
           </el-form-item>
@@ -27,7 +27,7 @@
               v-model="queryParams.projectName"
               placeholder="请输入项目名称"
               clearable
-              style="width: 200px"
+              style="width: 240px"
               @keyup.enter="handleQuery"
             />
           </el-form-item>
@@ -36,12 +36,12 @@
               v-model="queryParams.category"
               placeholder="请输入分类"
               clearable
-              style="width: 150px"
+              style="width: 180px"
               @keyup.enter="handleQuery"
             />
           </el-form-item>
           <el-form-item label="状态" prop="status">
-            <el-select v-model="queryParams.status" placeholder="请选择状态" clearable style="width: 150px">
+            <el-select v-model="queryParams.status" placeholder="请选择状态" clearable style="width: 180px">
               <el-option label="草稿" value="DRAFT" />
               <el-option label="生效" value="ACTIVE" />
               <el-option label="停用" value="INACTIVE" />
@@ -260,7 +260,7 @@ const { proxy } = getCurrentInstance() as ComponentInternalInstance;
 // 响应式数据
 const loading = ref(true);
 const showSearch = ref(true);
-const ids = ref<string[]>([]);
+const ids = ref<number[]>([]);
 const single = ref(true);
 const multiple = ref(true);
 const total = ref(0);
@@ -278,13 +278,20 @@ const queryParams = reactive<SubsystemQuery>({
 });
 
 // 对话框
-const dialog = reactive({
+const dialog = reactive<{
+  visible: boolean;
+  title: string;
+  subsystemId: string | number;
+}>({
   visible: false,
   title: '',
   subsystemId: ''
 });
 
-const detailDialog = reactive({
+const detailDialog = reactive<{
+  visible: boolean;
+  subsystemId: string | number;
+}>({
   visible: false,
   subsystemId: ''
 });
@@ -419,7 +426,7 @@ const handleCopy = async (row: SubsystemVO) => {
 };
 
 // 下拉菜单命令处理
-const handleCommand = async (command: string, row: SubsystemVO) => {
+const handleCommand = async (command: string, row: SubsystemVO): Promise<void> => {
   const statusMap: Record<string, { status: string; text: string }> = {
     active: { status: 'ACTIVE', text: '生效' },
     inactive: { status: 'INACTIVE', text: '停用' },
