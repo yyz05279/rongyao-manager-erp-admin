@@ -3,6 +3,8 @@ import { createWebHistory, createRouter, RouteOption } from 'vue-router';
 import Layout from '@/layout/index.vue';
 /* 化盐工艺流程模块路由 */
 import saltprocessRouter from './modules/saltprocess';
+/* 子系统管理模块路由 */
+import subsystemRouter from './modules/subsystem';
 
 /**
  * Note: 路由配置项
@@ -152,7 +154,9 @@ export const dynamicRoutes: RouteOption[] = [
     ]
   },
   // 化盐工艺流程模块
-  saltprocessRouter
+  saltprocessRouter,
+  // 子系统管理模块
+  subsystemRouter
 ];
 
 /**

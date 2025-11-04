@@ -336,13 +336,9 @@ const handleRefreshProject = async () => {
   console.log('🔄 收到刷新项目事件，重新加载项目详情');
   await loadProjectData();
 
-  // 等待数据更新后，重新初始化物料列表
-  setTimeout(() => {
-    if (materialDetailRef.value && typeof materialDetailRef.value.initializeData === 'function') {
-      console.log('🔄 重新初始化物料明细数据');
-      materialDetailRef.value.initializeData();
-    }
-  }, 200);
+  // ⚠️ 不需要手动调用 initializeData()
+  // 因为子组件的 watch 会自动监听 props.sheetNames 的变化并加载数据
+  // 避免重复调用接口
 };
 
 // 工具方法 - 使用导入的转换函数

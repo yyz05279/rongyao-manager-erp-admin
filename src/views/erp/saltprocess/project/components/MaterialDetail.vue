@@ -395,17 +395,28 @@ const loading = ref(false);
 const materialData = shallowRef<any[]>([]);
 
 // 监听 props.sheetNames 的变化
+// 添加防抖机制，避免短时间内重复调用
+let sheetNamesWatchTimer: ReturnType<typeof setTimeout> | null = null;
 watch(() => props.sheetNames, (newSheetNames, oldSheetNames) => {
   console.log('📋 sheetNames发生变化:', {
     old: oldSheetNames,
     new: newSheetNames
   });
 
+  // 清除之前的定时器
+  if (sheetNamesWatchTimer) {
+    clearTimeout(sheetNamesWatchTimer);
+  }
+
   // 如果之前没有sheetNames，现在有了，自动加载第一个sheet的数据
   if ((!oldSheetNames || oldSheetNames.length === 0) && newSheetNames && newSheetNames.length > 0) {
-    console.log('🔄 检测到sheetNames从空变为有数据，自动加载第一个sheet');
-    activeImportedSheetTab.value = newSheetNames[0];
-    loadMaterialList(newSheetNames[0]);
+    console.log('🔄 检测到sheetNames从空变为有数据，延迟100ms后加载第一个sheet');
+    // 使用防抖，避免在短时间内多次触发
+    sheetNamesWatchTimer = setTimeout(() => {
+      activeImportedSheetTab.value = newSheetNames[0];
+      loadMaterialList(newSheetNames[0]);
+      sheetNamesWatchTimer = null;
+    }, 100);
   }
 }, { immediate: false, deep: true });
 const parsing = ref(false);
@@ -718,8 +729,25 @@ onMounted(() => {
  * 加载物料汇总列表
  * @param sheetName 可选的工作表名称，用于过滤数据
  */
+// 防止重复调用的变量
+let lastLoadParams: string | null = null;
 const loadMaterialList = async (sheetName?: string) => {
+  // 防止重复调用：如果正在加载相同的数据，则跳过
+  const currentParams = JSON.stringify({
+    sheetName,
+    pageNum: listQuery.value.pageNum,
+    pageSize: listQuery.value.pageSize,
+    projectId: props.projectId
+  });
+
+  if (loading.value && lastLoadParams === currentParams) {
+    console.log('⚠️ 跳过重复调用 loadMaterialList，参数相同且正在加载中:', currentParams);
+    return;
+  }
+
+  lastLoadParams = currentParams;
   loading.value = true;
+
   try {
     // 构建查询参数，如果提供了 sheetName 则添加到查询条件中
     const query: MaterialSummaryQuery = {
@@ -1237,11 +1265,7 @@ const submitData = async () => {
       // 如果有部分数据导入成功，刷新列表
       if (totalSuccess > 0) {
         emit('import-success');
-        setTimeout(() => {
-          if (props.sheetNames && props.sheetNames.length > 0) {
-            loadMaterialList(props.sheetNames[0]);
-          }
-        }, 500);
+        emit('refresh-project'); // 触发父组件刷新，会自动更新sheetNames并加载列表
       }
     } else if (importResult.value.success) {
       ElMessage.success('数据导入成功！相同物料已自动合并数量');
@@ -1250,11 +1274,7 @@ const submitData = async () => {
       uploadRef.value?.clearFiles();
       // 刷新列表
       emit('import-success');
-      setTimeout(() => {
-        if (props.sheetNames && props.sheetNames.length > 0) {
-          loadMaterialList(props.sheetNames[0]);
-        }
-      }, 500);
+      emit('refresh-project'); // 触发父组件刷新，会自动更新sheetNames并加载列表
     } else {
       ElMessage.error('部分或全部数据导入失败，请查看详细信息');
     }
@@ -1750,22 +1770,12 @@ const submitDataWithConfig = async (config: any) => {
       emit('import-success');
       emit('refresh-project');
 
-      // ⭐ 等待父组件刷新sheetNames后，重新加载物料列表
-      await nextTick();
-      setTimeout(() => {
-        // 从步骤3统计数据中获取sheetName
-        if (batchStatistics && batchStatistics.fileSourceStats && batchStatistics.fileSourceStats.length > 0) {
-          const firstSheetName = batchStatistics.fileSourceStats[0].sheetName;
-          console.log('📊 使用步骤3返回的sheetName加载物料列表:', firstSheetName);
-          activeImportedSheetTab.value = firstSheetName;
-          loadMaterialList(firstSheetName);
-        } else if (props.sheetNames && props.sheetNames.length > 0) {
-          // 备用方案：使用props中的sheetNames
-          console.log('📊 使用props.sheetNames加载物料列表');
-          activeImportedSheetTab.value = props.sheetNames[0];
-          loadMaterialList(props.sheetNames[0]);
-        }
-      }, 500); // 延迟500ms，等待父组件更新
+      // ⚠️ 不需要手动调用 loadMaterialList
+      // 因为：
+      // 1. refresh-project 事件会触发父组件更新 projectData.sheetNames
+      // 2. props.sheetNames 更新会触发子组件的 watch
+      // 3. watch 会自动调用 loadMaterialList
+      // 避免重复调用接口
 
       ElMessage.success(`✅ 三步法导入完成！成功导入 ${totalSuccess} 条数据，${importResult.value.uniqueMaterialCount} 种物料`);
     } else {
