@@ -74,26 +74,18 @@
 
       <el-row :gutter="20">
         <el-col :span="12">
-          <el-form-item label="单体积(m³)" prop="unitVolume">
-            <el-input-number
-              v-model="form.unitVolume"
-              placeholder="请输入单体积"
-              :min="0"
-              :precision="2"
-              style="width: 100%"
-              @change="calculateTotalVolume"
-            />
+          <el-form-item label="物料类型" prop="materialType">
+            <el-input v-model="form.materialType" placeholder="如:原材料、半成品" />
           </el-form-item>
         </el-col>
         <el-col :span="12">
-          <el-form-item label="总体积(m³)" prop="totalVolume">
-            <el-input-number
-              v-model="form.totalVolume"
-              placeholder="请输入总体积"
-              :min="0"
-              :precision="2"
-              style="width: 100%"
-            />
+          <el-form-item label="状态" prop="status">
+            <el-select v-model="form.status" placeholder="请选择状态" style="width: 100%">
+              <el-option label="正常" value="NORMAL" />
+              <el-option label="缺货" value="OUT_OF_STOCK" />
+              <el-option label="已预留" value="RESERVED" />
+              <el-option label="已分配" value="ALLOCATED" />
+            </el-select>
           </el-form-item>
         </el-col>
       </el-row>
@@ -113,40 +105,8 @@
 
       <el-row :gutter="20">
         <el-col :span="12">
-          <el-form-item label="生产日期" prop="productionDate">
-            <el-date-picker
-              v-model="form.productionDate"
-              type="date"
-              placeholder="请选择生产日期"
-              format="YYYY-MM-DD"
-              value-format="YYYY-MM-DD"
-              style="width: 100%"
-              clearable
-            />
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="包装方式" prop="packagingMethod">
-            <el-input v-model="form.packagingMethod" placeholder="请输入包装方式" />
-          </el-form-item>
-        </el-col>
-      </el-row>
-
-      <el-row :gutter="20">
-        <el-col :span="12">
-          <el-form-item label="是否易碎品" prop="isFragile">
-            <el-radio-group v-model="form.isFragile">
-              <el-radio :label="0">否</el-radio>
-              <el-radio :label="1">是</el-radio>
-            </el-radio-group>
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="是否危险品" prop="isHazardous">
-            <el-radio-group v-model="form.isHazardous">
-              <el-radio :label="0">否</el-radio>
-              <el-radio :label="1">是</el-radio>
-            </el-radio-group>
+          <el-form-item label="排序号" prop="sequenceNumber">
+            <el-input-number v-model="form.sequenceNumber" :min="1" placeholder="1" style="width: 100%" />
           </el-form-item>
         </el-col>
       </el-row>
@@ -177,8 +137,9 @@ import type { SubsystemMaterialForm } from '@/api/erp/subsystem/types';
 
 // Props
 interface Props {
-  subItemId: string;
-  materialId?: string;
+  subsystemId: string | number;
+  subItemId: string | number;
+  materialId?: string | number;
 }
 
 const props = defineProps<Props>();
@@ -196,23 +157,21 @@ const buttonLoading = ref(false);
 // 表单数据
 const initFormData: SubsystemMaterialForm = {
   id: undefined,
-  subItemId: props.subItemId,
+  subsystemId: Number(props.subsystemId),
+  itemId: Number(props.subItemId),
+  materialId: undefined,
   materialCode: '',
   materialName: '',
   specification: '',
-  quantity: undefined,
+  materialType: '',
+  quantity: 1,
   unit: '',
   unitWeight: undefined,
-  totalWeight: undefined,
-  unitVolume: undefined,
-  totalVolume: undefined,
   manufacturer: '',
   model: '',
   serialNumber: '',
-  productionDate: '',
-  isFragile: 0,
-  isHazardous: 0,
-  packagingMethod: '',
+  sequenceNumber: 1,
+  status: 'NORMAL',
   remarks: ''
 };
 
@@ -258,27 +217,20 @@ const getMaterialDetail = async () => {
 // 计算总重量
 const calculateTotalWeight = () => {
   if (form.unitWeight && form.quantity) {
-    form.totalWeight = Number((form.unitWeight * form.quantity).toFixed(2));
+    // 总重量会由后端自动计算，这里只是前端显示
   }
 };
 
-// 计算总体积
-const calculateTotalVolume = () => {
-  if (form.unitVolume && form.quantity) {
-    form.totalVolume = Number((form.unitVolume * form.quantity).toFixed(2));
-  }
-};
-
-// 监听数量变化，自动计算总重和总体积
+// 监听数量变化
 watch(() => form.quantity, () => {
   calculateTotalWeight();
-  calculateTotalVolume();
 });
 
 // 表单重置
 const reset = () => {
   Object.assign(form, initFormData);
-  form.subItemId = props.subItemId;
+  form.subsystemId = Number(props.subsystemId);
+  form.itemId = Number(props.subItemId);
   formRef.value?.resetFields();
 };
 
