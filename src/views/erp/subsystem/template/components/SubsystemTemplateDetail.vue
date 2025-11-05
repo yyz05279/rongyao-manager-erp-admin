@@ -9,18 +9,25 @@
       </template>
       <el-descriptions :column="2" border>
         <el-descriptions-item label="模板编号">
-          {{ templateInfo.subsystemCode }}
+          {{ templateInfo.templateCode }}
         </el-descriptions-item>
         <el-descriptions-item label="模板名称">
-          {{ templateInfo.subsystemName }}
+          {{ templateInfo.templateName }}
         </el-descriptions-item>
         <el-descriptions-item label="分类">
           {{ templateInfo.category || '-' }}
+        </el-descriptions-item>
+        <el-descriptions-item label="版本号">
+          {{ templateInfo.version || '-' }}
         </el-descriptions-item>
         <el-descriptions-item label="状态">
           <el-tag :type="getStatusTagType(templateInfo.status)" size="small">
             {{ getStatusText(templateInfo.status) }}
           </el-tag>
+        </el-descriptions-item>
+        <el-descriptions-item label="标准模板">
+          <el-tag v-if="templateInfo.isStandard" type="success" size="small">是</el-tag>
+          <el-tag v-else type="info" size="small">否</el-tag>
         </el-descriptions-item>
         <el-descriptions-item label="子项数量">
           <el-tag type="primary">{{ templateInfo.totalItems || 0 }}</el-tag>
@@ -28,21 +35,20 @@
         <el-descriptions-item label="物料数量">
           <el-tag type="warning">{{ templateInfo.totalMaterials || 0 }}</el-tag>
         </el-descriptions-item>
-        <el-descriptions-item label="总重量"> {{ templateInfo.totalWeight?.toFixed(2) || '-' }} kg </el-descriptions-item>
-        <el-descriptions-item label="优先级">
-          {{ templateInfo.priority || '-' }}
-        </el-descriptions-item>
-        <el-descriptions-item label="开始日期">
-          {{ templateInfo.startDate || '-' }}
-        </el-descriptions-item>
-        <el-descriptions-item label="结束日期">
-          {{ templateInfo.endDate || '-' }}
-        </el-descriptions-item>
         <el-descriptions-item label="描述" :span="2">
           {{ templateInfo.description || '-' }}
         </el-descriptions-item>
+        <el-descriptions-item label="备注" :span="2">
+          {{ templateInfo.remarks || '-' }}
+        </el-descriptions-item>
+        <el-descriptions-item label="创建人">
+          {{ templateInfo.createBy || '-' }}
+        </el-descriptions-item>
         <el-descriptions-item label="创建时间">
           {{ parseTime(templateInfo.createTime) }}
+        </el-descriptions-item>
+        <el-descriptions-item label="更新人">
+          {{ templateInfo.updateBy || '-' }}
         </el-descriptions-item>
         <el-descriptions-item label="更新时间">
           {{ parseTime(templateInfo.updateTime) }}
@@ -252,7 +258,7 @@ const handleAddSubItem = () => {
 // 编辑子项
 const handleEditSubItem = (subItem: SubItemDetail) => {
   subItemDialog.title = '编辑子项';
-  subItemDialog.subItemId = subItem.id;
+  subItemDialog.subItemId = String(subItem.id);
   subItemDialog.visible = true;
 };
 
@@ -353,7 +359,7 @@ const getStatusText = (status: string | undefined): string => {
   if (!status) return '-';
   const textMap: Record<string, string> = {
     DRAFT: '草稿',
-    ACTIVE: '生效',
+    ACTIVE: '启用',
     INACTIVE: '停用',
     ARCHIVED: '归档'
   };

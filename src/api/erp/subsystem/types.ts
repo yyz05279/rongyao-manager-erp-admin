@@ -286,53 +286,58 @@ export enum AttachmentType {
 
 /**
  * 子系统模板查询参数
+ * 基于API文档 v1.0
  */
 export interface SubsystemTemplateQuery extends PageQuery {
-  subsystemCode?: string;
-  subsystemName?: string;
-  category?: string;
-  status?: string;
-  startDate?: string;
-  endDate?: string;
+  templateCode?: string;      // 模板编号（模糊查询）
+  templateName?: string;       // 模板名称（模糊查询）
+  category?: string;           // 分类（精确查询）
+  status?: string;             // 状态（精确查询）
+  isStandard?: boolean;        // 是否标准模板
 }
 
 /**
  * 子系统模板VO（返回对象）
  * 注意：模板不包含项目信息和负责人信息
+ * 基于API文档 v1.0
  */
 export interface SubsystemTemplateVO {
-  id: number;
-  subsystemCode: string;
-  subsystemName: string;
-  category?: string;
-  description?: string;
-  status: string;
-  totalItems: number;
-  totalMaterials: number;
-  totalWeight: number;
-  startDate?: string;
-  endDate?: string;
-  priority?: number;
-  remarks?: string;
-  createTime: string;
-  updateTime: string;
+  id: number;                  // 主键ID
+  templateCode: string;        // 模板编号
+  templateName: string;        // 模板名称
+  category?: string;           // 分类
+  description?: string;        // 描述
+  isStandard?: boolean;        // 是否标准模板
+  version?: string;            // 版本号
+  status: string;              // 状态：DRAFT/ACTIVE/INACTIVE/ARCHIVED
+  sourceProjectId?: number;    // 来源项目ID
+  relatedProductId?: number;   // 关联产品ID
+  totalItems?: number;         // 子项总数
+  totalMaterials?: number;     // 物料总数
+  remarks?: string;            // 备注
+  createTime?: string;         // 创建时间
+  updateTime?: string;         // 更新时间
+  createBy?: string;           // 创建人
+  updateBy?: string;           // 更新人
 }
 
 /**
  * 子系统模板表单数据
  * 注意：模板不包含项目信息和负责人信息
+ * 基于API文档 v1.0
  */
 export interface SubsystemTemplateForm {
-  id?: number;
-  subsystemCode?: string;
-  subsystemName: string;
-  category?: string;
-  description?: string;
-  status?: string;
-  startDate?: string;
-  endDate?: string;
-  priority?: number;
-  remarks?: string;
+  id?: number;                 // 主键ID（修改时必填）
+  templateCode?: string;       // 模板编号（可选，不传则自动生成）
+  templateName: string;        // 模板名称（必填）
+  category?: string;           // 分类
+  description?: string;        // 描述
+  isStandard?: boolean;        // 是否标准模板
+  version?: string;            // 版本号
+  status?: string;             // 状态
+  sourceProjectId?: number;    // 来源项目ID
+  relatedProductId?: number;   // 关联产品ID
+  remarks?: string;            // 备注
 }
 
 /**
