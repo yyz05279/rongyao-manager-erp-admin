@@ -4,11 +4,6 @@
     <transition :enter-active-class="proxy?.animate.searchAnimate.enter" :leave-active-class="proxy?.animate.searchAnimate.leave">
       <div class="search" v-show="showSearch">
         <el-form :model="queryParams" ref="queryFormRef" :inline="true" label-width="90px">
-          <el-form-item label="所属模板" prop="templateId">
-            <el-select v-model="queryParams.templateId" placeholder="请选择模板" clearable filterable style="width: 240px">
-              <el-option v-for="item in templateList" :key="item.id" :label="item.templateName" :value="item.id" />
-            </el-select>
-          </el-form-item>
           <el-form-item label="子项名称" prop="itemName">
             <el-input v-model="queryParams.itemName" placeholder="请输入子项名称" clearable style="width: 240px" @keyup.enter="handleQuery" />
           </el-form-item>
@@ -17,12 +12,6 @@
           </el-form-item>
           <el-form-item label="子项类型" prop="itemType">
             <el-input v-model="queryParams.itemType" placeholder="请输入子项类型" clearable style="width: 180px" @keyup.enter="handleQuery" />
-          </el-form-item>
-          <el-form-item label="是否必需" prop="isRequired">
-            <el-select v-model="queryParams.isRequired" placeholder="请选择" clearable style="width: 120px">
-              <el-option label="是" :value="true" />
-              <el-option label="否" :value="false" />
-            </el-select>
           </el-form-item>
           <el-form-item>
             <el-button type="primary" icon="Search" @click="handleQuery">搜索</el-button>
@@ -61,22 +50,10 @@
         <el-table-column type="selection" width="55" align="center" />
         <el-table-column label="子项编号" prop="itemCode" width="150" show-overflow-tooltip />
         <el-table-column label="子项名称" prop="itemName" min-width="180" show-overflow-tooltip />
-        <el-table-column label="所属模板" prop="templateId" width="180" show-overflow-tooltip>
-          <template #default="scope">
-            {{ getTemplateName(scope.row.templateId) }}
-          </template>
-        </el-table-column>
         <el-table-column label="子项类型" prop="itemType" width="120" align="center" />
-        <el-table-column label="规格型号" prop="specification" width="150" show-overflow-tooltip />
         <el-table-column label="默认数量" prop="defaultQuantity" width="100" align="center" />
         <el-table-column label="单位" prop="unit" width="80" align="center" />
-        <el-table-column label="是否必需" prop="isRequired" width="100" align="center">
-          <template #default="scope">
-            <el-tag v-if="scope.row.isRequired" type="success" size="small">是</el-tag>
-            <el-tag v-else type="info" size="small">否</el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column label="排序号" prop="sequenceNumber" width="80" align="center" />
+        <el-table-column label="描述" prop="description" min-width="200" show-overflow-tooltip />
         <el-table-column label="创建时间" prop="createTime" width="160" align="center">
           <template #default="scope">
             <span>{{ parseTime(scope.row.createTime) }}</span>
@@ -103,11 +80,6 @@
     <!-- 新增/修改对话框 -->
     <el-dialog :title="dialog.title" v-model="dialog.visible" width="700px" append-to-body>
       <el-form ref="formRef" :model="form" :rules="rules" label-width="100px">
-        <el-form-item label="所属模板" prop="templateId">
-          <el-select v-model="form.templateId" placeholder="请选择模板" filterable style="width: 100%" :disabled="!!form.id">
-            <el-option v-for="item in templateList" :key="item.id" :label="item.templateName" :value="item.id" />
-          </el-select>
-        </el-form-item>
         <el-row :gutter="20">
           <el-col :span="12">
             <el-form-item label="子项名称" prop="itemName">
@@ -122,25 +94,13 @@
         </el-row>
         <el-row :gutter="20">
           <el-col :span="12">
-            <el-form-item label="规格型号" prop="specification">
-              <el-input v-model="form.specification" placeholder="请输入规格型号" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
             <el-form-item label="默认数量" prop="defaultQuantity">
               <el-input-number v-model="form.defaultQuantity" :min="0" :step="1" style="width: 100%" />
             </el-form-item>
           </el-col>
-        </el-row>
-        <el-row :gutter="20">
           <el-col :span="12">
             <el-form-item label="单位" prop="unit">
               <el-input v-model="form.unit" placeholder="如:个、台等" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="是否必需" prop="isRequired">
-              <el-switch v-model="form.isRequired" active-text="是" inactive-text="否" />
             </el-form-item>
           </el-col>
         </el-row>
@@ -169,12 +129,6 @@
           <el-table-column label="规格型号" prop="specification" width="150" show-overflow-tooltip />
           <el-table-column label="默认数量" prop="defaultQuantity" width="120" align="center" />
           <el-table-column label="单位" prop="unit" width="80" align="center" />
-          <el-table-column label="是否必需" prop="isRequired" width="100" align="center">
-            <template #default="scope">
-              <el-tag v-if="scope.row.isRequired" type="success" size="small">是</el-tag>
-              <el-tag v-else type="info" size="small">否</el-tag>
-            </template>
-          </el-table-column>
           <el-table-column label="备注" prop="remarks" min-width="150" show-overflow-tooltip />
           <el-table-column label="操作" align="center" width="150" fixed="right">
             <template #default="scope">
@@ -214,18 +168,9 @@
             </el-option>
           </el-select>
         </el-form-item>
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="默认数量" prop="defaultQuantity">
-              <el-input-number v-model="materialForm.defaultQuantity" :min="0" :step="1" style="width: 100%" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="是否必需" prop="isRequired">
-              <el-switch v-model="materialForm.isRequired" active-text="是" inactive-text="否" />
-            </el-form-item>
-          </el-col>
-        </el-row>
+        <el-form-item label="默认数量" prop="defaultQuantity">
+          <el-input-number v-model="materialForm.defaultQuantity" :min="0" :step="1" style="width: 100%" />
+        </el-form-item>
         <el-form-item label="备注" prop="remarks">
           <el-input v-model="materialForm.remarks" type="textarea" :rows="3" placeholder="请输入备注" />
         </el-form-item>
@@ -254,7 +199,6 @@ import {
   updateMaterialTemplate,
   delMaterialTemplate
 } from '@/api/erp/subsystem/material-template';
-import { listSubsystemTemplate } from '@/api/erp/subsystem/template';
 import { listMaterial } from '@/api/erp/material/material';
 import type {
   SubsystemItemTemplateQuery,
@@ -274,17 +218,14 @@ const single = ref(true);
 const multiple = ref(true);
 const total = ref(0);
 const itemList = ref<SubsystemItemTemplateVO[]>([]);
-const templateList = ref<any[]>([]);
 
 // 查询参数
 const queryParams = reactive<SubsystemItemTemplateQuery>({
   pageNum: 1,
   pageSize: 10,
-  templateId: undefined,
   itemName: '',
   itemCode: '',
-  itemType: '',
-  isRequired: undefined
+  itemType: ''
 });
 
 // 对话框
@@ -297,19 +238,15 @@ const dialog = reactive({
 // 表单
 const formRef = ref();
 const form = reactive<SubsystemItemTemplateForm>({
-  templateId: 0,
   itemName: '',
   itemType: '',
-  specification: '',
   description: '',
   defaultQuantity: 1,
   unit: '个',
-  isRequired: true,
   remarks: ''
 });
 
 const rules = {
-  templateId: [{ required: true, message: '请选择所属模板', trigger: 'change' }],
   itemName: [{ required: true, message: '请输入子项名称', trigger: 'blur' }]
 };
 
@@ -331,11 +268,9 @@ const materialFormDialog = reactive({
 
 const materialFormRef = ref();
 const materialForm = reactive<SubsystemMaterialTemplateForm>({
-  templateId: 0,
   itemTemplateId: 0,
   materialId: 0,
   defaultQuantity: 1,
-  isRequired: true,
   remarks: ''
 });
 
@@ -352,24 +287,7 @@ const queryFormRef = ref();
 // 生命周期
 onMounted(() => {
   getList();
-  loadTemplateList();
 });
-
-// 加载模板列表
-const loadTemplateList = async () => {
-  try {
-    const response = await listSubsystemTemplate({ pageNum: 1, pageSize: 1000 });
-    templateList.value = (response as any).rows || [];
-  } catch (error) {
-    console.error('加载模板列表失败:', error);
-  }
-};
-
-// 获取模板名称
-const getTemplateName = (templateId: number) => {
-  const template = templateList.value.find(t => t.id === templateId);
-  return template ? template.templateName : '-';
-};
 
 // 查询列表
 const getList = async () => {
@@ -498,14 +416,11 @@ const submitForm = async () => {
 // 重置表单
 const resetForm = () => {
   form.id = undefined;
-  form.templateId = 0;
   form.itemName = '';
   form.itemType = '';
-  form.specification = '';
   form.description = '';
   form.defaultQuantity = 1;
   form.unit = '个';
-  form.isRequired = true;
   form.remarks = '';
   formRef.value?.clearValidate();
 };
@@ -537,11 +452,7 @@ const loadMaterialList = async () => {
 // 添加物料
 const handleAddMaterial = () => {
   resetMaterialForm();
-  const item = itemList.value.find(i => i.id === materialDialog.itemId);
-  if (item) {
-    materialForm.templateId = item.templateId;
-    materialForm.itemTemplateId = materialDialog.itemId;
-  }
+  materialForm.itemTemplateId = materialDialog.itemId;
   materialFormDialog.title = '添加物料';
   materialFormDialog.visible = true;
 };
@@ -627,7 +538,6 @@ const resetMaterialForm = () => {
   materialForm.id = undefined;
   materialForm.materialId = 0;
   materialForm.defaultQuantity = 1;
-  materialForm.isRequired = true;
   materialForm.remarks = '';
   materialFormRef.value?.clearValidate();
 };
