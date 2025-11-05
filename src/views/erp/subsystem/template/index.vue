@@ -4,11 +4,11 @@
     <transition :enter-active-class="proxy?.animate.searchAnimate.enter" :leave-active-class="proxy?.animate.searchAnimate.leave">
       <div class="search" v-show="showSearch">
         <el-form :model="queryParams" ref="queryFormRef" :inline="true" label-width="90px">
-          <el-form-item label="模板名称" prop="subsystemName">
-            <el-input v-model="queryParams.subsystemName" placeholder="请输入模板名称" clearable style="width: 240px" @keyup.enter="handleQuery" />
+          <el-form-item label="模板名称" prop="templateName">
+            <el-input v-model="queryParams.templateName" placeholder="请输入模板名称" clearable style="width: 240px" @keyup.enter="handleQuery" />
           </el-form-item>
-          <el-form-item label="模板编号" prop="subsystemCode">
-            <el-input v-model="queryParams.subsystemCode" placeholder="请输入模板编号" clearable style="width: 240px" @keyup.enter="handleQuery" />
+          <el-form-item label="模板编号" prop="templateCode">
+            <el-input v-model="queryParams.templateCode" placeholder="请输入模板编号" clearable style="width: 240px" @keyup.enter="handleQuery" />
           </el-form-item>
           <el-form-item label="分类" prop="category">
             <el-input v-model="queryParams.category" placeholder="请输入分类" clearable style="width: 180px" @keyup.enter="handleQuery" />
@@ -16,9 +16,15 @@
           <el-form-item label="状态" prop="status">
             <el-select v-model="queryParams.status" placeholder="请选择状态" clearable style="width: 180px">
               <el-option label="草稿" value="DRAFT" />
-              <el-option label="生效" value="ACTIVE" />
+              <el-option label="启用" value="ACTIVE" />
               <el-option label="停用" value="INACTIVE" />
               <el-option label="归档" value="ARCHIVED" />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="标准模板" prop="isStandard">
+            <el-select v-model="queryParams.isStandard" placeholder="请选择" clearable style="width: 120px">
+              <el-option label="是" :value="true" />
+              <el-option label="否" :value="false" />
             </el-select>
           </el-form-item>
           <el-form-item>
@@ -62,14 +68,21 @@
         style="cursor: pointer"
       >
         <el-table-column type="selection" width="55" align="center" />
-        <el-table-column label="模板编码" prop="subsystemCode" width="150" />
-        <el-table-column label="模板名称" prop="subsystemName" min-width="180" show-overflow-tooltip />
-        <el-table-column label="分类" prop="category" width="100" align="center" />
+        <el-table-column label="模板编号" prop="templateCode" width="180" show-overflow-tooltip />
+        <el-table-column label="模板名称" prop="templateName" min-width="200" show-overflow-tooltip />
+        <el-table-column label="分类" prop="category" width="120" align="center" />
+        <el-table-column label="版本" prop="version" width="80" align="center" />
         <el-table-column label="状态" prop="status" width="100" align="center">
           <template #default="scope">
             <el-tag :type="getStatusTagType(scope.row.status)" size="small">
               {{ getStatusText(scope.row.status) }}
             </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="标准模板" prop="isStandard" width="100" align="center">
+          <template #default="scope">
+            <el-tag v-if="scope.row.isStandard" type="success" size="small">是</el-tag>
+            <el-tag v-else type="info" size="small">否</el-tag>
           </template>
         </el-table-column>
         <el-table-column label="子项数量" prop="totalItems" width="100" align="center">
@@ -82,12 +95,6 @@
             <el-tag type="warning" size="small">{{ scope.row.totalMaterials || 0 }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="总重量(kg)" prop="totalWeight" width="120" align="center">
-          <template #default="scope">
-            <span>{{ scope.row.totalWeight?.toFixed(2) || '-' }}</span>
-          </template>
-        </el-table-column>
-        <el-table-column label="优先级" prop="priority" width="80" align="center" />
         <el-table-column label="创建时间" prop="createTime" width="160" align="center">
           <template #default="scope">
             <span>{{ parseTime(scope.row.createTime) }}</span>
@@ -104,22 +111,9 @@
             <el-tooltip content="复制" placement="top">
               <el-button link type="success" icon="DocumentCopy" @click.stop="handleCopy(scope.row)" v-hasPermi="['erp:subsystem:template:add']" />
             </el-tooltip>
-            <el-dropdown @command="createDropdownHandler(scope.row)" v-hasPermi="['erp:subsystem:template:edit']">
-              <el-button link type="info" icon="More" />
-              <template #dropdown>
-                <el-dropdown-menu>
-                  <el-dropdown-item command="active" :disabled="scope.row.status === 'ACTIVE'">
-                    <el-icon><Check /></el-icon> 生效
-                  </el-dropdown-item>
-                  <el-dropdown-item command="inactive" :disabled="scope.row.status === 'INACTIVE'">
-                    <el-icon><Close /></el-icon> 停用
-                  </el-dropdown-item>
-                  <el-dropdown-item command="archived" :disabled="scope.row.status === 'ARCHIVED'">
-                    <el-icon><FolderOpened /></el-icon> 归档
-                  </el-dropdown-item>
-                </el-dropdown-menu>
-              </template>
-            </el-dropdown>
+            <el-tooltip content="发布" placement="top" v-if="scope.row.status === 'DRAFT'">
+              <el-button link type="success" icon="Check" @click.stop="handlePublish(scope.row)" v-hasPermi="['erp:subsystem:template:edit']" />
+            </el-tooltip>
             <el-tooltip content="删除" placement="top">
               <el-button link type="danger" icon="Delete" @click.stop="handleDelete(scope.row)" v-hasPermi="['erp:subsystem:template:remove']" />
             </el-tooltip>
@@ -151,11 +145,10 @@
 <script setup name="SubsystemTemplateManagement" lang="ts">
 import { ref, reactive, onMounted, getCurrentInstance, ComponentInternalInstance } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import { Check, Close, FolderOpened } from '@element-plus/icons-vue';
 import {
   listSubsystemTemplate,
   delSubsystemTemplate,
-  updateSubsystemTemplateStatus,
+  publishSubsystemTemplate,
   copySubsystemTemplate
 } from '@/api/erp/subsystem/template';
 import type { SubsystemTemplateQuery, SubsystemTemplateVO } from '@/api/erp/subsystem/types';
@@ -178,10 +171,11 @@ const templateList = ref<SubsystemTemplateVO[]>([]);
 const queryParams = reactive<SubsystemTemplateQuery>({
   pageNum: 1,
   pageSize: 10,
-  subsystemName: '',
-  subsystemCode: '',
+  templateName: '',
+  templateCode: '',
   category: '',
-  status: undefined
+  status: undefined,
+  isStandard: undefined
 });
 
 // 对话框
@@ -276,8 +270,8 @@ const handleView = (row: SubsystemTemplateVO) => {
 // 删除
 const handleDelete = async (row?: SubsystemTemplateVO) => {
   const templateIds = row?.id ? [row.id] : ids.value;
-  const templateNames = row?.subsystemName ? [row.subsystemName] :
-    templateList.value.filter(item => templateIds.includes(item.id)).map(item => item.subsystemName);
+  const templateNames = row?.templateName ? [row.templateName] :
+    templateList.value.filter(item => templateIds.includes(item.id)).map(item => item.templateName);
 
   try {
     await ElMessageBox.confirm(
@@ -312,7 +306,7 @@ const handleExport = () => {
 const handleCopy = async (row: SubsystemTemplateVO) => {
   try {
     await ElMessageBox.confirm(
-      `是否确认复制模板"${row.subsystemName}"?`,
+      `是否确认复制模板"${row.templateName}"?`,
       '提示',
       {
         confirmButtonText: '确定',
@@ -332,31 +326,29 @@ const handleCopy = async (row: SubsystemTemplateVO) => {
   }
 };
 
-// 下拉菜单命令包装函数工厂
-const createDropdownHandler = (row: SubsystemTemplateVO) => {
-  return (command: string) => {
-    handleCommand(command, row);
-  };
-};
-
-// 下拉菜单命令处理
-const handleCommand = async (command: string, row: SubsystemTemplateVO): Promise<void> => {
-  const statusMap: Record<string, { status: string; text: string }> = {
-    active: { status: 'ACTIVE', text: '生效' },
-    inactive: { status: 'INACTIVE', text: '停用' },
-    archived: { status: 'ARCHIVED', text: '归档' }
-  };
-
-  const config = statusMap[command];
-  if (!config) return;
+// 发布模板
+const handlePublish = async (row?: SubsystemTemplateVO): Promise<void> => {
+  const templateId = row?.id || ids.value[0];
+  if (!templateId) {
+    ElMessage.warning('请选择要发布的模板');
+    return;
+  }
 
   try {
-    await updateSubsystemTemplateStatus(row.id, config.status);
-    ElMessage.success(`已设置为${config.text}状态`);
+    await ElMessageBox.confirm('确认发布该模板吗？发布后可用于创建项目子系统', '提示', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning'
+    });
+
+    await publishSubsystemTemplate(templateId);
+    ElMessage.success('发布成功');
     getList();
-  } catch (error) {
-    console.error('更新状态失败:', error);
-    ElMessage.error('更新状态失败');
+  } catch (error: any) {
+    if (error !== 'cancel') {
+      console.error('发布失败:', error);
+      ElMessage.error('发布失败');
+    }
   }
 };
 
@@ -375,7 +367,7 @@ const getStatusTagType = (status: string): string => {
 const getStatusText = (status: string): string => {
   const textMap: Record<string, string> = {
     DRAFT: '草稿',
-    ACTIVE: '生效',
+    ACTIVE: '启用',
     INACTIVE: '停用',
     ARCHIVED: '归档'
   };
@@ -412,4 +404,3 @@ const handleFormSuccess = () => {
   }
 }
 </style>
-

@@ -1,15 +1,15 @@
 <template>
   <div class="subsystem-template-form">
-    <el-form ref="formRef" :model="form" :rules="rules" label-width="110px">
+    <el-form ref="formRef" :model="form" :rules="rules" label-width="120px">
       <el-row :gutter="20">
         <el-col :span="12">
-          <el-form-item label="模板编号" prop="subsystemCode">
-            <el-input v-model="form.subsystemCode" placeholder="系统自动生成" :disabled="true" />
+          <el-form-item label="模板编号" prop="templateCode">
+            <el-input v-model="form.templateCode" placeholder="系统自动生成" :disabled="true" />
           </el-form-item>
         </el-col>
         <el-col :span="12">
-          <el-form-item label="模板名称" prop="subsystemName">
-            <el-input v-model="form.subsystemName" placeholder="请输入模板名称" />
+          <el-form-item label="模板名称" prop="templateName">
+            <el-input v-model="form.templateName" placeholder="请输入模板名称" />
           </el-form-item>
         </el-col>
       </el-row>
@@ -17,26 +17,30 @@
       <el-row :gutter="20">
         <el-col :span="12">
           <el-form-item label="分类" prop="category">
-            <el-input v-model="form.category" placeholder="请输入分类(如:机械、电气)" />
+            <el-input v-model="form.category" placeholder="请输入分类(如:解析系统、化盐系统)" />
           </el-form-item>
         </el-col>
+        <el-col :span="12">
+          <el-form-item label="版本号" prop="version">
+            <el-input v-model="form.version" placeholder="如: v1.0" />
+          </el-form-item>
+        </el-col>
+      </el-row>
+
+      <el-row :gutter="20">
         <el-col :span="12">
           <el-form-item label="状态" prop="status">
             <el-select v-model="form.status" placeholder="请选择状态" style="width: 100%">
               <el-option label="草稿" value="DRAFT" />
-              <el-option label="生效" value="ACTIVE" />
+              <el-option label="启用" value="ACTIVE" />
               <el-option label="停用" value="INACTIVE" />
               <el-option label="归档" value="ARCHIVED" />
             </el-select>
           </el-form-item>
         </el-col>
-      </el-row>
-
-
-      <el-row :gutter="20">
         <el-col :span="12">
-          <el-form-item label="优先级" prop="priority">
-            <el-input-number v-model="form.priority" :min="1" :max="10" placeholder="1-10" style="width: 100%" />
+          <el-form-item label="标准模板" prop="isStandard">
+            <el-switch v-model="form.isStandard" />
           </el-form-item>
         </el-col>
       </el-row>
@@ -72,8 +76,7 @@ import {
   getSubsystemTemplate,
   addSubsystemTemplate,
   updateSubsystemTemplate,
-  generateSubsystemTemplateCode,
-  checkSubsystemTemplateCodeUnique
+  generateSubsystemTemplateCode
 } from '@/api/erp/subsystem/template';
 import type { SubsystemTemplateForm } from '@/api/erp/subsystem/types';
 
@@ -98,45 +101,24 @@ const generateCodeLoading = ref(false);
 // 表单数据
 const initFormData: SubsystemTemplateForm = {
   id: undefined,
-  subsystemCode: '',
-  subsystemName: '',
+  templateCode: '',
+  templateName: '',
   category: '',
   description: '',
+  isStandard: false,
+  version: 'v1.0',
   status: 'DRAFT',
-  startDate: '',
-  endDate: '',
-  priority: 1,
+  sourceProjectId: undefined,
+  relatedProductId: undefined,
   remarks: ''
 };
 
 const form = reactive<SubsystemTemplateForm>({ ...initFormData });
 
-// 自定义编号唯一性校验
-const validateCodeUnique = (rule: any, value: any, callback: any) => {
-  if (!value) {
-    callback();
-    return;
-  }
-
-  checkSubsystemTemplateCodeUnique(value, form.id)
-    .then((response) => {
-      if (response.data === false) {
-        callback(new Error('模板编号已存在'));
-      } else {
-        callback();
-      }
-    })
-    .catch(() => {
-      callback();
-    });
-};
-
 // 表单验证规则
+// 注意：模板编号唯一性由后台自动校验，前端无需验证
 const rules = reactive<FormRules>({
-  subsystemCode: [
-    { validator: validateCodeUnique, trigger: 'blur' }
-  ],
-  subsystemName: [
+  templateName: [
     { required: true, message: '请输入模板名称', trigger: 'blur' }
   ],
   status: [
@@ -179,7 +161,7 @@ const handleGenerateCode = async () => {
   generateCodeLoading.value = true;
   try {
     const response = await generateSubsystemTemplateCode();
-    form.subsystemCode = response.data;
+    form.templateCode = response.data;
   } catch (error) {
     console.error('生成编号失败:', error);
     ElMessage.error('生成编号失败');
