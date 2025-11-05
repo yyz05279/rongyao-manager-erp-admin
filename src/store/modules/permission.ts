@@ -12,12 +12,21 @@ const modules = import.meta.glob('./../../views/**/*.vue');
 
 // 组件路径映射表 - 用于后台菜单配置缺少component时的回退方案
 const componentPathMap: Record<string, any> = {
+  // 子系统管理
   '/subsystem/item-template': () => import('@/views/erp/subsystem/item-template/index.vue'),
   'item-template': () => import('@/views/erp/subsystem/item-template/index.vue'),
   '/subsystem/template': () => import('@/views/erp/subsystem/template/index.vue'),
   'template': () => import('@/views/erp/subsystem/template/index.vue'),
   '/subsystem/index': () => import('@/views/erp/subsystem/index.vue'),
   'index': () => import('@/views/erp/subsystem/index.vue'),
+
+  // 化盐工艺流程
+  '/saltprocess/record': () => import('@/views/erp/saltprocess/records/index.vue'),
+  'record': () => import('@/views/erp/saltprocess/records/index.vue'),
+  '/saltprocess/making-task': () => import('@/views/erp/saltprocess/saltmaking/task.vue'),
+  'making-task': () => import('@/views/erp/saltprocess/saltmaking/task.vue'),
+  '/saltprocess/preheating-task': () => import('@/views/erp/saltprocess/preheating/task.vue'),
+  'preheating-task': () => import('@/views/erp/saltprocess/preheating/task.vue'),
 };
 
 export const usePermissionStore = defineStore('permission', () => {
