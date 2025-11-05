@@ -132,3 +132,15 @@ export const generateSubsystemTemplateCode = (): AxiosPromise<string> => {
   });
 };
 
+/**
+ * 获取模板的子项列表
+ * @param templateId 子系统模板ID
+ * @returns 子项列表
+ */
+export const getTemplateItems = (templateId: number): AxiosPromise<any[]> => {
+  return request({
+    url: `/erp/subsystem/template/${templateId}/items`,
+    method: 'get'
+  });
+};
+
