@@ -10,6 +10,16 @@ import { RouteOption } from 'vue-router';
 // 匹配views里面所有的.vue文件
 const modules = import.meta.glob('./../../views/**/*.vue');
 
+// 组件路径映射表 - 用于后台菜单配置缺少component时的回退方案
+const componentPathMap: Record<string, any> = {
+  '/subsystem/item-template': () => import('@/views/erp/subsystem/item-template/index.vue'),
+  'item-template': () => import('@/views/erp/subsystem/item-template/index.vue'),
+  '/subsystem/template': () => import('@/views/erp/subsystem/template/index.vue'),
+  'template': () => import('@/views/erp/subsystem/template/index.vue'),
+  '/subsystem/index': () => import('@/views/erp/subsystem/index.vue'),
+  'index': () => import('@/views/erp/subsystem/index.vue'),
+};
+
 export const usePermissionStore = defineStore('permission', () => {
   const routes = ref<RouteOption[]>([]);
   const addRoutes = ref<RouteOption[]>([]);
@@ -33,9 +43,22 @@ export const usePermissionStore = defineStore('permission', () => {
   const generateRoutes = async (): Promise<RouteOption[]> => {
     const res = await getRouters();
     const { data } = res;
+
+    // 如果后台返回数据为空，使用空数组避免错误
+    if (!data || !Array.isArray(data) || data.length === 0) {
+      console.warn('⚠️  后台路由数据为空，将只使用静态路由');
+      setRoutes([]);
+      setSidebarRouters(constantRoutes);
+      setDefaultRoutes([]);
+      setTopbarRoutes([]);
+      return new Promise<RouteOption[]>((resolve) => resolve([]));
+    }
+
     const sdata = JSON.parse(JSON.stringify(data));
     const rdata = JSON.parse(JSON.stringify(data));
     const defaultData = JSON.parse(JSON.stringify(data));
+
+    // filterAsyncRouter 中会自动从静态路由获取 component
     const sidebarRoutes = filterAsyncRouter(sdata);
     const rewriteRoutes = filterAsyncRouter(rdata, undefined, true);
     const defaultRoutes = filterAsyncRouter(defaultData);
@@ -85,6 +108,73 @@ export const usePermissionStore = defineStore('permission', () => {
           route.component = loadView(route.component);
         }
       }
+
+      // 如果没有component，尝试从静态路由中获取
+      if (!route.component && route.path) {
+        const findComponentFromStatic = (targetPath: string, routes: RouteOption[], parentPath = ''): any => {
+          for (const r of routes) {
+            // 构建当前路由的完整路径
+            let currentPath = r.path;
+            if (parentPath && !r.path.startsWith('/')) {
+              currentPath = `${parentPath}/${r.path}`;
+            }
+            const normalized = currentPath.replace(/\/+/g, '/');
+            const targetNormalized = targetPath.replace(/\/+/g, '/');
+
+            // 匹配路径
+            if (normalized === targetNormalized || r.path === targetPath) {
+              return r.component;
+            }
+
+            // 递归查找子路由
+            if (r.children && r.children.length > 0) {
+              const found = findComponentFromStatic(targetPath, r.children, normalized);
+              if (found) return found;
+            }
+          }
+          return null;
+        };
+
+        // 构建完整路径 - 需要考虑父路由的完整路径
+        let fullPath = route.path;
+        if (lastRouter) {
+          // 如果父路由路径不是以/开头，说明它也是相对路径
+          if (lastRouter.path && lastRouter.path.startsWith('/')) {
+            fullPath = `${lastRouter.path}/${route.path}`;
+          } else if (lastRouter.path) {
+            // 父路由是相对路径，需要找到完整的基础路径
+            fullPath = `/${lastRouter.path}/${route.path}`;
+          }
+        } else if (!route.path.startsWith('/')) {
+          fullPath = `/${route.path}`;
+        }
+
+        const normalizedPath = fullPath.replace(/\/+/g, '/');
+
+        // 尝试多种匹配方式
+        let component = findComponentFromStatic(normalizedPath, constantRoutes);
+        if (!component) {
+          component = findComponentFromStatic(route.path, constantRoutes);
+        }
+        if (!component && lastRouter?.path) {
+          component = findComponentFromStatic(`${lastRouter.path}/${route.path}`.replace(/\/+/g, '/'), constantRoutes);
+        }
+
+        if (component) {
+          route.component = component;
+          console.log(`✅ 从静态路由获取 component: ${route.path} (完整路径: ${normalizedPath})`);
+        } else {
+          // 尝试从映射表中获取
+          const mappedComponent = componentPathMap[normalizedPath] || componentPathMap[route.path];
+          if (mappedComponent) {
+            route.component = mappedComponent;
+            console.log(`✅ 从映射表获取 component: ${route.path} (完整路径: ${normalizedPath})`);
+          } else {
+            console.warn(`⚠️  无法为路由 ${route.path} 找到 component (完整路径: ${normalizedPath})`);
+          }
+        }
+      }
+
       if (route.children != null && route.children && route.children.length) {
         route.children = filterAsyncRouter(route.children, route, type);
         // 如果所有子路由都被过滤掉了，也过滤掉父路由
@@ -95,6 +185,12 @@ export const usePermissionStore = defineStore('permission', () => {
         delete route.children;
         delete route.redirect;
       }
+
+      // 只在特定情况下过滤路由：
+      // 1. 不是目录类型（有children的通常是目录，需要保留）
+      // 2. 不是外链
+      // 3. 确实缺少component
+      // 注意：很多父路由只有children没有component，这是正常的，不应该过滤
       return true;
     });
   };

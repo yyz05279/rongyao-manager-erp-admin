@@ -15,7 +15,7 @@ const subsystemRouter: RouteOption = {
     alwaysShow: true
   },
   children: [
-    // 子系统管理主页面
+    // 子系统列表
     {
       path: 'index',
       component: () => import('@/views/erp/subsystem/index.vue'),
@@ -25,9 +25,30 @@ const subsystemRouter: RouteOption = {
         icon: 'list'
       },
       permissions: ['erp:subsystem:list']
+    },
+    // 子系统模板
+    {
+      path: 'template',
+      component: () => import('@/views/erp/subsystem/template/index.vue'),
+      name: 'SubsystemTemplate',
+      meta: {
+        title: '子系统模板',
+        icon: 'document-copy'
+      },
+      permissions: ['erp:subsystem:template:list']
+    },
+    // 子项模板管理
+    {
+      path: 'item-template',
+      component: () => import('@/views/erp/subsystem/item-template/index.vue'),
+      name: 'ItemTemplateManagement',
+      meta: {
+        title: '子项模板管理',
+        icon: 'menu'
+      },
+      permissions: ['erp:subsystem:template:list']
     }
   ]
 };
 
 export default subsystemRouter;
-

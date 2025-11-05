@@ -2,6 +2,7 @@ import { to as tos } from 'await-to-js';
 import router from './router';
 import NProgress from 'nprogress';
 import 'nprogress/nprogress.css';
+import { ElMessage } from 'element-plus';
 import { getToken } from '@/utils/auth';
 import { isHttp } from '@/utils/validate';
 import { isRelogin } from '@/utils/request';
@@ -33,14 +34,21 @@ router.beforeEach(async (to, from, next) => {
           next({ path: '/' });
         } else {
           isRelogin.show = false;
-          const accessRoutes = await usePermissionStore().generateRoutes();
-          // 根据roles权限生成可访问的路由表
-          accessRoutes.forEach((route) => {
-            if (!isHttp(route.path)) {
-              router.addRoute(route); // 动态添加可访问路由表
-            }
-          });
-          next({ ...to, replace: true }); // hack方法 确保addRoutes已完成
+          try {
+            const accessRoutes = await usePermissionStore().generateRoutes();
+            // 根据roles权限生成可访问的路由表
+            accessRoutes.forEach((route) => {
+              if (!isHttp(route.path)) {
+                router.addRoute(route); // 动态添加可访问路由表
+              }
+            });
+            next({ ...to, replace: true }); // hack方法 确保addRoutes已完成
+          } catch (error) {
+            console.error('加载路由失败，使用默认路由:', error);
+            ElMessage.warning('加载菜单失败，部分功能可能无法使用');
+            // 即使API失败，也继续导航，使用静态路由
+            next({ ...to, replace: true });
+          }
         }
       } else {
         next();
