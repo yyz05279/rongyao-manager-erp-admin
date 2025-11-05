@@ -353,22 +353,21 @@ export interface SubsystemTemplateDetailVO extends SubsystemTemplateVO {
 
 /**
  * 子项模板查询参数
+ * 说明：子项模板是公司级基础数据，独立管理
  */
 export interface SubsystemItemTemplateQuery extends PageQuery {
-  templateId?: number;        // 子系统模板ID
   itemCode?: string;          // 子项编号（模糊查询）
   itemName?: string;          // 子项名称（模糊查询）
   itemType?: string;          // 子项类型
-  isRequired?: boolean;       // 是否必需
 }
 
 /**
  * 子项模板VO（返回对象）
+ * 说明：子项模板是公司级基础数据，全局唯一
  */
 export interface SubsystemItemTemplateVO {
   id: number;                 // 主键ID
-  templateId: number;         // 子系统模板ID
-  itemCode: string;           // 子项编号
+  itemCode: string;           // 子项编号（全局唯一，如：ITEM-00001）
   itemName: string;           // 子项名称
   itemType?: string;          // 子项类型（如：组件、部件、单元等）
   specification?: string;     // 规格型号

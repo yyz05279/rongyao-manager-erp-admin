@@ -1,8 +1,13 @@
 /**
  * 子项模板管理模块 - API接口
  *
+ * 独立架构模式：
+ * - 子项模板是公司级基础数据，完全独立于子系统模板
+ * - 支持独立创建、管理和复用
+ * - 可被多个子系统模板关联使用
+ *
  * @author haitang
- * @version v1.0
+ * @version v2.0
  * @date 2025-11-05
  */
 import request from '@/utils/request';
@@ -14,10 +19,11 @@ import {
   PageResult
 } from './types';
 
-// ==================== 子项模板接口 ====================
+// ==================== 子项模板接口（独立管理） ====================
 
 /**
  * 查询子项模板列表
+ * 说明：查询公司级子项库中的所有子项模板
  * @param query 查询参数
  * @returns 分页结果
  */
@@ -26,18 +32,6 @@ export const listItemTemplate = (query?: SubsystemItemTemplateQuery): AxiosPromi
     url: '/erp/subsystem/item-template/list',
     method: 'get',
     params: query
-  });
-};
-
-/**
- * 根据模板ID查询子项列表
- * @param templateId 子系统模板ID
- * @returns 子项列表
- */
-export const listItemTemplateByTemplateId = (templateId: number): AxiosPromise<SubsystemItemTemplateVO[]> => {
-  return request({
-    url: `/erp/subsystem/item-template/list-by-template/${templateId}`,
-    method: 'get'
   });
 };
 
@@ -55,7 +49,7 @@ export const getItemTemplate = (id: number): AxiosPromise<SubsystemItemTemplateV
 
 /**
  * 新增子项模板
- * 说明：itemCode不传时，后台会自动生成唯一编号
+ * 说明：在公司级子项库中创建新的子项模板，itemCode不传时后台会自动生成唯一编号（格式：ITEM-00001）
  * @param data 子项表单数据
  */
 export const addItemTemplate = (data: SubsystemItemTemplateForm): AxiosPromise<void> => {
@@ -118,12 +112,12 @@ export const exportItemTemplate = (query?: SubsystemItemTemplateQuery): AxiosPro
 
 /**
  * 生成子项编号
- * @param templateId 子系统模板ID
+ * 说明：生成下一个可用的子项编号（格式：ITEM-00001）
  * @returns 生成的子项编号
  */
-export const generateItemCode = (templateId: number): AxiosPromise<string> => {
+export const generateItemCode = (): AxiosPromise<string> => {
   return request({
-    url: `/erp/subsystem/item-template/generate-code/${templateId}`,
+    url: '/erp/subsystem/item-template/generate-code',
     method: 'get'
   });
 };

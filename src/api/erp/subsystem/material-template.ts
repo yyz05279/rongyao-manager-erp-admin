@@ -1,8 +1,13 @@
 /**
  * 物料模板管理模块 - API接口
  *
+ * 说明：
+ * - 物料模板用于配置子项模板所需的物料和默认数量
+ * - 物料信息自动从基础物料库（erp_material）获取
+ * - 支持为子项模板添加、修改、删除物料配置
+ *
  * @author haitang
- * @version v1.0
+ * @version v2.0
  * @date 2025-11-05
  */
 import request from '@/utils/request';
@@ -31,6 +36,7 @@ export const listMaterialTemplate = (query?: SubsystemMaterialTemplateQuery): Ax
 
 /**
  * 根据子项ID查询物料列表
+ * 说明：查询指定子项模板下配置的所有物料
  * @param itemTemplateId 子项模板ID
  * @returns 物料列表
  */
@@ -67,7 +73,7 @@ export const getMaterialTemplate = (id: number): AxiosPromise<SubsystemMaterialT
 
 /**
  * 新增物料模板
- * 说明：物料信息会自动从基础物料库获取
+ * 说明：为子项模板添加物料配置，物料信息会自动从基础物料库（erp_material）获取
  * @param data 物料表单数据
  */
 export const addMaterialTemplate = (data: SubsystemMaterialTemplateForm): AxiosPromise<void> => {
@@ -80,6 +86,7 @@ export const addMaterialTemplate = (data: SubsystemMaterialTemplateForm): AxiosP
 
 /**
  * 批量新增物料模板
+ * 说明：批量为子项模板添加多个物料配置
  * @param data 物料表单数据数组
  */
 export const addMaterialTemplateBatch = (data: SubsystemMaterialTemplateForm[]): AxiosPromise<void> => {
@@ -92,6 +99,7 @@ export const addMaterialTemplateBatch = (data: SubsystemMaterialTemplateForm[]):
 
 /**
  * 修改物料模板
+ * 说明：修改物料模板的配置（如默认数量等）
  * @param data 物料表单数据（必须包含id）
  */
 export const updateMaterialTemplate = (data: SubsystemMaterialTemplateForm): AxiosPromise<void> => {
