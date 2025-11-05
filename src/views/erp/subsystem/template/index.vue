@@ -1,17 +1,14 @@
 <template>
-  <div class="subsystem-management p-2">
+  <div class="subsystem-template-management p-2">
     <!-- 搜索筛选区域 -->
     <transition :enter-active-class="proxy?.animate.searchAnimate.enter" :leave-active-class="proxy?.animate.searchAnimate.leave">
       <div class="search" v-show="showSearch">
         <el-form :model="queryParams" ref="queryFormRef" :inline="true" label-width="90px">
-          <el-form-item label="子系统名称" prop="subsystemName">
-            <el-input v-model="queryParams.subsystemName" placeholder="请输入子系统名称" clearable style="width: 240px" @keyup.enter="handleQuery" />
+          <el-form-item label="模板名称" prop="subsystemName">
+            <el-input v-model="queryParams.subsystemName" placeholder="请输入模板名称" clearable style="width: 240px" @keyup.enter="handleQuery" />
           </el-form-item>
-          <el-form-item label="子系统编号" prop="subsystemCode">
-            <el-input v-model="queryParams.subsystemCode" placeholder="请输入子系统编号" clearable style="width: 240px" @keyup.enter="handleQuery" />
-          </el-form-item>
-          <el-form-item label="项目名称" prop="projectName">
-            <el-input v-model="queryParams.projectName" placeholder="请输入项目名称" clearable style="width: 240px" @keyup.enter="handleQuery" />
+          <el-form-item label="模板编号" prop="subsystemCode">
+            <el-input v-model="queryParams.subsystemCode" placeholder="请输入模板编号" clearable style="width: 240px" @keyup.enter="handleQuery" />
           </el-form-item>
           <el-form-item label="分类" prop="category">
             <el-input v-model="queryParams.category" placeholder="请输入分类" clearable style="width: 180px" @keyup.enter="handleQuery" />
@@ -37,39 +34,37 @@
       <template #header>
         <el-row :gutter="10" class="mb8">
           <el-col :span="1.5">
-            <el-button type="primary" plain icon="Plus" @click="handleAdd" v-hasPermi="['erp:subsystem:add']"> 新增子系统 </el-button>
+            <el-button type="primary" plain icon="Plus" @click="handleAdd" v-hasPermi="['erp:subsystem:template:add']"> 新增模板 </el-button>
           </el-col>
           <el-col :span="1.5">
-            <el-button type="success" plain icon="Edit" :disabled="single" @click="handleUpdate" v-hasPermi="['erp:subsystem:edit']">
+            <el-button type="success" plain icon="Edit" :disabled="single" @click="handleUpdate" v-hasPermi="['erp:subsystem:template:edit']">
               修改
             </el-button>
           </el-col>
           <el-col :span="1.5">
-            <el-button type="danger" plain icon="Delete" :disabled="multiple" @click="handleDelete" v-hasPermi="['erp:subsystem:remove']">
+            <el-button type="danger" plain icon="Delete" :disabled="multiple" @click="handleDelete" v-hasPermi="['erp:subsystem:template:remove']">
               删除
             </el-button>
           </el-col>
           <el-col :span="1.5">
-            <el-button type="warning" plain icon="Download" @click="handleExport" v-hasPermi="['erp:subsystem:export']"> 导出 </el-button>
+            <el-button type="warning" plain icon="Download" @click="handleExport" v-hasPermi="['erp:subsystem:template:export']"> 导出 </el-button>
           </el-col>
           <right-toolbar v-model:showSearch="showSearch" @queryTable="getList" />
         </el-row>
       </template>
 
-      <!-- 子系统列表 -->
+      <!-- 模板列表 -->
       <el-table
         v-loading="loading"
-        :data="subsystemList"
+        :data="templateList"
         @selection-change="handleSelectionChange"
         @row-click="handleRowClick"
         style="cursor: pointer"
       >
         <el-table-column type="selection" width="55" align="center" />
-        <el-table-column label="子系统编码" prop="subsystemCode" width="150" />
-        <el-table-column label="子系统名称" prop="subsystemName" min-width="180" show-overflow-tooltip />
-        <el-table-column label="项目名称" prop="projectName" width="150" show-overflow-tooltip />
+        <el-table-column label="模板编码" prop="subsystemCode" width="150" />
+        <el-table-column label="模板名称" prop="subsystemName" min-width="180" show-overflow-tooltip />
         <el-table-column label="分类" prop="category" width="100" align="center" />
-        <el-table-column label="负责人" prop="responsiblePerson" width="100" align="center" />
         <el-table-column label="状态" prop="status" width="100" align="center">
           <template #default="scope">
             <el-tag :type="getStatusTagType(scope.row.status)" size="small">
@@ -92,6 +87,7 @@
             <span>{{ scope.row.totalWeight?.toFixed(2) || '-' }}</span>
           </template>
         </el-table-column>
+        <el-table-column label="优先级" prop="priority" width="80" align="center" />
         <el-table-column label="创建时间" prop="createTime" width="160" align="center">
           <template #default="scope">
             <span>{{ parseTime(scope.row.createTime) }}</span>
@@ -100,15 +96,15 @@
         <el-table-column label="操作" align="center" width="280" class-name="small-padding fixed-width" fixed="right">
           <template #default="scope">
             <el-tooltip content="查看详情" placement="top">
-              <el-button link type="primary" icon="View" @click.stop="handleView(scope.row)" v-hasPermi="['erp:subsystem:query']" />
+              <el-button link type="primary" icon="View" @click.stop="handleView(scope.row)" v-hasPermi="['erp:subsystem:template:query']" />
             </el-tooltip>
             <el-tooltip content="编辑" placement="top">
-              <el-button link type="primary" icon="Edit" @click.stop="handleUpdate(scope.row)" v-hasPermi="['erp:subsystem:edit']" />
+              <el-button link type="primary" icon="Edit" @click.stop="handleUpdate(scope.row)" v-hasPermi="['erp:subsystem:template:edit']" />
             </el-tooltip>
             <el-tooltip content="复制" placement="top">
-              <el-button link type="success" icon="DocumentCopy" @click.stop="handleCopy(scope.row)" v-hasPermi="['erp:subsystem:add']" />
+              <el-button link type="success" icon="DocumentCopy" @click.stop="handleCopy(scope.row)" v-hasPermi="['erp:subsystem:template:add']" />
             </el-tooltip>
-            <el-dropdown @command="createDropdownHandler(scope.row)" v-hasPermi="['erp:subsystem:edit']">
+            <el-dropdown @command="createDropdownHandler(scope.row)" v-hasPermi="['erp:subsystem:template:edit']">
               <el-button link type="info" icon="More" />
               <template #dropdown>
                 <el-dropdown-menu>
@@ -125,7 +121,7 @@
               </template>
             </el-dropdown>
             <el-tooltip content="删除" placement="top">
-              <el-button link type="danger" icon="Delete" @click.stop="handleDelete(scope.row)" v-hasPermi="['erp:subsystem:remove']" />
+              <el-button link type="danger" icon="Delete" @click.stop="handleDelete(scope.row)" v-hasPermi="['erp:subsystem:template:remove']" />
             </el-tooltip>
           </template>
         </el-table-column>
@@ -134,38 +130,38 @@
       <pagination v-show="total > 0" :total="total" v-model:page="queryParams.pageNum" v-model:limit="queryParams.pageSize" @pagination="getList" />
     </el-card>
 
-    <!-- 新增/修改子系统对话框 -->
+    <!-- 新增/修改模板对话框 -->
     <el-dialog :title="dialog.title" v-model="dialog.visible" width="600px" append-to-body>
-      <subsystem-form
+      <subsystem-template-form
         v-if="dialog.visible"
-        ref="subsystemFormRef"
-        :subsystem-id="dialog.subsystemId"
+        ref="templateFormRef"
+        :template-id="dialog.templateId"
         @success="handleFormSuccess"
         @cancel="dialog.visible = false"
       />
     </el-dialog>
 
-    <!-- 子系统详情对话框 -->
-    <el-dialog title="子系统详情" v-model="detailDialog.visible" width="1400px" append-to-body>
-      <subsystem-detail v-if="detailDialog.visible" :subsystem-id="detailDialog.subsystemId" @close="detailDialog.visible = false" />
+    <!-- 模板详情对话框 -->
+    <el-dialog title="模板详情" v-model="detailDialog.visible" width="1400px" append-to-body>
+      <subsystem-template-detail v-if="detailDialog.visible" :template-id="detailDialog.templateId" @close="detailDialog.visible = false" />
     </el-dialog>
   </div>
 </template>
 
-<script setup name="SubsystemManagement" lang="ts">
+<script setup name="SubsystemTemplateManagement" lang="ts">
 import { ref, reactive, onMounted, getCurrentInstance, ComponentInternalInstance } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { Check, Close, FolderOpened } from '@element-plus/icons-vue';
 import {
-  listSubsystem,
-  delSubsystem,
-  updateSubsystemStatus,
-  copySubsystem
-} from '@/api/erp/subsystem';
-import type { SubsystemQuery, SubsystemVO } from '@/api/erp/subsystem/types';
+  listSubsystemTemplate,
+  delSubsystemTemplate,
+  updateSubsystemTemplateStatus,
+  copySubsystemTemplate
+} from '@/api/erp/subsystem/template';
+import type { SubsystemTemplateQuery, SubsystemTemplateVO } from '@/api/erp/subsystem/types';
 import { parseTime } from '@/utils/ruoyi';
-import SubsystemForm from './components/SubsystemForm.vue';
-import SubsystemDetail from './components/SubsystemDetail.vue';
+import SubsystemTemplateForm from './components/SubsystemTemplateForm.vue';
+import SubsystemTemplateDetail from './components/SubsystemTemplateDetail.vue';
 
 const { proxy } = getCurrentInstance() as ComponentInternalInstance;
 
@@ -176,15 +172,14 @@ const ids = ref<number[]>([]);
 const single = ref(true);
 const multiple = ref(true);
 const total = ref(0);
-const subsystemList = ref<SubsystemVO[]>([]);
+const templateList = ref<SubsystemTemplateVO[]>([]);
 
 // 查询参数
-const queryParams = reactive<SubsystemQuery>({
+const queryParams = reactive<SubsystemTemplateQuery>({
   pageNum: 1,
   pageSize: 10,
   subsystemName: '',
   subsystemCode: '',
-  projectName: '',
   category: '',
   status: undefined
 });
@@ -193,24 +188,24 @@ const queryParams = reactive<SubsystemQuery>({
 const dialog = reactive<{
   visible: boolean;
   title: string;
-  subsystemId: string | number;
+  templateId: string | number;
 }>({
   visible: false,
   title: '',
-  subsystemId: ''
+  templateId: ''
 });
 
 const detailDialog = reactive<{
   visible: boolean;
-  subsystemId: string | number;
+  templateId: string | number;
 }>({
   visible: false,
-  subsystemId: ''
+  templateId: ''
 });
 
 // 表单引用
 const queryFormRef = ref();
-const subsystemFormRef = ref();
+const templateFormRef = ref();
 
 // 生命周期
 onMounted(() => {
@@ -221,13 +216,13 @@ onMounted(() => {
 const getList = async () => {
   loading.value = true;
   try {
-    const response = await listSubsystem(queryParams);
+    const response = await listSubsystemTemplate(queryParams);
     const actualResponse = response as any;
-    subsystemList.value = actualResponse.rows || [];
+    templateList.value = actualResponse.rows || [];
     total.value = actualResponse.total || 0;
   } catch (error) {
-    console.error('获取子系统列表失败:', error);
-    ElMessage.error('获取子系统列表失败');
+    console.error('获取模板列表失败:', error);
+    ElMessage.error('获取模板列表失败');
   } finally {
     loading.value = false;
   }
@@ -246,47 +241,47 @@ const resetQuery = () => {
 };
 
 // 多选框选中数据
-const handleSelectionChange = (selection: SubsystemVO[]) => {
+const handleSelectionChange = (selection: SubsystemTemplateVO[]) => {
   ids.value = selection.map(item => item.id);
   single.value = selection.length !== 1;
   multiple.value = !selection.length;
 };
 
 // 行点击
-const handleRowClick = (row: SubsystemVO) => {
+const handleRowClick = (row: SubsystemTemplateVO) => {
   handleView(row);
 };
 
 // 新增
 const handleAdd = () => {
-  dialog.title = '新增子系统';
-  dialog.subsystemId = '';
+  dialog.title = '新增模板';
+  dialog.templateId = '';
   dialog.visible = true;
 };
 
 // 修改
-const handleUpdate = (row?: SubsystemVO) => {
-  const subsystemId = row?.id || ids.value[0];
-  dialog.title = '修改子系统';
-  dialog.subsystemId = subsystemId;
+const handleUpdate = (row?: SubsystemTemplateVO) => {
+  const templateId = row?.id || ids.value[0];
+  dialog.title = '修改模板';
+  dialog.templateId = templateId;
   dialog.visible = true;
 };
 
 // 查看详情
-const handleView = (row: SubsystemVO) => {
-  detailDialog.subsystemId = row.id;
+const handleView = (row: SubsystemTemplateVO) => {
+  detailDialog.templateId = row.id;
   detailDialog.visible = true;
 };
 
 // 删除
-const handleDelete = async (row?: SubsystemVO) => {
-  const subsystemIds = row?.id ? [row.id] : ids.value;
-  const subsystemNames = row?.subsystemName ? [row.subsystemName] :
-    subsystemList.value.filter(item => subsystemIds.includes(item.id)).map(item => item.subsystemName);
+const handleDelete = async (row?: SubsystemTemplateVO) => {
+  const templateIds = row?.id ? [row.id] : ids.value;
+  const templateNames = row?.subsystemName ? [row.subsystemName] :
+    templateList.value.filter(item => templateIds.includes(item.id)).map(item => item.subsystemName);
 
   try {
     await ElMessageBox.confirm(
-      `是否确认删除子系统"${subsystemNames.join('、')}"？`,
+      `是否确认删除模板"${templateNames.join('、')}"？`,
       '警告',
       {
         confirmButtonText: '确定',
@@ -295,12 +290,12 @@ const handleDelete = async (row?: SubsystemVO) => {
       }
     );
 
-    await delSubsystem(subsystemIds);
+    await delSubsystemTemplate(templateIds);
     ElMessage.success('删除成功');
     getList();
   } catch (error) {
     if (error !== 'cancel') {
-      console.error('删除子系统失败:', error);
+      console.error('删除模板失败:', error);
       ElMessage.error('删除失败');
     }
   }
@@ -308,16 +303,16 @@ const handleDelete = async (row?: SubsystemVO) => {
 
 // 导出
 const handleExport = () => {
-  proxy?.download('erp/subsystem/export', {
+  proxy?.download('erp/subsystem/template/export', {
     ...queryParams
-  }, `subsystem_${new Date().getTime()}.xlsx`);
+  }, `subsystem_template_${new Date().getTime()}.xlsx`);
 };
 
-// 复制子系统
-const handleCopy = async (row: SubsystemVO) => {
+// 复制模板
+const handleCopy = async (row: SubsystemTemplateVO) => {
   try {
     await ElMessageBox.confirm(
-      `是否确认复制子系统"${row.subsystemName}"?`,
+      `是否确认复制模板"${row.subsystemName}"?`,
       '提示',
       {
         confirmButtonText: '确定',
@@ -326,26 +321,26 @@ const handleCopy = async (row: SubsystemVO) => {
       }
     );
 
-    const response = await copySubsystem(row.id);
-    ElMessage.success(`复制成功,新子系统ID: ${response.data}`);
+    const response = await copySubsystemTemplate(row.id);
+    ElMessage.success(`复制成功,新模板ID: ${response.data}`);
     getList();
   } catch (error) {
     if (error !== 'cancel') {
-      console.error('复制子系统失败:', error);
+      console.error('复制模板失败:', error);
       ElMessage.error('复制失败');
     }
   }
 };
 
 // 下拉菜单命令包装函数工厂
-const createDropdownHandler = (row: SubsystemVO) => {
+const createDropdownHandler = (row: SubsystemTemplateVO) => {
   return (command: string) => {
     handleCommand(command, row);
   };
 };
 
 // 下拉菜单命令处理
-const handleCommand = async (command: string, row: SubsystemVO): Promise<void> => {
+const handleCommand = async (command: string, row: SubsystemTemplateVO): Promise<void> => {
   const statusMap: Record<string, { status: string; text: string }> = {
     active: { status: 'ACTIVE', text: '生效' },
     inactive: { status: 'INACTIVE', text: '停用' },
@@ -356,7 +351,7 @@ const handleCommand = async (command: string, row: SubsystemVO): Promise<void> =
   if (!config) return;
 
   try {
-    await updateSubsystemStatus(row.id, config.status);
+    await updateSubsystemTemplateStatus(row.id, config.status);
     ElMessage.success(`已设置为${config.text}状态`);
     getList();
   } catch (error) {
@@ -395,7 +390,7 @@ const handleFormSuccess = () => {
 </script>
 
 <style scoped lang="scss">
-.subsystem-management {
+.subsystem-template-management {
   .search-card {
     margin-bottom: 10px;
   }
@@ -417,3 +412,4 @@ const handleFormSuccess = () => {
   }
 }
 </style>
+

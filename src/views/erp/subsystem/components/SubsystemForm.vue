@@ -4,20 +4,9 @@
       <el-row :gutter="20">
         <el-col :span="12">
           <el-form-item label="子系统编号" prop="subsystemCode">
-            <el-input
-              v-model="form.subsystemCode"
-              placeholder="不填写则自动生成"
-              :disabled="!!form.id"
-            >
+            <el-input v-model="form.subsystemCode" placeholder="不填写则自动生成" :disabled="!!form.id">
               <template #append>
-                <el-button
-                  v-if="!form.id"
-                  icon="Refresh"
-                  @click="handleGenerateCode"
-                  :loading="generateCodeLoading"
-                >
-                  生成
-                </el-button>
+                <el-button v-if="!form.id" icon="Refresh" @click="handleGenerateCode" :loading="generateCodeLoading"> 生成 </el-button>
               </template>
             </el-input>
           </el-form-item>
@@ -32,19 +21,8 @@
       <el-row :gutter="20">
         <el-col :span="12">
           <el-form-item label="关联项目" prop="projectId">
-            <el-select
-              v-model="form.projectId"
-              placeholder="请选择关联项目"
-              clearable
-              style="width: 100%"
-              @change="handleProjectChange"
-            >
-              <el-option
-                v-for="project in projectList"
-                :key="project.id"
-                :label="project.name"
-                :value="Number(project.id)"
-              />
+            <el-select v-model="form.projectId" placeholder="请选择关联项目" clearable style="width: 100%" @change="handleProjectChange">
+              <el-option v-for="project in projectList" :key="project.id" :label="project.name" :value="Number(project.id)" />
             </el-select>
           </el-form-item>
         </el-col>
@@ -66,12 +44,7 @@
               style="width: 100%"
               @change="handleResponsiblePersonChange"
             >
-              <el-option
-                v-for="user in userList"
-                :key="user.id"
-                :label="user.name"
-                :value="user.id"
-              />
+              <el-option v-for="user in userList" :key="user.id" :label="user.name" :value="user.id" />
             </el-select>
           </el-form-item>
         </el-col>
@@ -90,24 +63,12 @@
       <el-row :gutter="20">
         <el-col :span="12">
           <el-form-item label="开始日期" prop="startDate">
-            <el-date-picker
-              v-model="form.startDate"
-              type="date"
-              placeholder="选择开始日期"
-              value-format="YYYY-MM-DD"
-              style="width: 100%"
-            />
+            <el-date-picker v-model="form.startDate" type="date" placeholder="选择开始日期" value-format="YYYY-MM-DD" style="width: 100%" />
           </el-form-item>
         </el-col>
         <el-col :span="12">
           <el-form-item label="结束日期" prop="endDate">
-            <el-date-picker
-              v-model="form.endDate"
-              type="date"
-              placeholder="选择结束日期"
-              value-format="YYYY-MM-DD"
-              style="width: 100%"
-            />
+            <el-date-picker v-model="form.endDate" type="date" placeholder="选择结束日期" value-format="YYYY-MM-DD" style="width: 100%" />
           </el-form-item>
         </el-col>
       </el-row>
@@ -115,33 +76,17 @@
       <el-row :gutter="20">
         <el-col :span="12">
           <el-form-item label="优先级" prop="priority">
-            <el-input-number
-              v-model="form.priority"
-              :min="1"
-              :max="10"
-              placeholder="1-10"
-              style="width: 100%"
-            />
+            <el-input-number v-model="form.priority" :min="1" :max="10" placeholder="1-10" style="width: 100%" />
           </el-form-item>
         </el-col>
       </el-row>
 
       <el-form-item label="描述" prop="description">
-        <el-input
-          v-model="form.description"
-          type="textarea"
-          :rows="3"
-          placeholder="请输入描述信息"
-        />
+        <el-input v-model="form.description" type="textarea" :rows="3" placeholder="请输入描述信息" />
       </el-form-item>
 
       <el-form-item label="备注" prop="remarks">
-        <el-input
-          v-model="form.remarks"
-          type="textarea"
-          :rows="2"
-          placeholder="请输入备注信息"
-        />
+        <el-input v-model="form.remarks" type="textarea" :rows="2" placeholder="请输入备注信息" />
       </el-form-item>
     </el-form>
 
@@ -152,7 +97,14 @@
   </div>
 </template>
 
-<script setup name="SubsystemForm" lang="ts">
+<script lang="ts">
+import { defineComponent } from 'vue';
+export default defineComponent({
+  name: 'SubsystemForm'
+});
+</script>
+
+<script setup lang="ts">
 import { ref, reactive, onMounted, watch } from 'vue';
 import { ElMessage } from 'element-plus';
 import type { FormInstance, FormRules } from 'element-plus';
@@ -394,4 +346,3 @@ const submitForm = async () => {
   }
 }
 </style>
-
