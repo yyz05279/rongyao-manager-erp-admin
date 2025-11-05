@@ -1,57 +1,51 @@
 <template>
-  <div class="subsystem-detail" v-loading="loading">
-    <!-- 子系统基本信息 -->
+  <div class="subsystem-template-detail" v-loading="loading">
+    <!-- 模板基本信息 -->
     <el-card shadow="never" class="detail-card">
       <template #header>
         <div class="card-header">
-          <span class="title">子系统基本信息</span>
+          <span class="title">模板基本信息</span>
         </div>
       </template>
       <el-descriptions :column="2" border>
-        <el-descriptions-item label="子系统编号">
-          {{ subsystemInfo.subsystemCode }}
+        <el-descriptions-item label="模板编号">
+          {{ templateInfo.subsystemCode }}
         </el-descriptions-item>
-        <el-descriptions-item label="子系统名称">
-          {{ subsystemInfo.subsystemName }}
-        </el-descriptions-item>
-        <el-descriptions-item label="关联项目">
-          {{ subsystemInfo.projectName || '-' }}
+        <el-descriptions-item label="模板名称">
+          {{ templateInfo.subsystemName }}
         </el-descriptions-item>
         <el-descriptions-item label="分类">
-          {{ subsystemInfo.category || '-' }}
-        </el-descriptions-item>
-        <el-descriptions-item label="负责人">
-          {{ subsystemInfo.responsiblePerson || '-' }}
+          {{ templateInfo.category || '-' }}
         </el-descriptions-item>
         <el-descriptions-item label="状态">
-          <el-tag :type="getStatusTagType(subsystemInfo.status)" size="small">
-            {{ getStatusText(subsystemInfo.status) }}
+          <el-tag :type="getStatusTagType(templateInfo.status)" size="small">
+            {{ getStatusText(templateInfo.status) }}
           </el-tag>
         </el-descriptions-item>
         <el-descriptions-item label="子项数量">
-          <el-tag type="primary">{{ subsystemInfo.totalItems || 0 }}</el-tag>
+          <el-tag type="primary">{{ templateInfo.totalItems || 0 }}</el-tag>
         </el-descriptions-item>
         <el-descriptions-item label="物料数量">
-          <el-tag type="warning">{{ subsystemInfo.totalMaterials || 0 }}</el-tag>
+          <el-tag type="warning">{{ templateInfo.totalMaterials || 0 }}</el-tag>
         </el-descriptions-item>
-        <el-descriptions-item label="总重量"> {{ subsystemInfo.totalWeight?.toFixed(2) || '-' }} kg </el-descriptions-item>
+        <el-descriptions-item label="总重量"> {{ templateInfo.totalWeight?.toFixed(2) || '-' }} kg </el-descriptions-item>
         <el-descriptions-item label="优先级">
-          {{ subsystemInfo.priority || '-' }}
+          {{ templateInfo.priority || '-' }}
         </el-descriptions-item>
         <el-descriptions-item label="开始日期">
-          {{ subsystemInfo.startDate || '-' }}
+          {{ templateInfo.startDate || '-' }}
         </el-descriptions-item>
         <el-descriptions-item label="结束日期">
-          {{ subsystemInfo.endDate || '-' }}
+          {{ templateInfo.endDate || '-' }}
         </el-descriptions-item>
         <el-descriptions-item label="描述" :span="2">
-          {{ subsystemInfo.description || '-' }}
+          {{ templateInfo.description || '-' }}
         </el-descriptions-item>
         <el-descriptions-item label="创建时间">
-          {{ parseTime(subsystemInfo.createTime) }}
+          {{ parseTime(templateInfo.createTime) }}
         </el-descriptions-item>
         <el-descriptions-item label="更新时间">
-          {{ parseTime(subsystemInfo.updateTime) }}
+          {{ parseTime(templateInfo.updateTime) }}
         </el-descriptions-item>
       </el-descriptions>
     </el-card>
@@ -129,7 +123,7 @@
     <el-dialog :title="subItemDialog.title" v-model="subItemDialog.visible" width="600px" append-to-body>
       <sub-item-form
         v-if="subItemDialog.visible"
-        :subsystem-id="subsystemId"
+        :subsystem-id="templateId"
         :sub-item-id="subItemDialog.subItemId"
         @success="handleSubItemFormSuccess"
         @cancel="subItemDialog.visible = false"
@@ -152,22 +146,23 @@
 <script lang="ts">
 import { defineComponent } from 'vue';
 export default defineComponent({
-  name: 'SubsystemDetail'
+  name: 'SubsystemTemplateDetail'
 });
 </script>
 
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import { getSubsystem, delSubsystemItem, delSubsystemMaterial, listSubsystemMaterial } from '@/api/erp/subsystem';
-import type { SubsystemDetailVO, SubsystemItemVO, SubsystemMaterialVO } from '@/api/erp/subsystem/types';
+import { getSubsystemTemplate } from '@/api/erp/subsystem/template';
+import { delSubsystemItem, delSubsystemMaterial, listSubsystemMaterial } from '@/api/erp/subsystem';
+import type { SubsystemTemplateDetailVO, SubsystemItemVO, SubsystemMaterialVO } from '@/api/erp/subsystem/types';
 import { parseTime } from '@/utils/ruoyi';
-import SubItemForm from './SubItemForm.vue';
-import MaterialForm from './MaterialForm.vue';
+import SubItemForm from '../../../subsystem/components/SubItemForm.vue';
+import MaterialForm from '../../../subsystem/components/MaterialForm.vue';
 
 // Props
 interface Props {
-  subsystemId: string | number;
+  templateId: string | number;
 }
 
 const props = defineProps<Props>();
@@ -184,7 +179,7 @@ interface SubItemDetail extends SubsystemItemVO {
 
 // 响应式数据
 const loading = ref(false);
-const subsystemInfo = ref<Partial<SubsystemDetailVO>>({});
+const templateInfo = ref<Partial<SubsystemTemplateDetailVO>>({});
 const subItemList = ref<SubItemDetail[]>([]);
 const activeSubItems = ref<(string | number)[]>([]);
 
@@ -212,15 +207,15 @@ onMounted(() => {
 const getDetail = async () => {
   loading.value = true;
   try {
-    const res = await getSubsystem(props.subsystemId);
-    subsystemInfo.value = res.data;
+    const res = await getSubsystemTemplate(props.templateId);
+    templateInfo.value = res.data;
     subItemList.value = res.data.items || [];
 
     // 为每个子项加载物料列表
     await loadSubItemMaterials();
   } catch (error) {
-    console.error('获取子系统详情失败:', error);
-    ElMessage.error('获取子系统详情失败');
+    console.error('获取模板详情失败:', error);
+    ElMessage.error('获取模板详情失败');
   } finally {
     loading.value = false;
   }
@@ -231,7 +226,7 @@ const loadSubItemMaterials = async () => {
   for (const subItem of subItemList.value) {
     try {
       const res = await listSubsystemMaterial({
-        subsystemId: Number(props.subsystemId),
+        subsystemId: Number(props.templateId),
         itemId: subItem.id,
         pageNum: 1,
         pageSize: 100
@@ -297,7 +292,7 @@ const handleSubItemFormSuccess = () => {
 const handleAddMaterial = (subItem: SubItemDetail) => {
   materialDialog.title = '新增物料';
   materialDialog.subItemId = String(subItem.id);
-  materialDialog.subsystemId = String(props.subsystemId);
+  materialDialog.subsystemId = String(props.templateId);
   materialDialog.materialId = '';
   materialDialog.visible = true;
 };
@@ -305,7 +300,7 @@ const handleAddMaterial = (subItem: SubItemDetail) => {
 // 编辑物料
 const handleEditMaterial = (material: SubsystemMaterialVO) => {
   materialDialog.title = '编辑物料';
-  materialDialog.subsystemId = String(props.subsystemId);
+  materialDialog.subsystemId = String(props.templateId);
   materialDialog.subItemId = String(material.itemId);
   materialDialog.materialId = String(material.id);
   materialDialog.visible = true;
@@ -367,7 +362,7 @@ const getStatusText = (status: string | undefined): string => {
 </script>
 
 <style scoped lang="scss">
-.subsystem-detail {
+.subsystem-template-detail {
   .detail-card {
     margin-bottom: 20px;
 
@@ -430,3 +425,4 @@ const getStatusText = (status: string | undefined): string => {
   }
 }
 </style>
+

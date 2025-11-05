@@ -282,3 +282,65 @@ export enum AttachmentType {
   OTHER = 'OTHER'        // 其他
 }
 
+// ==================== 子系统模板相关类型 ====================
+
+/**
+ * 子系统模板查询参数
+ */
+export interface SubsystemTemplateQuery extends PageQuery {
+  subsystemCode?: string;
+  subsystemName?: string;
+  category?: string;
+  status?: string;
+  startDate?: string;
+  endDate?: string;
+}
+
+/**
+ * 子系统模板VO（返回对象）
+ * 注意：模板不包含项目信息和负责人信息
+ */
+export interface SubsystemTemplateVO {
+  id: number;
+  subsystemCode: string;
+  subsystemName: string;
+  category?: string;
+  description?: string;
+  status: string;
+  totalItems: number;
+  totalMaterials: number;
+  totalWeight: number;
+  startDate?: string;
+  endDate?: string;
+  priority?: number;
+  remarks?: string;
+  createTime: string;
+  updateTime: string;
+}
+
+/**
+ * 子系统模板表单数据
+ * 注意：模板不包含项目信息和负责人信息
+ */
+export interface SubsystemTemplateForm {
+  id?: number;
+  subsystemCode?: string;
+  subsystemName: string;
+  category?: string;
+  description?: string;
+  status?: string;
+  startDate?: string;
+  endDate?: string;
+  priority?: number;
+  remarks?: string;
+}
+
+/**
+ * 子系统模板详情（包含子项、附件和统计信息）
+ */
+export interface SubsystemTemplateDetailVO extends SubsystemTemplateVO {
+  items: SubsystemItemVO[];
+  attachments: SubsystemAttachmentVO[];
+  statistics: SubsystemDetailStatistics;
+}
+
