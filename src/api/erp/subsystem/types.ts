@@ -387,7 +387,7 @@ export interface SubsystemItemTemplateVO {
  */
 export interface SubsystemItemTemplateForm {
   id?: number;                // 主键ID
-  templateId: number;         // 子系统模板ID
+  templateId?: number;        // 子系统模板ID（可选，基础数据管理时不需要）
   itemCode?: string;          // 子项编号（不传则自动生成）
   itemName: string;           // 子项名称
   itemType?: string;          // 子项类型
@@ -438,7 +438,7 @@ export interface SubsystemMaterialTemplateVO {
  */
 export interface SubsystemMaterialTemplateForm {
   id?: number;                // 主键ID
-  templateId: number;         // 子系统模板ID
+  templateId?: number;        // 子系统模板ID（可选，基础数据管理时不需要）
   itemTemplateId: number;     // 子项模板ID
   materialId: number;         // 基础物料ID
   defaultQuantity?: number;   // 默认数量，默认1
