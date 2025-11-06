@@ -144,29 +144,18 @@
       </div>
     </el-dialog>
 
-    <!-- 物料表单对话框 -->
-    <el-dialog :title="materialFormDialog.title" v-model="materialFormDialog.visible" width="700px" append-to-body>
+    <!-- 物料选择对话框 -->
+    <material-selector-dialog
+      v-model="materialSelectorVisible"
+      :existing-material-ids="existingMaterialIds"
+      @confirm="handleMaterialsSelected"
+    />
+
+    <!-- 物料编辑对话框 -->
+    <el-dialog title="编辑物料" v-model="materialEditDialog.visible" width="600px" append-to-body>
       <el-form ref="materialFormRef" :model="materialForm" :rules="materialRules" label-width="100px">
-        <el-form-item label="选择物料" prop="materialId">
-          <el-select
-            v-model="materialForm.materialId"
-            placeholder="请选择物料"
-            filterable
-            remote
-            :remote-method="searchMaterials"
-            :loading="materialSearchLoading"
-            style="width: 100%"
-          >
-            <el-option
-              v-for="item in materialOptions"
-              :key="item.id"
-              :label="`${item.materialCode || item.itemCode} - ${item.materialName || item.itemName}`"
-              :value="item.id"
-            >
-              <span>{{ item.materialCode || item.itemCode }} - {{ item.materialName || item.itemName }}</span>
-              <span style="float: right; color: #8492a6; font-size: 13px">{{ item.specification }}</span>
-            </el-option>
-          </el-select>
+        <el-form-item label="物料名称">
+          <el-input :value="materialForm.materialName" disabled />
         </el-form-item>
         <el-form-item label="默认数量" prop="defaultQuantity">
           <el-input-number v-model="materialForm.defaultQuantity" :min="0" :step="1" style="width: 100%" />
@@ -176,15 +165,15 @@
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="materialFormDialog.visible = false">取消</el-button>
-        <el-button type="primary" @click="submitMaterialForm" :loading="materialFormDialog.loading">确定</el-button>
+        <el-button @click="materialEditDialog.visible = false">取消</el-button>
+        <el-button type="primary" @click="submitMaterialEditForm" :loading="materialEditDialog.loading">确定</el-button>
       </template>
     </el-dialog>
   </div>
 </template>
 
 <script setup name="ItemTemplateManagement" lang="ts">
-import { ref, reactive, onMounted, getCurrentInstance, ComponentInternalInstance } from 'vue';
+import { ref, reactive, onMounted, getCurrentInstance, ComponentInternalInstance, computed } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import {
   listItemTemplate,
@@ -197,9 +186,12 @@ import {
   listMaterialTemplateByItemId,
   addMaterialTemplate,
   updateMaterialTemplate,
-  delMaterialTemplate
+  delMaterialTemplate,
+  addMaterialTemplateBatch
 } from '@/api/erp/subsystem/material-template';
 import { listMaterial } from '@/api/erp/material/material';
+import type { MaterialVO } from '@/api/erp/material/material/types';
+import MaterialSelectorDialog from './components/MaterialSelectorDialog.vue';
 import type {
   SubsystemItemTemplateQuery,
   SubsystemItemTemplateVO,
@@ -259,27 +251,30 @@ const materialDialog = reactive({
 
 const materialLoading = ref(false);
 const materialList = ref<any[]>([]);
+const materialSelectorVisible = ref(false);
 
-const materialFormDialog = reactive({
+const materialEditDialog = reactive({
   visible: false,
-  title: '',
   loading: false
 });
 
 const materialFormRef = ref();
-const materialForm = reactive<SubsystemMaterialTemplateForm>({
+const materialForm = reactive<SubsystemMaterialTemplateForm & { materialName?: string }>({
   itemTemplateId: 0,
   materialId: 0,
+  materialName: '',
   defaultQuantity: 1,
   remarks: ''
 });
 
 const materialRules = {
-  materialId: [{ required: true, message: '请选择物料', trigger: 'change' }]
+  defaultQuantity: [{ required: true, message: '请输入默认数量', trigger: 'blur' }]
 };
 
-const materialSearchLoading = ref(false);
-const materialOptions = ref<any[]>([]);
+// 计算已存在的物料ID列表
+const existingMaterialIds = computed(() => {
+  return materialList.value.map(item => item.materialId);
+});
 
 // 表单引用
 const queryFormRef = ref();
@@ -451,18 +446,34 @@ const loadMaterialList = async () => {
 
 // 添加物料
 const handleAddMaterial = () => {
-  resetMaterialForm();
-  materialForm.itemTemplateId = materialDialog.itemId;
-  materialFormDialog.title = '添加物料';
-  materialFormDialog.visible = true;
+  materialSelectorVisible.value = true;
+};
+
+// 处理选择的物料
+const handleMaterialsSelected = async (materials: MaterialVO[]) => {
+  try {
+    const materialTemplates: SubsystemMaterialTemplateForm[] = materials.map(material => ({
+      itemTemplateId: materialDialog.itemId,
+      materialId: material.id as number,
+      defaultQuantity: 1,
+      isRequired: true,
+      remarks: ''
+    }));
+
+    await addMaterialTemplateBatch(materialTemplates);
+    ElMessage.success(`成功添加 ${materials.length} 个物料`);
+    loadMaterialList();
+  } catch (error) {
+    console.error('批量添加物料失败:', error);
+    ElMessage.error('添加物料失败');
+  }
 };
 
 // 编辑物料
 const handleEditMaterial = (row: any) => {
   resetMaterialForm();
   Object.assign(materialForm, row);
-  materialFormDialog.title = '编辑物料';
-  materialFormDialog.visible = true;
+  materialEditDialog.visible = true;
 };
 
 // 删除物料
@@ -485,43 +496,16 @@ const handleDeleteMaterial = async (row: any) => {
   }
 };
 
-// 搜索物料
-const searchMaterials = async (query: string) => {
-  if (!query) {
-    materialOptions.value = [];
-    return;
-  }
-
-  materialSearchLoading.value = true;
-  try {
-    const response = await listMaterial({
-      name: query,
-      pageNum: 1,
-      pageSize: 20
-    });
-    materialOptions.value = (response as any).rows || [];
-  } catch (error) {
-    console.error('搜索物料失败:', error);
-  } finally {
-    materialSearchLoading.value = false;
-  }
-};
-
-// 提交物料表单
-const submitMaterialForm = async () => {
+// 提交物料编辑表单
+const submitMaterialEditForm = async () => {
   try {
     await materialFormRef.value?.validate();
 
-    materialFormDialog.loading = true;
-    if (materialForm.id) {
-      await updateMaterialTemplate(materialForm);
-      ElMessage.success('修改成功');
-    } else {
-      await addMaterialTemplate(materialForm);
-      ElMessage.success('添加成功');
-    }
+    materialEditDialog.loading = true;
+    await updateMaterialTemplate(materialForm);
+    ElMessage.success('修改成功');
 
-    materialFormDialog.visible = false;
+    materialEditDialog.visible = false;
     loadMaterialList();
   } catch (error) {
     if (error !== false) {
@@ -529,14 +513,16 @@ const submitMaterialForm = async () => {
       ElMessage.error('保存失败');
     }
   } finally {
-    materialFormDialog.loading = false;
+    materialEditDialog.loading = false;
   }
 };
 
 // 重置物料表单
 const resetMaterialForm = () => {
   materialForm.id = undefined;
+  materialForm.itemTemplateId = 0;
   materialForm.materialId = 0;
+  materialForm.materialName = '';
   materialForm.defaultQuantity = 1;
   materialForm.remarks = '';
   materialFormRef.value?.clearValidate();
