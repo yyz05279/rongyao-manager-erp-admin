@@ -22,7 +22,7 @@
         <el-col :span="12">
           <el-form-item label="关联项目" prop="projectId">
             <el-select v-model="form.projectId" placeholder="请选择关联项目" clearable style="width: 100%" @change="handleProjectChange">
-              <el-option v-for="project in projectList" :key="project.id" :label="project.name" :value="Number(project.id)" />
+              <el-option v-for="project in projectList" :key="project.id" :label="project.name" :value="project.id" />
             </el-select>
           </el-form-item>
         </el-col>

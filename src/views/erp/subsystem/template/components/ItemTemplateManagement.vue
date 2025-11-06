@@ -159,6 +159,15 @@ export default defineComponent({
       </template>
     </el-dialog>
 
+    <!-- 子项选择对话框 -->
+    <item-template-selector-dialog
+      v-model="itemSelectorVisible"
+      :template-id="templateId"
+      :existing-item-ids="existingItemIds"
+      @confirm="handleItemsSelected"
+      @refresh="loadItemList"
+    />
+
     <!-- 物料选择对话框 -->
     <material-selector-dialog
       v-model="materialSelectorVisible"
@@ -221,6 +230,7 @@ import type {
   SubsystemMaterialTemplateForm
 } from '@/api/erp/subsystem/types';
 import MaterialSelectorDialog from './MaterialSelectorDialog.vue';
+import ItemTemplateSelectorDialog from './ItemTemplateSelectorDialog.vue';
 
 // Props
 interface Props {
@@ -234,9 +244,10 @@ const loading = ref(false);
 const materialLoading = ref(false);
 const itemList = ref<SubsystemItemTemplateVO[]>([]);
 const materialList = ref<SubsystemMaterialTemplateVO[]>([]);
-const selectedItemId = ref<number | null>(null);
+const selectedItemId = ref<string | number | null>(null);
 const selectedItemName = ref<string>('');
 const materialSelectorVisible = ref(false);
+const itemSelectorVisible = ref(false);
 
 // 子项表单
 const itemFormRef = ref();
@@ -288,13 +299,18 @@ const existingMaterialIds = computed(() => {
   return materialList.value.map(item => item.materialId);
 });
 
+// 计算已存在的子项ID列表
+const existingItemIds = computed(() => {
+  return itemList.value.map(item => item.id);
+});
+
 // 加载子项列表
 const loadItemList = async () => {
   if (!props.templateId) return;
 
   loading.value = true;
   try {
-    const response = await getTemplateItems(Number(props.templateId));
+    const response = await getTemplateItems(props.templateId);
     itemList.value = response.data || [];
   } catch (error) {
     console.error('加载子项列表失败:', error);
@@ -349,10 +365,33 @@ const handleItemClick = (row: SubsystemItemTemplateVO) => {
 
 // 添加子项
 const handleAddItem = () => {
-  resetItemForm();
-  itemForm.templateId = Number(props.templateId);
-  itemDialog.title = '添加子项';
-  itemDialog.visible = true;
+  itemSelectorVisible.value = true;
+};
+
+// 处理选中的子项模板
+const handleItemsSelected = async (items: SubsystemItemTemplateVO[]) => {
+  try {
+    // 为每个选中的子项模板创建关联
+    const promises = items.map(item =>
+      addItemTemplate({
+        templateId: props.templateId,
+        itemName: item.itemName,
+        itemType: item.itemType,
+        description: item.description,
+        defaultQuantity: item.defaultQuantity,
+        unit: item.unit,
+        isRequired: item.isRequired,
+        remarks: item.remarks
+      })
+    );
+
+    await Promise.all(promises);
+    ElMessage.success(`成功添加 ${items.length} 个子项`);
+    loadItemList();
+  } catch (error) {
+    console.error('批量添加子项失败:', error);
+    ElMessage.error('添加子项失败');
+  }
 };
 
 // 编辑子项
@@ -448,7 +487,7 @@ const handleAddMaterial = () => {
 const handleMaterialsSelected = async (materials: MaterialVO[]) => {
   try {
     const materialTemplates: SubsystemMaterialTemplateForm[] = materials.map(material => ({
-      templateId: Number(props.templateId),
+      templateId: props.templateId,
       itemTemplateId: selectedItemId.value!,
       materialId: material.id as number,
       defaultQuantity: 1,

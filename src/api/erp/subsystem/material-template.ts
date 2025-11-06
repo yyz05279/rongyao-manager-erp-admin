@@ -40,7 +40,7 @@ export const listMaterialTemplate = (query?: SubsystemMaterialTemplateQuery): Ax
  * @param itemTemplateId 子项模板ID
  * @returns 物料列表
  */
-export const listMaterialTemplateByItemId = (itemTemplateId: number): AxiosPromise<SubsystemMaterialTemplateVO[]> => {
+export const listMaterialTemplateByItemId = (itemTemplateId: string | number): AxiosPromise<SubsystemMaterialTemplateVO[]> => {
   return request({
     url: `/erp/subsystem/material-template/list-by-item/${itemTemplateId}`,
     method: 'get'
@@ -52,7 +52,7 @@ export const listMaterialTemplateByItemId = (itemTemplateId: number): AxiosPromi
  * @param templateId 子系统模板ID
  * @returns 物料列表
  */
-export const listMaterialTemplateByTemplateId = (templateId: number): AxiosPromise<SubsystemMaterialTemplateVO[]> => {
+export const listMaterialTemplateByTemplateId = (templateId: string | number): AxiosPromise<SubsystemMaterialTemplateVO[]> => {
   return request({
     url: `/erp/subsystem/material-template/list-by-template/${templateId}`,
     method: 'get'
@@ -64,7 +64,7 @@ export const listMaterialTemplateByTemplateId = (templateId: number): AxiosPromi
  * @param id 物料模板ID
  * @returns 物料详情
  */
-export const getMaterialTemplate = (id: number): AxiosPromise<SubsystemMaterialTemplateVO> => {
+export const getMaterialTemplate = (id: string | number): AxiosPromise<SubsystemMaterialTemplateVO> => {
   return request({
     url: `/erp/subsystem/material-template/${id}`,
     method: 'get'
@@ -114,7 +114,7 @@ export const updateMaterialTemplate = (data: SubsystemMaterialTemplateForm): Axi
  * 删除物料模板
  * @param ids 物料模板ID（单个）或ID数组（多个用逗号分隔）
  */
-export const delMaterialTemplate = (ids: number | number[]): AxiosPromise<void> => {
+export const delMaterialTemplate = (ids: string | number | Array<string | number>): AxiosPromise<void> => {
   const idStr = Array.isArray(ids) ? ids.join(',') : String(ids);
   return request({
     url: `/erp/subsystem/material-template/${idStr}`,

@@ -231,7 +231,7 @@ const loadSubItemMaterials = async () => {
   for (const subItem of subItemList.value) {
     try {
       const res = await listSubsystemMaterial({
-        subsystemId: Number(props.subsystemId),
+        subsystemId: props.subsystemId,
         itemId: subItem.id,
         pageNum: 1,
         pageSize: 100
@@ -257,7 +257,7 @@ const handleAddSubItem = () => {
 // 编辑子项
 const handleEditSubItem = (subItem: SubItemDetail) => {
   subItemDialog.title = '编辑子项';
-  subItemDialog.subItemId = subItem.id;
+  subItemDialog.subItemId = String(subItem.id);
   subItemDialog.visible = true;
 };
 

@@ -40,7 +40,7 @@ export const listItemTemplate = (query?: SubsystemItemTemplateQuery): AxiosPromi
  * @param id 子项模板ID
  * @returns 子项详情
  */
-export const getItemTemplate = (id: number): AxiosPromise<SubsystemItemTemplateVO> => {
+export const getItemTemplate = (id: string | number): AxiosPromise<SubsystemItemTemplateVO> => {
   return request({
     url: `/erp/subsystem/item-template/${id}`,
     method: 'get'
@@ -88,7 +88,7 @@ export const updateItemTemplate = (data: SubsystemItemTemplateForm): AxiosPromis
  * 删除子项模板
  * @param ids 子项模板ID（单个）或ID数组（多个用逗号分隔）
  */
-export const delItemTemplate = (ids: number | number[]): AxiosPromise<void> => {
+export const delItemTemplate = (ids: string | number | Array<string | number>): AxiosPromise<void> => {
   const idStr = Array.isArray(ids) ? ids.join(',') : String(ids);
   return request({
     url: `/erp/subsystem/item-template/${idStr}`,
@@ -127,7 +127,7 @@ export const generateItemCode = (): AxiosPromise<string> => {
  * @param itemTemplateId 子项模板ID
  * @returns 物料列表
  */
-export const getItemMaterials = (itemTemplateId: number): AxiosPromise<any[]> => {
+export const getItemMaterials = (itemTemplateId: string | number): AxiosPromise<any[]> => {
   return request({
     url: `/erp/subsystem/item-template/${itemTemplateId}/materials`,
     method: 'get'
