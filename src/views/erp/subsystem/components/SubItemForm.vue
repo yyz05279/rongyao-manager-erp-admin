@@ -140,7 +140,7 @@ const subsystemCode = ref('');
 // 表单数据
 const initFormData: SubsystemItemForm = {
   id: undefined,
-  subsystemId: Number(props.subsystemId),
+  subsystemId: props.subsystemId,
   itemCode: '',
   itemName: '',
   itemType: '',
@@ -225,7 +225,7 @@ const handleGenerateCode = async () => {
 // 表单重置
 const reset = () => {
   Object.assign(form, initFormData);
-  form.subsystemId = Number(props.subsystemId);
+  form.subsystemId = props.subsystemId;
   formRef.value?.resetFields();
 };
 

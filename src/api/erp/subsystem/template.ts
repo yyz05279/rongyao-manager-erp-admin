@@ -137,7 +137,7 @@ export const generateSubsystemTemplateCode = (): AxiosPromise<string> => {
  * @param templateId 子系统模板ID
  * @returns 子项列表
  */
-export const getTemplateItems = (templateId: number): AxiosPromise<any[]> => {
+export const getTemplateItems = (templateId: string | number): AxiosPromise<any[]> => {
   return request({
     url: `/erp/subsystem/template/${templateId}/items`,
     method: 'get'

@@ -157,8 +157,8 @@ const buttonLoading = ref(false);
 // 表单数据
 const initFormData: SubsystemMaterialForm = {
   id: undefined,
-  subsystemId: Number(props.subsystemId),
-  itemId: Number(props.subItemId),
+  subsystemId: props.subsystemId,
+  itemId: props.subItemId,
   materialId: undefined,
   materialCode: '',
   materialName: '',
@@ -229,8 +229,8 @@ watch(() => form.quantity, () => {
 // 表单重置
 const reset = () => {
   Object.assign(form, initFormData);
-  form.subsystemId = Number(props.subsystemId);
-  form.itemId = Number(props.subItemId);
+  form.subsystemId = props.subsystemId;
+  form.itemId = props.subItemId;
   formRef.value?.resetFields();
 };
 

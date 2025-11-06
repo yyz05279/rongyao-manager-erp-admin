@@ -54,15 +54,15 @@ export enum SubsystemStatus {
  * 子系统VO（返回对象）
  */
 export interface SubsystemVO {
-  id: number;
+  id: string | number;
   subsystemCode: string;
   subsystemName: string;
-  projectId: number;
+  projectId: string | number;
   projectName: string;
   category?: string;
   description?: string;
   responsiblePerson?: string;
-  responsiblePersonId?: number;
+  responsiblePersonId?: string | number;
   status: string;
   totalItems: number;
   totalMaterials: number;
@@ -79,15 +79,15 @@ export interface SubsystemVO {
  * 子系统表单数据
  */
 export interface SubsystemForm {
-  id?: number;
+  id?: string | number;
   subsystemCode?: string;
   subsystemName: string;
-  projectId: number;
+  projectId: string | number;
   projectName: string;
   category?: string;
   description?: string;
   responsiblePerson?: string;
-  responsiblePersonId?: number;
+  responsiblePersonId?: string | number;
   status?: string;
   startDate?: string;
   endDate?: string;
@@ -118,8 +118,8 @@ export interface SubsystemDetailVO extends SubsystemVO {
  * 子系统附件
  */
 export interface SubsystemAttachmentVO {
-  id: number;
-  subsystemId: number;
+  id: string | number;
+  subsystemId: string | number;
   fileName: string;
   fileUrl: string;
   fileType: string;
@@ -133,12 +133,12 @@ export interface SubsystemAttachmentVO {
  * 子项查询参数
  */
 export interface SubsystemItemQuery extends PageQuery {
-  subsystemId?: number;
+  subsystemId?: string | number;
   itemCode?: string;
   itemName?: string;
   itemType?: string;
   status?: string;
-  parentItemId?: number;
+  parentItemId?: string | number;
 }
 
 /**
@@ -155,8 +155,8 @@ export enum SubsystemItemStatus {
  * 子项VO（返回对象）
  */
 export interface SubsystemItemVO {
-  id: number;
-  subsystemId: number;
+  id: string | number;
+  subsystemId: string | number;
   itemCode: string;
   itemName: string;
   itemType?: string;
@@ -168,7 +168,7 @@ export interface SubsystemItemVO {
   weight?: number;
   materialCount: number;
   status: string;
-  parentItemId: number;
+  parentItemId: string | number;
   remarks?: string;
   children?: SubsystemItemVO[];
   createTime: string;
@@ -179,15 +179,15 @@ export interface SubsystemItemVO {
  * 子项表单数据
  */
 export interface SubsystemItemForm {
-  id?: number;
-  subsystemId: number;
+  id?: string | number;
+  subsystemId: string | number;
   itemCode?: string;
   itemName: string;
   itemType?: string;
   specification?: string;
   description?: string;
   sequenceNumber?: number;
-  parentItemId?: number;
+  parentItemId?: string | number;
   quantity?: number;
   unit?: string;
   weight?: number;
@@ -201,9 +201,9 @@ export interface SubsystemItemForm {
  * 子系统物料查询参数
  */
 export interface SubsystemMaterialQuery extends PageQuery {
-  subsystemId?: number;
-  itemId?: number;
-  materialId?: number;
+  subsystemId?: string | number;
+  itemId?: string | number;
+  materialId?: string | number;
   materialCode?: string;
   materialName?: string;
   specification?: string;
@@ -225,10 +225,10 @@ export enum MaterialStatus {
  * 子系统物料VO（返回对象）
  */
 export interface SubsystemMaterialVO {
-  id: number;
-  subsystemId: number;
-  itemId: number;
-  materialId?: number;
+  id: string | number;
+  subsystemId: string | number;
+  itemId: string | number;
+  materialId?: string | number;
   materialCode?: string;
   materialName: string;
   specification?: string;
@@ -251,10 +251,10 @@ export interface SubsystemMaterialVO {
  * 子系统物料表单数据
  */
 export interface SubsystemMaterialForm {
-  id?: number;
-  subsystemId: number;
-  itemId: number;
-  materialId?: number;
+  id?: string | number;
+  subsystemId: string | number;
+  itemId: string | number;
+  materialId?: string | number;
   materialCode?: string;
   materialName: string;
   specification?: string;
@@ -302,23 +302,23 @@ export interface SubsystemTemplateQuery extends PageQuery {
  * 基于API文档 v1.0
  */
 export interface SubsystemTemplateVO {
-  id: number;                  // 主键ID
-  templateCode: string;        // 模板编号
-  templateName: string;        // 模板名称
-  category?: string;           // 分类
-  description?: string;        // 描述
-  isStandard?: boolean;        // 是否标准模板
-  version?: string;            // 版本号
-  status: string;              // 状态：DRAFT/ACTIVE/INACTIVE/ARCHIVED
-  sourceProjectId?: number;    // 来源项目ID
-  relatedProductId?: number;   // 关联产品ID
-  totalItems?: number;         // 子项总数
-  totalMaterials?: number;     // 物料总数
-  remarks?: string;            // 备注
-  createTime?: string;         // 创建时间
-  updateTime?: string;         // 更新时间
-  createBy?: string;           // 创建人
-  updateBy?: string;           // 更新人
+  id: string | number;                  // 主键ID
+  templateCode: string;                 // 模板编号
+  templateName: string;                 // 模板名称
+  category?: string;                    // 分类
+  description?: string;                 // 描述
+  isStandard?: boolean;                 // 是否标准模板
+  version?: string;                     // 版本号
+  status: string;                       // 状态：DRAFT/ACTIVE/INACTIVE/ARCHIVED
+  sourceProjectId?: string | number;    // 来源项目ID
+  relatedProductId?: string | number;   // 关联产品ID
+  totalItems?: number;                  // 子项总数
+  totalMaterials?: number;              // 物料总数
+  remarks?: string;                     // 备注
+  createTime?: string;                  // 创建时间
+  updateTime?: string;                  // 更新时间
+  createByName?: string;                // 创建人名称
+  updateByName?: string;                // 更新人名称
 }
 
 /**
@@ -327,17 +327,17 @@ export interface SubsystemTemplateVO {
  * 基于API文档 v1.0
  */
 export interface SubsystemTemplateForm {
-  id?: number;                 // 主键ID（修改时必填）
-  templateCode?: string;       // 模板编号（可选，不传则自动生成）
-  templateName: string;        // 模板名称（必填）
-  category?: string;           // 分类
-  description?: string;        // 描述
-  isStandard?: boolean;        // 是否标准模板
-  version?: string;            // 版本号
-  status?: string;             // 状态
-  sourceProjectId?: number;    // 来源项目ID
-  relatedProductId?: number;   // 关联产品ID
-  remarks?: string;            // 备注
+  id?: string | number;                 // 主键ID（修改时必填）
+  templateCode?: string;                // 模板编号（可选，不传则自动生成）
+  templateName: string;                 // 模板名称（必填）
+  category?: string;                    // 分类
+  description?: string;                 // 描述
+  isStandard?: boolean;                 // 是否标准模板
+  version?: string;                     // 版本号
+  status?: string;                      // 状态
+  sourceProjectId?: string | number;    // 来源项目ID
+  relatedProductId?: string | number;   // 关联产品ID
+  remarks?: string;                     // 备注
 }
 
 /**
@@ -366,7 +366,7 @@ export interface SubsystemItemTemplateQuery extends PageQuery {
  * 说明：子项模板是公司级基础数据，全局唯一
  */
 export interface SubsystemItemTemplateVO {
-  id: number;                 // 主键ID
+  id: string | number;        // 主键ID
   itemCode: string;           // 子项编号（全局唯一，如：ITEM-00001）
   itemName: string;           // 子项名称
   itemType?: string;          // 子项类型（如：组件、部件、单元等）
@@ -385,18 +385,18 @@ export interface SubsystemItemTemplateVO {
  * 子项模板表单对象
  */
 export interface SubsystemItemTemplateForm {
-  id?: number;                // 主键ID
-  templateId?: number;        // 子系统模板ID（可选，基础数据管理时不需要）
-  itemCode?: string;          // 子项编号（不传则自动生成）
-  itemName: string;           // 子项名称
-  itemType?: string;          // 子项类型
-  specification?: string;     // 规格型号
-  description?: string;       // 描述
-  defaultQuantity?: number;   // 默认数量，默认1
-  unit?: string;              // 单位，默认"个"
-  isRequired?: boolean;       // 是否必需，默认true
-  sequenceNumber?: number;    // 排序号，不传自动计算
-  remarks?: string;           // 备注
+  id?: string | number;              // 主键ID
+  templateId?: string | number;      // 子系统模板ID（可选，基础数据管理时不需要）
+  itemCode?: string;                 // 子项编号（不传则自动生成）
+  itemName: string;                  // 子项名称
+  itemType?: string;                 // 子项类型
+  specification?: string;            // 规格型号
+  description?: string;              // 描述
+  defaultQuantity?: number;          // 默认数量，默认1
+  unit?: string;                     // 单位，默认"个"
+  isRequired?: boolean;              // 是否必需，默认true
+  sequenceNumber?: number;           // 排序号，不传自动计算
+  remarks?: string;                  // 备注
 }
 
 // ==================== 物料模板相关类型 ====================
@@ -405,43 +405,43 @@ export interface SubsystemItemTemplateForm {
  * 物料模板查询参数
  */
 export interface SubsystemMaterialTemplateQuery extends PageQuery {
-  templateId?: number;        // 子系统模板ID
-  itemTemplateId?: number;    // 子项模板ID
-  materialId?: number;        // 基础物料ID
-  materialCode?: string;      // 物料编码（模糊查询）
-  materialName?: string;      // 物料名称（模糊查询）
-  isRequired?: boolean;       // 是否必需
+  templateId?: string | number;        // 子系统模板ID
+  itemTemplateId?: string | number;    // 子项模板ID
+  materialId?: string | number;        // 基础物料ID
+  materialCode?: string;               // 物料编码（模糊查询）
+  materialName?: string;               // 物料名称（模糊查询）
+  isRequired?: boolean;                // 是否必需
 }
 
 /**
  * 物料模板VO（返回对象）
  */
 export interface SubsystemMaterialTemplateVO {
-  id: number;                 // 主键ID
-  templateId: number;         // 子系统模板ID
-  itemTemplateId: number;     // 子项模板ID
-  materialId: number;         // 基础物料ID
-  materialCode?: string;      // 物料编码（冗余字段）
-  materialName?: string;      // 物料名称（冗余字段）
-  specification?: string;     // 规格型号（冗余字段）
-  unit?: string;              // 单位（冗余字段）
-  defaultQuantity: number;    // 默认数量
-  isRequired?: boolean;       // 是否必需
-  remarks?: string;           // 备注
-  createTime?: string;        // 创建时间
-  updateTime?: string;        // 更新时间
+  id: string | number;                 // 主键ID
+  templateId: string | number;         // 子系统模板ID
+  itemTemplateId: string | number;     // 子项模板ID
+  materialId: string | number;         // 基础物料ID
+  materialCode?: string;               // 物料编码（冗余字段）
+  materialName?: string;               // 物料名称（冗余字段）
+  specification?: string;              // 规格型号（冗余字段）
+  unit?: string;                       // 单位（冗余字段）
+  defaultQuantity: number;             // 默认数量
+  isRequired?: boolean;                // 是否必需
+  remarks?: string;                    // 备注
+  createTime?: string;                 // 创建时间
+  updateTime?: string;                 // 更新时间
 }
 
 /**
  * 物料模板表单对象
  */
 export interface SubsystemMaterialTemplateForm {
-  id?: number;                // 主键ID
-  templateId?: number;        // 子系统模板ID（可选，基础数据管理时不需要）
-  itemTemplateId: number;     // 子项模板ID
-  materialId: number;         // 基础物料ID
-  defaultQuantity?: number;   // 默认数量，默认1
-  isRequired?: boolean;       // 是否必需，默认true
-  remarks?: string;           // 备注
+  id?: string | number;                // 主键ID
+  templateId?: string | number;        // 子系统模板ID（可选，基础数据管理时不需要）
+  itemTemplateId: string | number;     // 子项模板ID
+  materialId: string | number;         // 基础物料ID
+  defaultQuantity?: number;            // 默认数量，默认1
+  isRequired?: boolean;                // 是否必需，默认true
+  remarks?: string;                    // 备注
 }
 

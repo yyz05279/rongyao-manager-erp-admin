@@ -42,13 +42,13 @@
           {{ templateInfo.remarks || '-' }}
         </el-descriptions-item>
         <el-descriptions-item label="创建人">
-          {{ templateInfo.createBy || '-' }}
+          {{ templateInfo.createByName || '-' }}
         </el-descriptions-item>
         <el-descriptions-item label="创建时间">
           {{ parseTime(templateInfo.createTime) }}
         </el-descriptions-item>
         <el-descriptions-item label="更新人">
-          {{ templateInfo.updateBy || '-' }}
+          {{ templateInfo.updateByName || '-' }}
         </el-descriptions-item>
         <el-descriptions-item label="更新时间">
           {{ parseTime(templateInfo.updateTime) }}

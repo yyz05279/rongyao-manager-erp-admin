@@ -10,6 +10,7 @@ import FileSaver from 'file-saver';
 import { getLanguage } from '@/lang';
 import { encryptBase64, encryptWithAes, generateAesKey, decryptWithAes, decryptBase64 } from '@/utils/crypto';
 import { encrypt, decrypt } from '@/utils/jsencrypt';
+import { convertResponseIds, convertRequestIds } from '@/utils/id-converter';
 
 const encryptHeader = 'encrypt-key';
 let downloadLoadingInstance: LoadingInstance;
@@ -44,6 +45,16 @@ service.interceptors.request.use(
     if (getToken() && !isToken) {
       config.headers['Authorization'] = 'Bearer ' + getToken(); // 让每个请求携带自定义token 请根据实际情况自行修改
     }
+
+    // 转换请求数据中的ID字段为字符串（处理雪花算法生成的长整数ID）
+    // 在序列化之前转换，避免精度丢失
+    if (config.data && !(config.data instanceof FormData)) {
+      config.data = convertRequestIds(config.data);
+    }
+    if (config.params) {
+      config.params = convertRequestIds(config.params);
+    }
+
     // get请求映射params参数
     if (config.method === 'get' && config.params) {
       let url = config.url + '?' + tansParams(config.params);
@@ -122,6 +133,10 @@ service.interceptors.response.use(
     if (res.request.responseType === 'blob' || res.request.responseType === 'arraybuffer') {
       return res.data;
     }
+
+    // 转换ID字段为字符串（处理雪花算法生成的长整数ID）
+    res.data = convertResponseIds(res.data);
+
     if (code === 401) {
       // prettier-ignore
       if (!isRelogin.show) {
