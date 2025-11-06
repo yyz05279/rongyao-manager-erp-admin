@@ -51,8 +51,9 @@ export const getItemTemplate = (id: string | number): AxiosPromise<SubsystemItem
  * 新增子项模板
  * 说明：在公司级子项库中创建新的子项模板，itemCode不传时后台会自动生成唯一编号（格式：ITEM-00001）
  * @param data 子项表单数据
+ * @returns 返回创建的子项模板ID
  */
-export const addItemTemplate = (data: SubsystemItemTemplateForm): AxiosPromise<void> => {
+export const addItemTemplate = (data: SubsystemItemTemplateForm): AxiosPromise<number> => {
   return request({
     url: '/erp/subsystem/item-template',
     method: 'post',

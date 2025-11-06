@@ -182,6 +182,61 @@ export const batchRemoveItemsFromTemplate = (
 };
 
 /**
+ * 添加子项到模板
+ * 说明：将已存在的子项模板关联到子系统模板，自动同步子项的物料到子系统物料表
+ * @param templateId 子系统模板ID
+ * @param data 关联配置数据
+ */
+export const addItemToTemplate = (
+  templateId: string | number,
+  data: {
+    itemTemplateId: string | number;
+    quantity?: number;
+    sequenceNumber?: number;
+    isRequired?: boolean;
+    remarks?: string;
+  }
+): AxiosPromise<void> => {
+  return request({
+    url: `/erp/subsystem/template/${templateId}/items`,
+    method: 'post',
+    data: {
+      ...data,
+      templateId: templateId  // 在请求体中也包含templateId
+    }
+  });
+};
+
+/**
+ * 批量添加子项到模板
+ * 说明：批量将子项模板关联到子系统模板
+ * @param templateId 子系统模板ID
+ * @param items 关联配置数据数组
+ */
+export const batchAddItemsToTemplate = (
+  templateId: string | number,
+  items: Array<{
+    itemTemplateId: string | number;
+    quantity?: number;
+    sequenceNumber?: number;
+    isRequired?: boolean;
+    remarks?: string;
+  }>
+): AxiosPromise<void> => {
+  // 为每个item添加templateId
+  const itemsWithTemplateId = items.map(item => ({
+    ...item,
+    templateId: templateId
+  }));
+  
+  return request({
+    url: `/erp/subsystem/template/${templateId}/items/batch`,
+    method: 'post',
+    data: itemsWithTemplateId
+  });
+};
+
+/**
  * 更新子项关联配置
  * 说明：更新子项在模板中的配置（数量、排序等）
  * @param templateId 子系统模板ID

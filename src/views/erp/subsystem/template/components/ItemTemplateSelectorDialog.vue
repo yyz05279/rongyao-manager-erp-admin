@@ -175,6 +175,7 @@ export default defineComponent({
 import { ref, reactive, computed, watch } from 'vue';
 import { ElMessage } from 'element-plus';
 import { listItemTemplate, addItemTemplate } from '@/api/erp/subsystem/item-template';
+import { addItemToTemplate } from '@/api/erp/subsystem/template';
 import type {
   SubsystemItemTemplateQuery,
   SubsystemItemTemplateVO,
@@ -279,7 +280,7 @@ const loadItemList = async () => {
 
 // 检查子项是否已添加
 const isAdded = (row: SubsystemItemTemplateVO): boolean => {
-  return props.existingItemIds.includes(row.id);
+  return props.existingItemIds.includes(Number(row.id));
 };
 
 // 检查行是否可选择（已添加的不能再选）
@@ -342,8 +343,35 @@ const submitItemForm = async () => {
     await itemFormRef.value?.validate();
 
     itemDialog.loading = true;
-    await addItemTemplate(itemForm);
-    ElMessage.success('添加成功');
+    
+    console.log('开始创建子项模板:', itemForm);
+    
+    // 步骤1: 创建子项模板（独立的公司级子项模板）
+    const createData = {
+      itemName: itemForm.itemName,
+      itemType: itemForm.itemType,
+      description: itemForm.description,
+      defaultQuantity: itemForm.defaultQuantity,
+      unit: itemForm.unit,
+      isRequired: itemForm.isRequired,
+      remarks: itemForm.remarks
+    };
+    
+    const createResponse = await addItemTemplate(createData);
+    const newItemTemplateId = createResponse.data;
+    
+    console.log('子项模板创建成功，ID:', newItemTemplateId);
+    
+    // 步骤2: 将新创建的子项模板关联到当前子系统模板
+    await addItemToTemplate(props.templateId, {
+      itemTemplateId: newItemTemplateId,
+      quantity: itemForm.defaultQuantity || 1,
+      isRequired: itemForm.isRequired ?? true,
+      remarks: itemForm.remarks
+    });
+    
+    console.log('子项模板已关联到子系统模板');
+    ElMessage.success('新增子项模板并关联成功');
 
     itemDialog.visible = false;
 
