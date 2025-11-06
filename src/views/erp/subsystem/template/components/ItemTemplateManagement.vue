@@ -213,7 +213,8 @@ import {
 } from '@/api/erp/subsystem/item-template';
 import {
   getTemplateItems,
-  removeItemFromTemplate
+  removeItemFromTemplate,
+  addItemToTemplate
 } from '@/api/erp/subsystem/template';
 import {
   listMaterialTemplateByItemId,
@@ -370,7 +371,7 @@ const handleItemClick = (row: any) => {
   selectedItemName.value = row.itemName;
 };
 
-// 添加子项
+// 添加子项（打开选择器）
 const handleAddItem = () => {
   itemSelectorVisible.value = true;
 };
@@ -378,22 +379,23 @@ const handleAddItem = () => {
 // 处理选中的子项模板
 const handleItemsSelected = async (items: SubsystemItemTemplateVO[]) => {
   try {
-    // 为每个选中的子项模板创建关联
-    const promises = items.map(item =>
-      addItemTemplate({
-        templateId: props.templateId,
-        itemName: item.itemName,
-        itemType: item.itemType,
-        description: item.description,
-        defaultQuantity: item.defaultQuantity,
-        unit: item.unit,
-        isRequired: item.isRequired,
-        remarks: item.remarks
-      })
-    );
+    console.log('开始批量添加子项，选中的子项:', items);
+    
+    // ✅ 使用正确的接口：addItemToTemplate（将已存在的子项关联到子系统模板）
+    // ✅ 传递子项模板ID（itemTemplateId），不会创建新子项
+    const promises = items.map(item => {
+      const data = {
+        itemTemplateId: item.id!,  // ✅ 传递已存在子项的ID
+        quantity: item.defaultQuantity || 1,
+        isRequired: item.isRequired ?? true,
+        remarks: item.remarks || ''
+      };
+      console.log(`添加子项[${item.itemName}]到模板，参数:`, data);
+      return addItemToTemplate(props.templateId, data);
+    });
 
     await Promise.all(promises);
-    ElMessage.success(`成功添加 ${items.length} 个子项`);
+    ElMessage.success(`成功添加 ${items.length} 个子项到模板`);
     loadItemList();
   } catch (error) {
     console.error('批量添加子项失败:', error);
