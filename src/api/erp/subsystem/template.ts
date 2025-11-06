@@ -132,15 +132,71 @@ export const generateSubsystemTemplateCode = (): AxiosPromise<string> => {
   });
 };
 
+// ==================== 子项模板关联管理接口 ====================
+
 /**
  * 获取模板的子项列表
  * @param templateId 子系统模板ID
- * @returns 子项列表
+ * @returns 子项列表（带关联信息）
  */
 export const getTemplateItems = (templateId: string | number): AxiosPromise<any[]> => {
   return request({
     url: `/erp/subsystem/template/${templateId}/items`,
     method: 'get'
+  });
+};
+
+/**
+ * 从模板移除子项
+ * 说明：解除子系统模板与子项模板的关联关系，自动清理该子项在该模板中的所有物料记录
+ * @param templateId 子系统模板ID
+ * @param itemTemplateId 子项模板ID
+ */
+export const removeItemFromTemplate = (
+  templateId: string | number,
+  itemTemplateId: string | number
+): AxiosPromise<void> => {
+  const url = `/erp/subsystem/template/${templateId}/items/${itemTemplateId}`;
+  console.log('删除子项 API 调用:', { templateId, itemTemplateId, url });
+
+  return request({
+    url,
+    method: 'delete'
+  });
+};
+
+/**
+ * 批量从模板移除子项
+ * @param templateId 子系统模板ID
+ * @param itemTemplateIds 子项模板ID数组
+ */
+export const batchRemoveItemsFromTemplate = (
+  templateId: string | number,
+  itemTemplateIds: number[]
+): AxiosPromise<void> => {
+  return request({
+    url: `/erp/subsystem/template/${templateId}/items`,
+    method: 'delete',
+    data: itemTemplateIds
+  });
+};
+
+/**
+ * 更新子项关联配置
+ * 说明：更新子项在模板中的配置（数量、排序等）
+ * @param templateId 子系统模板ID
+ * @param itemTemplateId 子项模板ID
+ * @param data 关联配置数据
+ */
+export const updateItemRelation = (
+  templateId: string | number,
+  itemTemplateId: string | number,
+  data: any
+): AxiosPromise<void> => {
+  return request({
+    url: `/erp/subsystem/template/${templateId}/items/${itemTemplateId}`,
+    method: 'put',
+    data
   });
 };
 

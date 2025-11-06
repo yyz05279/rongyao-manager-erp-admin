@@ -42,19 +42,18 @@ export default defineComponent({
         style="width: 100%"
       >
         <el-table-column type="selection" width="55" align="center" />
-        <el-table-column label="子项编号" prop="itemCode" width="150" show-overflow-tooltip />
-        <el-table-column label="子项名称" prop="itemName" min-width="180" show-overflow-tooltip />
-        <el-table-column label="子项类型" prop="itemType" width="120" align="center" />
-        <el-table-column label="规格型号" prop="specification" width="150" show-overflow-tooltip />
-        <el-table-column label="默认数量" prop="defaultQuantity" width="100" align="center" />
-        <el-table-column label="单位" prop="unit" width="80" align="center" />
-        <el-table-column label="是否必需" prop="isRequired" width="100" align="center">
+        <el-table-column label="子项编号" prop="itemCode" width="180" show-overflow-tooltip />
+        <el-table-column label="子项名称" prop="itemName" width="200" show-overflow-tooltip />
+        <el-table-column label="子项类型" prop="itemType" width="150" align="center" />
+        <el-table-column label="默认数量" prop="defaultQuantity" width="120" align="center" />
+        <el-table-column label="单位" prop="unit" width="100" align="center" />
+        <el-table-column label="是否必需" prop="isRequired" width="120" align="center">
           <template #default="scope">
             <el-tag v-if="scope.row.isRequired" type="success" size="small">是</el-tag>
             <el-tag v-else type="info" size="small">否</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="排序号" prop="sequenceNumber" width="80" align="center" />
+        <el-table-column label="排序号" prop="sequenceNumber" width="100" align="center" />
         <el-table-column label="操作" align="center" width="180" fixed="right">
           <template #default="scope">
             <el-tooltip content="查看物料" placement="top">
@@ -71,12 +70,13 @@ export default defineComponent({
       </el-table>
     </el-card>
 
-    <!-- 物料列表 -->
-    <el-card shadow="never" v-if="selectedItemId">
-      <template #header>
-        <span class="card-title">物料列表 ({{ selectedItemName }})</span>
-      </template>
-
+    <!-- 物料详情对话框 -->
+    <el-dialog :title="`物料列表 (${selectedItemName})`" v-model="materialDetailDialog.visible" width="1000px" append-to-body>
+      <div class="mb-3">
+        <el-button type="primary" icon="Plus" @click="handleAddMaterialInDialog" v-hasPermi="['erp:subsystem:template:add']">
+          添加物料
+        </el-button>
+      </div>
       <el-table
         v-loading="materialLoading"
         :data="materialList"
@@ -105,12 +105,15 @@ export default defineComponent({
           </template>
         </el-table-column>
       </el-table>
-    </el-card>
+      <template #footer>
+        <el-button @click="materialDetailDialog.visible = false">关闭</el-button>
+      </template>
+    </el-dialog>
 
     <!-- 子项表单对话框 -->
     <el-dialog :title="itemDialog.title" v-model="itemDialog.visible" width="700px" append-to-body>
       <el-form ref="itemFormRef" :model="itemForm" :rules="itemRules" label-width="100px">
-        <el-row :gutter="20">
+        <el-row :gutter="30">
           <el-col :span="12">
             <el-form-item label="子项名称" prop="itemName">
               <el-input v-model="itemForm.itemName" placeholder="请输入子项名称" />
@@ -123,11 +126,6 @@ export default defineComponent({
           </el-col>
         </el-row>
         <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="规格型号" prop="specification">
-              <el-input v-model="itemForm.specification" placeholder="请输入规格型号" />
-            </el-form-item>
-          </el-col>
           <el-col :span="12">
             <el-form-item label="默认数量" prop="defaultQuantity">
               <el-input-number v-model="itemForm.defaultQuantity" :min="0" :step="1" style="width: 100%" />
@@ -213,7 +211,10 @@ import {
   updateItemTemplate,
   delItemTemplate
 } from '@/api/erp/subsystem/item-template';
-import { getTemplateItems } from '@/api/erp/subsystem/template';
+import {
+  getTemplateItems,
+  removeItemFromTemplate
+} from '@/api/erp/subsystem/template';
 import {
   listMaterialTemplateByItemId,
   addMaterialTemplate,
@@ -227,7 +228,8 @@ import type {
   SubsystemItemTemplateVO,
   SubsystemItemTemplateForm,
   SubsystemMaterialTemplateVO,
-  SubsystemMaterialTemplateForm
+  SubsystemMaterialTemplateForm,
+  TemplateItemRelVO
 } from '@/api/erp/subsystem/types';
 import MaterialSelectorDialog from './MaterialSelectorDialog.vue';
 import ItemTemplateSelectorDialog from './ItemTemplateSelectorDialog.vue';
@@ -242,7 +244,7 @@ const props = defineProps<Props>();
 // 响应式数据
 const loading = ref(false);
 const materialLoading = ref(false);
-const itemList = ref<SubsystemItemTemplateVO[]>([]);
+const itemList = ref<TemplateItemRelVO[]>([]);
 const materialList = ref<SubsystemMaterialTemplateVO[]>([]);
 const selectedItemId = ref<string | number | null>(null);
 const selectedItemName = ref<string>('');
@@ -261,7 +263,6 @@ const itemForm = reactive<SubsystemItemTemplateForm>({
   templateId: 0,
   itemName: '',
   itemType: '',
-  specification: '',
   description: '',
   defaultQuantity: 1,
   unit: '个',
@@ -272,6 +273,11 @@ const itemForm = reactive<SubsystemItemTemplateForm>({
 const itemRules = {
   itemName: [{ required: true, message: '请输入子项名称', trigger: 'blur' }]
 };
+
+// 物料详情弹窗
+const materialDetailDialog = reactive({
+  visible: false
+});
 
 // 物料编辑表单
 const materialFormRef = ref();
@@ -326,8 +332,17 @@ const loadMaterialList = async () => {
 
   materialLoading.value = true;
   try {
+    // 查询该子系统模板下该子项的物料
+    // 使用 listMaterialTemplateByTemplateId 获取整个模板的物料，然后前端过滤
     const response = await listMaterialTemplateByItemId(selectedItemId.value);
-    materialList.value = response.data || [];
+
+    // 过滤出当前子系统模板的物料
+    const allMaterials = response.data || [];
+    materialList.value = allMaterials.filter(
+      (material: SubsystemMaterialTemplateVO) =>
+        Number(material.templateId) === Number(props.templateId) &&
+        Number(material.itemTemplateId) === Number(selectedItemId.value)
+    );
   } catch (error) {
     console.error('加载物料列表失败:', error);
     ElMessage.error('加载物料列表失败');
@@ -343,23 +358,15 @@ watch(() => props.templateId, (newVal) => {
   }
 }, { immediate: true });
 
-// 监听选中的子项
-watch(selectedItemId, (newVal) => {
-  if (newVal) {
-    loadMaterialList();
-  } else {
-    materialList.value = [];
-  }
-});
-
 // 子项选择变化
 const handleItemSelectionChange = (selection: SubsystemItemTemplateVO[]) => {
   // 可以用于批量操作
 };
 
 // 子项行点击
-const handleItemClick = (row: SubsystemItemTemplateVO) => {
-  selectedItemId.value = row.id;
+const handleItemClick = (row: any) => {
+  // 后端返回的字段名是 itemTemplateId
+  selectedItemId.value = row.itemTemplateId || row.id;
   selectedItemName.value = row.itemName;
 };
 
@@ -395,42 +402,75 @@ const handleItemsSelected = async (items: SubsystemItemTemplateVO[]) => {
 };
 
 // 编辑子项
-const handleEditItem = (row: SubsystemItemTemplateVO) => {
+const handleEditItem = (row: any) => {
   resetItemForm();
-  Object.assign(itemForm, row);
+  // 确保使用正确的字段
+  Object.assign(itemForm, {
+    ...row,
+    id: row.itemTemplateId || row.id
+  });
   itemDialog.title = '编辑子项';
   itemDialog.visible = true;
 };
 
-// 删除子项
-const handleDeleteItem = async (row: SubsystemItemTemplateVO) => {
+// 删除子项（从模板移除）
+const handleDeleteItem = async (row: any) => {
   try {
-    await ElMessageBox.confirm(`是否确认删除子项"${row.itemName}"?`, '警告', {
-      confirmButtonText: '确定',
-      cancelButtonText: '取消',
-      type: 'warning'
+    // 获取 itemTemplateId（后端返回的字段名是 itemTemplateId）
+    const itemTemplateId = row.itemTemplateId || row.id;
+
+    // 打印调试信息
+    console.log('删除子项参数:', {
+      templateId: props.templateId,
+      itemTemplateId: itemTemplateId,
+      row: row
     });
 
-    await delItemTemplate(row.id);
-    ElMessage.success('删除成功');
+    // 验证参数
+    if (!props.templateId || !itemTemplateId) {
+      ElMessage.error(`参数错误：templateId=${props.templateId}, itemTemplateId=${itemTemplateId}`);
+      return;
+    }
+
+    await ElMessageBox.confirm(
+      `是否确认从模板中移除子项"${row.itemName}"？该操作会同时清理该子项在模板中的所有物料记录。`,
+      '警告',
+      {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }
+    );
+
+    // 调用从模板移除子项的接口，需要传入 templateId 和 itemTemplateId
+    await removeItemFromTemplate(props.templateId, itemTemplateId);
+    ElMessage.success('移除成功');
     loadItemList();
 
-    if (selectedItemId.value === row.id) {
+    // 如果当前选中的子项被删除，清空选中状态
+    if (selectedItemId.value === itemTemplateId) {
       selectedItemId.value = null;
       selectedItemName.value = '';
     }
   } catch (error) {
     if (error !== 'cancel') {
-      console.error('删除子项失败:', error);
-      ElMessage.error('删除失败');
+      console.error('移除子项失败:', error);
+      ElMessage.error('移除失败');
     }
   }
 };
 
 // 查看物料
-const handleViewMaterials = (row: SubsystemItemTemplateVO) => {
-  selectedItemId.value = row.id;
+const handleViewMaterials = async (row: any) => {
+  // 后端返回的字段名是 itemTemplateId
+  selectedItemId.value = row.itemTemplateId || row.id;
   selectedItemName.value = row.itemName;
+
+  // 打开弹窗
+  materialDetailDialog.visible = true;
+
+  // 加载物料列表
+  await loadMaterialList();
 };
 
 // 提交子项表单
@@ -464,7 +504,6 @@ const resetItemForm = () => {
   itemForm.id = undefined;
   itemForm.itemName = '';
   itemForm.itemType = '';
-  itemForm.specification = '';
   itemForm.description = '';
   itemForm.defaultQuantity = 1;
   itemForm.unit = '个';
@@ -473,13 +512,18 @@ const resetItemForm = () => {
   itemFormRef.value?.clearValidate();
 };
 
-// 添加物料
+// 添加物料（从列表工具栏）
 const handleAddMaterial = () => {
   if (!selectedItemId.value) {
     ElMessage.warning('请先选择一个子项');
     return;
   }
 
+  materialSelectorVisible.value = true;
+};
+
+// 在物料弹窗中添加物料
+const handleAddMaterialInDialog = () => {
   materialSelectorVisible.value = true;
 };
 
@@ -592,6 +636,10 @@ const resetMaterialForm = () => {
 
   .mr-2 {
     margin-right: 8px;
+  }
+
+  .mb-3 {
+    margin-bottom: 12px;
   }
 }
 </style>

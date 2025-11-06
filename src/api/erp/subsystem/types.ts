@@ -382,6 +382,21 @@ export interface SubsystemItemTemplateVO {
 }
 
 /**
+ * 子系统模板-子项关联VO（带关联信息）
+ * 说明：从 getTemplateItems 接口返回的数据，包含关联配置
+ */
+export interface TemplateItemRelVO extends SubsystemItemTemplateVO {
+  relId: string | number;           // 关联表ID
+  templateId: string | number;      // 子系统模板ID
+  itemTemplateId: string | number;  // 子项模板ID（用于删除等操作）
+  quantity?: string | number;       // 在模板中的数量
+  relQuantity?: string | number;    // 在模板中的数量（兼容字段）
+  relSequenceNumber?: number;       // 在模板中的排序
+  relIsRequired?: boolean;          // 在模板中是否必需
+  relRemarks?: string;              // 关联备注
+}
+
+/**
  * 子项模板表单对象
  */
 export interface SubsystemItemTemplateForm {
