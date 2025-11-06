@@ -197,7 +197,7 @@ export default defineComponent({
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, watch, onMounted, computed } from 'vue';
+import { ref, reactive, watch, computed } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import {
   addItemTemplate,
@@ -288,22 +288,6 @@ const existingMaterialIds = computed(() => {
   return materialList.value.map(item => item.materialId);
 });
 
-// 监听模板ID变化
-watch(() => props.templateId, (newVal) => {
-  if (newVal) {
-    loadItemList();
-  }
-}, { immediate: true });
-
-// 监听选中的子项
-watch(selectedItemId, (newVal) => {
-  if (newVal) {
-    loadMaterialList();
-  } else {
-    materialList.value = [];
-  }
-});
-
 // 加载子项列表
 const loadItemList = async () => {
   if (!props.templateId) return;
@@ -335,6 +319,22 @@ const loadMaterialList = async () => {
     materialLoading.value = false;
   }
 };
+
+// 监听模板ID变化
+watch(() => props.templateId, (newVal) => {
+  if (newVal) {
+    loadItemList();
+  }
+}, { immediate: true });
+
+// 监听选中的子项
+watch(selectedItemId, (newVal) => {
+  if (newVal) {
+    loadMaterialList();
+  } else {
+    materialList.value = [];
+  }
+});
 
 // 子项选择变化
 const handleItemSelectionChange = (selection: SubsystemItemTemplateVO[]) => {
@@ -523,11 +523,6 @@ const resetMaterialForm = () => {
   materialForm.remarks = '';
   materialFormRef.value?.clearValidate();
 };
-
-// 初始化
-onMounted(() => {
-  loadItemList();
-});
 </script>
 
 <style scoped lang="scss">
