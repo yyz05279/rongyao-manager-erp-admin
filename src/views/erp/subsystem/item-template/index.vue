@@ -110,6 +110,66 @@
         <el-form-item label="备注" prop="remarks">
           <el-input v-model="form.remarks" type="textarea" :rows="2" placeholder="请输入备注" />
         </el-form-item>
+
+        <!-- ✅ 新增：物料配置（必填） -->
+        <el-form-item label="物料配置" prop="materials" v-if="!form.id">
+          <div style="width: 100%">
+            <el-button type="primary" icon="Plus" @click="handleAddItemMaterial" size="small">
+              添加物料
+            </el-button>
+            <el-alert
+              v-if="!form.materials || form.materials.length === 0"
+              title="请至少添加一个物料"
+              type="warning"
+              show-icon
+              :closable="false"
+              style="margin-top: 10px"
+            />
+            <el-table
+              v-if="form.materials && form.materials.length > 0"
+              :data="form.materials"
+              style="width: 100%; margin-top: 10px"
+              border
+              size="small"
+            >
+              <el-table-column label="物料ID" prop="materialId" width="100" />
+              <el-table-column label="默认数量" prop="defaultQuantity" width="120" align="center">
+                <template #default="{ row }">
+                  <el-input-number
+                    v-model="row.defaultQuantity"
+                    :min="0"
+                    :step="1"
+                    size="small"
+                    style="width: 100%"
+                  />
+                </template>
+              </el-table-column>
+              <el-table-column label="是否必需" prop="isRequired" width="100" align="center">
+                <template #default="{ row }">
+                  <el-switch v-model="row.isRequired" size="small" />
+                </template>
+              </el-table-column>
+              <el-table-column label="备注" prop="remarks" min-width="150">
+                <template #default="{ row }">
+                  <el-input v-model="row.remarks" placeholder="备注" size="small" />
+                </template>
+              </el-table-column>
+              <el-table-column label="操作" width="80" align="center" fixed="right">
+                <template #default="{ $index }">
+                  <el-button
+                    link
+                    type="danger"
+                    icon="Delete"
+                    @click="handleRemoveItemMaterial($index)"
+                    size="small"
+                  >
+                    删除
+                  </el-button>
+                </template>
+              </el-table-column>
+            </el-table>
+          </div>
+        </el-form-item>
       </el-form>
       <template #footer>
         <el-button @click="dialog.visible = false">取消</el-button>
@@ -144,11 +204,18 @@
       </div>
     </el-dialog>
 
-    <!-- 物料选择对话框 -->
+    <!-- 物料选择对话框（用于子项详情中添加物料） -->
     <material-selector-dialog
       v-model="materialSelectorVisible"
       :existing-material-ids="existingMaterialIds"
       @confirm="handleMaterialsSelected"
+    />
+
+    <!-- 物料选择对话框（用于新增子项时添加物料） -->
+    <material-selector-dialog
+      v-model="itemMaterialSelectorVisible"
+      :existing-material-ids="itemFormMaterialIds"
+      @confirm="handleItemMaterialsSelected"
     />
 
     <!-- 物料编辑对话框 -->
@@ -235,11 +302,25 @@ const form = reactive<SubsystemItemTemplateForm>({
   description: '',
   defaultQuantity: 1,
   unit: '个',
-  remarks: ''
+  remarks: '',
+  materials: [] // 物料列表
 });
 
 const rules = {
-  itemName: [{ required: true, message: '请输入子项名称', trigger: 'blur' }]
+  itemName: [{ required: true, message: '请输入子项名称', trigger: 'blur' }],
+  materials: [
+    {
+      required: true,
+      validator: (rule: any, value: any, callback: any) => {
+        if (!value || value.length === 0) {
+          callback(new Error('请至少添加一个物料'));
+        } else {
+          callback();
+        }
+      },
+      trigger: 'change'
+    }
+  ]
 };
 
 // 物料相关
@@ -252,6 +333,9 @@ const materialDialog = reactive({
 const materialLoading = ref(false);
 const materialList = ref<any[]>([]);
 const materialSelectorVisible = ref(false);
+
+// 新增子项时的物料选择
+const itemMaterialSelectorVisible = ref(false);
 
 const materialEditDialog = reactive({
   visible: false,
@@ -273,7 +357,12 @@ const materialRules = {
 
 // 计算已存在的物料ID列表
 const existingMaterialIds = computed(() => {
-  return materialList.value.map(item => item.materialId);
+  return materialList.value.map(item => Number(item.materialId));
+});
+
+// 计算新增子项表单中已选择的物料ID列表
+const itemFormMaterialIds = computed(() => {
+  return form.materials?.map(item => Number(item.materialId)) || [];
 });
 
 // 表单引用
@@ -387,11 +476,22 @@ const submitForm = async () => {
   try {
     await formRef.value?.validate();
 
+    // ✅ 新增模式：检查物料是否已添加
+    if (!form.id) {
+      if (!form.materials || form.materials.length === 0) {
+        ElMessage.warning('请至少添加一个物料');
+        return;
+      }
+    }
+
     dialog.loading = true;
     if (form.id) {
-      await updateItemTemplate(form);
+      // 编辑模式：不传递 materials
+      const { materials, ...updateData } = form;
+      await updateItemTemplate(updateData);
       ElMessage.success('修改成功');
     } else {
+      // 新增模式：传递完整数据（包含 materials）
       await addItemTemplate(form);
       ElMessage.success('新增成功');
     }
@@ -417,7 +517,44 @@ const resetForm = () => {
   form.defaultQuantity = 1;
   form.unit = '个';
   form.remarks = '';
+  form.materials = []; // ✅ 重置物料列表
   formRef.value?.clearValidate();
+};
+
+// ✅ 新增：在新增子项表单中添加物料
+const handleAddItemMaterial = () => {
+  itemMaterialSelectorVisible.value = true;
+};
+
+// ✅ 新增：处理新增子项时选择的物料
+const handleItemMaterialsSelected = (materials: MaterialVO[]) => {
+  if (!form.materials) {
+    form.materials = [];
+  }
+
+  materials.forEach(material => {
+    // 避免重复添加
+    if (!form.materials!.some(m => m.materialId === material.id)) {
+      form.materials!.push({
+        materialId: material.id as number,
+        defaultQuantity: 1,
+        isRequired: true,
+        remarks: ''
+      });
+    }
+  });
+
+  // 手动触发表单验证
+  formRef.value?.validateField('materials');
+};
+
+// ✅ 新增：移除新增子项表单中的物料
+const handleRemoveItemMaterial = (index: number) => {
+  if (form.materials) {
+    form.materials.splice(index, 1);
+    // 手动触发表单验证
+    formRef.value?.validateField('materials');
+  }
 };
 
 // 查看物料

@@ -397,6 +397,16 @@ export interface TemplateItemRelVO extends SubsystemItemTemplateVO {
 }
 
 /**
+ * 物料项（用于创建子项时传递物料信息）
+ */
+export interface MaterialItem {
+  materialId: number;                // 物料ID（必填）
+  defaultQuantity?: number;          // 默认数量
+  isRequired?: boolean;              // 是否必需
+  remarks?: string;                  // 备注
+}
+
+/**
  * 子项模板表单对象
  */
 export interface SubsystemItemTemplateForm {
@@ -412,6 +422,7 @@ export interface SubsystemItemTemplateForm {
   isRequired?: boolean;              // 是否必需，默认true
   sequenceNumber?: number;           // 排序号，不传自动计算
   remarks?: string;                  // 备注
+  materials?: MaterialItem[];        // 物料列表（必填，用于同时创建物料配置）
 }
 
 // ==================== 物料模板相关类型 ====================

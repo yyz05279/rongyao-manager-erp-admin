@@ -36,17 +36,17 @@ export const listMaterialTemplate = (query?: SubsystemMaterialTemplateQuery): Ax
 
 /**
  * 查询子项在子系统中的物料列表（子系统级别）
- * 
+ *
  * 说明：该接口查询特定子系统中某个子项的物料配置，即 template_id = 子系统ID 的物料
  * 用途：在"子系统详情"页面中使用，查询该子系统中的物料配置
  * 数据特征：返回的物料记录的 templateId 字段有具体值（子系统ID）
- * 
+ *
  * ⚠️ 重要：在子系统详情页面中，必须传递 templateId 参数实现数据隔离
- * 
+ *
  * @param itemTemplateId 子项模板ID（必填）
  * @param templateId 子系统模板ID（必填，用于数据隔离）
  * @returns 子系统物料列表
- * 
+ *
  * @example
  * // 在子系统详情页面中调用
  * const materials = await listMaterialTemplateByItemId(itemId, subsystemId);
@@ -61,7 +61,7 @@ export const getItemMaterialsInSubsystem = (
     // 确保templateId作为单个字符串值传递
     url += `?templateId=${encodeURIComponent(String(templateId))}`;
   }
-  
+
   return request({
     url: url,
     method: 'get'

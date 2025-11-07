@@ -162,12 +162,79 @@ export default defineComponent({
         <el-form-item label="备注" prop="remarks">
           <el-input v-model="itemForm.remarks" type="textarea" :rows="2" placeholder="请输入备注" />
         </el-form-item>
+
+        <!-- ✅ 新增：物料配置（必填） -->
+        <el-form-item label="物料配置" prop="materials">
+          <div style="width: 100%">
+            <el-button type="primary" icon="Plus" @click="handleAddItemMaterial" size="small">
+              添加物料
+            </el-button>
+            <el-alert 
+              v-if="!itemForm.materials || itemForm.materials.length === 0" 
+              title="请至少添加一个物料" 
+              type="warning" 
+              show-icon 
+              :closable="false"
+              style="margin-top: 10px"
+            />
+            <el-table 
+              v-if="itemForm.materials && itemForm.materials.length > 0"
+              :data="itemForm.materials" 
+              style="width: 100%; margin-top: 10px"
+              border
+              size="small"
+            >
+              <el-table-column label="物料ID" prop="materialId" width="100" />
+              <el-table-column label="默认数量" prop="defaultQuantity" width="120" align="center">
+                <template #default="{ row }">
+                  <el-input-number 
+                    v-model="row.defaultQuantity" 
+                    :min="0" 
+                    :step="1"
+                    size="small"
+                    style="width: 100%"
+                  />
+                </template>
+              </el-table-column>
+              <el-table-column label="是否必需" prop="isRequired" width="100" align="center">
+                <template #default="{ row }">
+                  <el-switch v-model="row.isRequired" size="small" />
+                </template>
+              </el-table-column>
+              <el-table-column label="备注" prop="remarks" min-width="150">
+                <template #default="{ row }">
+                  <el-input v-model="row.remarks" placeholder="备注" size="small" />
+                </template>
+              </el-table-column>
+              <el-table-column label="操作" width="80" align="center" fixed="right">
+                <template #default="{ $index }">
+                  <el-button 
+                    link 
+                    type="danger" 
+                    icon="Delete" 
+                    @click="handleRemoveItemMaterial($index)"
+                    size="small"
+                  >
+                    删除
+                  </el-button>
+                </template>
+              </el-table-column>
+            </el-table>
+          </div>
+        </el-form-item>
       </el-form>
       <template #footer>
         <el-button @click="itemDialog.visible = false">取消</el-button>
         <el-button type="primary" @click="submitItemForm" :loading="itemDialog.loading">确定</el-button>
       </template>
     </el-dialog>
+
+    <!-- 物料选择对话框 -->
+    <material-selector-dialog
+      v-model="itemMaterialSelectorVisible"
+      :existing-material-ids="itemFormMaterialIds"
+      @confirm="handleItemMaterialsSelected"
+    />
   </el-dialog>
 </template>
 
@@ -176,11 +243,13 @@ import { ref, reactive, computed, watch } from 'vue';
 import { ElMessage } from 'element-plus';
 import { listItemTemplate, addItemTemplate } from '@/api/erp/subsystem/item-template';
 import { addItemToTemplate } from '@/api/erp/subsystem/template';
+import type { MaterialVO } from '@/api/erp/material/material/types';
 import type {
   SubsystemItemTemplateQuery,
   SubsystemItemTemplateVO,
   SubsystemItemTemplateForm
 } from '@/api/erp/subsystem/types';
+import MaterialSelectorDialog from './MaterialSelectorDialog.vue';
 
 // Props
 interface Props {
@@ -229,17 +298,39 @@ const itemForm = reactive<SubsystemItemTemplateForm>({
   defaultQuantity: 1,
   unit: '个',
   isRequired: true,
-  remarks: ''
+  remarks: '',
+  materials: [] // 物料列表
 });
 
 const itemRules = {
-  itemName: [{ required: true, message: '请输入子项名称', trigger: 'blur' }]
+  itemName: [{ required: true, message: '请输入子项名称', trigger: 'blur' }],
+  materials: [
+    { 
+      required: true, 
+      validator: (rule: any, value: any, callback: any) => {
+        if (!value || value.length === 0) {
+          callback(new Error('请至少添加一个物料'));
+        } else {
+          callback();
+        }
+      },
+      trigger: 'change'
+    }
+  ]
 };
+
+// 物料选择对话框
+const itemMaterialSelectorVisible = ref(false);
 
 // 计算属性
 const dialogVisible = computed({
   get: () => props.modelValue,
   set: (value) => emit('update:modelValue', value)
+});
+
+// 计算新增子项表单中已选择的物料ID列表
+const itemFormMaterialIds = computed(() => {
+  return itemForm.materials?.map(item => Number(item.materialId)) || [];
 });
 
 // 监听对话框打开
@@ -342,35 +433,32 @@ const submitItemForm = async () => {
   try {
     await itemFormRef.value?.validate();
 
+    // ✅ 检查物料是否已添加
+    if (!itemForm.materials || itemForm.materials.length === 0) {
+      ElMessage.warning('请至少添加一个物料');
+      return;
+    }
+
     itemDialog.loading = true;
     
     console.log('开始创建子项模板:', itemForm);
     
-    // 步骤1: 创建子项模板（独立的公司级子项模板）
+    // ✅ 步骤1: 创建子项模板并绑定物料（一次性完成）
     const createData = {
+      templateId: props.templateId, // ✅ 传递子系统模板ID，自动关联
       itemName: itemForm.itemName,
       itemType: itemForm.itemType,
       description: itemForm.description,
       defaultQuantity: itemForm.defaultQuantity,
       unit: itemForm.unit,
       isRequired: itemForm.isRequired,
-      remarks: itemForm.remarks
+      remarks: itemForm.remarks,
+      materials: itemForm.materials // ✅ 传递物料列表
     };
     
-    const createResponse = await addItemTemplate(createData);
-    const newItemTemplateId = createResponse.data;
+    await addItemTemplate(createData);
     
-    console.log('子项模板创建成功，ID:', newItemTemplateId);
-    
-    // 步骤2: 将新创建的子项模板关联到当前子系统模板
-    await addItemToTemplate(props.templateId, {
-      itemTemplateId: newItemTemplateId,
-      quantity: itemForm.defaultQuantity || 1,
-      isRequired: itemForm.isRequired ?? true,
-      remarks: itemForm.remarks
-    });
-    
-    console.log('子项模板已关联到子系统模板');
+    console.log('子项模板创建并关联成功');
     ElMessage.success('新增子项模板并关联成功');
 
     itemDialog.visible = false;
@@ -398,7 +486,44 @@ const resetItemForm = () => {
   itemForm.unit = '个';
   itemForm.isRequired = true;
   itemForm.remarks = '';
+  itemForm.materials = []; // ✅ 重置物料列表
   itemFormRef.value?.clearValidate();
+};
+
+// ✅ 新增：在新增子项表单中添加物料
+const handleAddItemMaterial = () => {
+  itemMaterialSelectorVisible.value = true;
+};
+
+// ✅ 新增：处理新增子项时选择的物料
+const handleItemMaterialsSelected = (materials: MaterialVO[]) => {
+  if (!itemForm.materials) {
+    itemForm.materials = [];
+  }
+  
+  materials.forEach(material => {
+    // 避免重复添加
+    if (!itemForm.materials!.some(m => m.materialId === material.id)) {
+      itemForm.materials!.push({
+        materialId: material.id as number,
+        defaultQuantity: 1,
+        isRequired: true,
+        remarks: ''
+      });
+    }
+  });
+
+  // 手动触发表单验证
+  itemFormRef.value?.validateField('materials');
+};
+
+// ✅ 新增：移除新增子项表单中的物料
+const handleRemoveItemMaterial = (index: number) => {
+  if (itemForm.materials) {
+    itemForm.materials.splice(index, 1);
+    // 手动触发表单验证
+    itemFormRef.value?.validateField('materials');
+  }
 };
 
 // 确认选择

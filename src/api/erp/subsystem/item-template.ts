@@ -49,9 +49,34 @@ export const getItemTemplate = (id: string | number): AxiosPromise<SubsystemItem
 
 /**
  * 新增子项模板
- * 说明：在公司级子项库中创建新的子项模板，itemCode不传时后台会自动生成唯一编号（格式：ITEM-00001）
- * @param data 子项表单数据
+ * 说明：
+ * - 在公司级子项库中创建新的子项模板
+ * - itemCode不传时后台会自动生成唯一编号（格式：ITEM-00001）
+ * - **必须传入 materials 字段**，至少包含一个物料信息
+ * - 如果传入 templateId，则同时将子项关联到该子系统模板
+ * - 物料的 template_id 会根据是否提供 templateId 自动设置
+ *
+ * @param data 子项表单数据（必须包含 materials 字段）
  * @returns 返回创建的子项模板ID
+ *
+ * @example
+ * // 在子系统中创建子项并绑定物料
+ * addItemTemplate({
+ *   templateId: 123,
+ *   itemName: "输送带组件",
+ *   materials: [
+ *     { materialId: 100, defaultQuantity: 2, isRequired: true }
+ *   ]
+ * });
+ *
+ * @example
+ * // 独立创建子项并绑定物料
+ * addItemTemplate({
+ *   itemName: "控制柜",
+ *   materials: [
+ *     { materialId: 101, defaultQuantity: 5, isRequired: true }
+ *   ]
+ * });
  */
 export const addItemTemplate = (data: SubsystemItemTemplateForm): AxiosPromise<number> => {
   return request({
@@ -125,11 +150,11 @@ export const generateItemCode = (): AxiosPromise<string> => {
 
 /**
  * 查询子项模板的默认物料列表（模板级别）
- * 
+ *
  * 说明：该接口查询子项模板的默认物料配置，即 template_id = NULL 的模板物料
  * 用途：在"子项模板管理"页面中使用，不涉及具体子系统
  * 数据特征：返回的物料记录的 templateId 字段为 null
- * 
+ *
  * @param itemTemplateId 子项模板ID
  * @returns 模板物料列表
  */
