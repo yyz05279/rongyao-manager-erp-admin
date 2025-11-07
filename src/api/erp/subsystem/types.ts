@@ -356,9 +356,11 @@ export interface SubsystemTemplateDetailVO extends SubsystemTemplateVO {
  * 说明：子项模板是公司级基础数据，独立管理
  */
 export interface SubsystemItemTemplateQuery extends PageQuery {
+  templateId?: number | string; // 子系统模板ID（可选，用于标记已添加的子项）
   itemCode?: string;          // 子项编号（模糊查询）
   itemName?: string;          // 子项名称（模糊查询）
   itemType?: string;          // 子项类型
+  isRequired?: boolean;       // 是否必需
 }
 
 /**
@@ -379,6 +381,7 @@ export interface SubsystemItemTemplateVO {
   remarks?: string;           // 备注
   createTime?: string;        // 创建时间
   updateTime?: string;        // 更新时间
+  isAdded?: boolean;          // 是否已添加到指定模板（仅当传入templateId时有值）
 }
 
 /**
