@@ -404,6 +404,7 @@ export interface TemplateItemRelVO extends SubsystemItemTemplateVO {
  */
 export interface MaterialItem {
   materialId: number;                // 物料ID（必填）
+  materialName?: string;             // 物料名称（用于前端显示）
   defaultQuantity?: number;          // 默认数量
   isRequired?: boolean;              // 是否必需
   remarks?: string;                  // 备注
