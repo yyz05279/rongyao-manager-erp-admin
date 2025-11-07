@@ -20,9 +20,6 @@ export default defineComponent({
           <el-button type="primary" icon="Plus" @click="handleAddItem" v-hasPermi="['erp:subsystem:template:add']">
             添加子项
           </el-button>
-          <el-button type="success" icon="Plus" :disabled="!selectedItemId" @click="handleAddMaterial" v-hasPermi="['erp:subsystem:template:add']">
-            为子项添加物料
-          </el-button>
         </el-col>
       </el-row>
     </div>
@@ -333,17 +330,15 @@ const loadMaterialList = async () => {
 
   materialLoading.value = true;
   try {
-    // 查询该子系统模板下该子项的物料
-    // 使用 listMaterialTemplateByTemplateId 获取整个模板的物料，然后前端过滤
-    const response = await listMaterialTemplateByItemId(selectedItemId.value);
-
-    // 过滤出当前子系统模板的物料
-    const allMaterials = response.data || [];
-    materialList.value = allMaterials.filter(
-      (material: SubsystemMaterialTemplateVO) =>
-        Number(material.templateId) === Number(props.templateId) &&
-        Number(material.itemTemplateId) === Number(selectedItemId.value)
+    // ✅ 修复：传递 templateId 参数，实现数据隔离
+    // 只查询当前子系统中该子项的物料，不查询其他子系统的物料
+    const response = await listMaterialTemplateByItemId(
+      selectedItemId.value,
+      props.templateId // ✅ 传递子系统模板ID，确保数据隔离
     );
+
+    // ✅ 后端已经按照 templateId 过滤，直接使用返回的数据
+    materialList.value = response.data || [];
   } catch (error) {
     console.error('加载物料列表失败:', error);
     ElMessage.error('加载物料列表失败');
@@ -512,16 +507,6 @@ const resetItemForm = () => {
   itemForm.isRequired = true;
   itemForm.remarks = '';
   itemFormRef.value?.clearValidate();
-};
-
-// 添加物料（从列表工具栏）
-const handleAddMaterial = () => {
-  if (!selectedItemId.value) {
-    ElMessage.warning('请先选择一个子项');
-    return;
-  }
-
-  materialSelectorVisible.value = true;
 };
 
 // 在物料弹窗中添加物料

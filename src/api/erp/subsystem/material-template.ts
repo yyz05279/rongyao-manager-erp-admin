@@ -38,12 +38,17 @@ export const listMaterialTemplate = (query?: SubsystemMaterialTemplateQuery): Ax
  * 根据子项ID查询物料列表
  * 说明：查询指定子项模板下配置的所有物料
  * @param itemTemplateId 子项模板ID
+ * @param templateId 子系统模板ID（可选，传递时只查询该子系统中该子项的物料，不传则查询所有子系统中该子项的物料）
  * @returns 物料列表
  */
-export const listMaterialTemplateByItemId = (itemTemplateId: string | number): AxiosPromise<SubsystemMaterialTemplateVO[]> => {
+export const listMaterialTemplateByItemId = (
+  itemTemplateId: string | number,
+  templateId?: string | number
+): AxiosPromise<SubsystemMaterialTemplateVO[]> => {
   return request({
     url: `/erp/subsystem/material-template/list-by-item/${itemTemplateId}`,
-    method: 'get'
+    method: 'get',
+    params: templateId ? { templateId } : {}
   });
 };
 

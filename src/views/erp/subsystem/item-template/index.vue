@@ -180,10 +180,10 @@ import {
   getItemTemplate,
   addItemTemplate,
   updateItemTemplate,
-  delItemTemplate
+  delItemTemplate,
+  getItemMaterials
 } from '@/api/erp/subsystem/item-template';
 import {
-  listMaterialTemplateByItemId,
   addMaterialTemplate,
   updateMaterialTemplate,
   delMaterialTemplate,
@@ -205,7 +205,7 @@ const { proxy } = getCurrentInstance() as ComponentInternalInstance;
 // 响应式数据
 const loading = ref(true);
 const showSearch = ref(true);
-const ids = ref<number[]>([]);
+const ids = ref<(string | number)[]>([]);
 const single = ref(true);
 const multiple = ref(true);
 const total = ref(0);
@@ -245,7 +245,7 @@ const rules = {
 // 物料相关
 const materialDialog = reactive({
   visible: false,
-  itemId: 0,
+  itemId: 0 as string | number,
   itemName: ''
 });
 
@@ -434,7 +434,9 @@ const loadMaterialList = async () => {
 
   materialLoading.value = true;
   try {
-    const response = await listMaterialTemplateByItemId(materialDialog.itemId);
+    // ✅ 修复：子项模板管理页面应该调用专门的模板物料接口
+    // 该接口查询 template_id = NULL 的模板物料，不是子系统物料
+    const response = await getItemMaterials(materialDialog.itemId);
     materialList.value = response.data || [];
   } catch (error) {
     console.error('加载物料列表失败:', error);
