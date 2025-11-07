@@ -8,16 +8,16 @@
 
 ### v1.1 (2025-11-07)
 
--   ✅ **修复**：修正了子项模板管理独立页面的接口调用问题
--   ✅ **优化**：优化了 API 函数命名，使其更清晰易懂
-    -   `getItemMaterials` → `getItemTemplateMaterials`
-    -   `listMaterialTemplateByItemId` → `getItemMaterialsInSubsystem`
--   ✅ **兼容**：保留旧函数名作为别名，确保向后兼容
--   ✅ **文档**：更新了所有代码示例，使用 TypeScript 类型标注
+- ✅ **修复**：修正了子项模板管理独立页面的接口调用问题
+- ✅ **优化**：优化了 API 函数命名，使其更清晰易懂
+  - `getItemMaterials` → `getItemTemplateMaterials`
+  - `listMaterialTemplateByItemId` → `getItemMaterialsInSubsystem`
+- ✅ **兼容**：保留旧函数名作为别名，确保向后兼容
+- ✅ **文档**：更新了所有代码示例，使用 TypeScript 类型标注
 
 ### v1.0 (2025-11-07)
 
--   初始版本，说明数据隔离原则和接口使用方式
+- 初始版本，说明数据隔离原则和接口使用方式
 
 ## 🎯 核心概念
 
@@ -30,9 +30,9 @@
 
 ### 数据隔离原则
 
--   ✅ 在"子项模板管理"页面修改物料 → 只影响模板物料（template_id = NULL）
--   ✅ 在"子系统详情"页面修改物料 → 只影响该子系统的物料（template_id = 子系统 ID）
--   ✅ 两者完全独立，互不影响
+- ✅ 在"子项模板管理"页面修改物料 → 只影响模板物料（template_id = NULL）
+- ✅ 在"子系统详情"页面修改物料 → 只影响该子系统的物料（template_id = 子系统 ID）
+- ✅ 两者完全独立，互不影响
 
 ## 📡 API 接口说明
 
@@ -48,7 +48,7 @@ GET /erp/subsystem/item-template/{itemTemplateId}/materials
 
 **请求参数**：
 
--   `itemTemplateId`（路径参数，必填）：子项模板 ID
+- `itemTemplateId`（路径参数，必填）：子项模板 ID
 
 **返回数据**：
 
@@ -87,11 +87,11 @@ WHERE item_template_id = ?
 
 /**
  * 查询子项模板的默认物料列表（模板级别）
- * 
+ *
  * 说明：该接口查询子项模板的默认物料配置，即 template_id = NULL 的模板物料
  * 用途：在"子项模板管理"页面中使用，不涉及具体子系统
  * 数据特征：返回的物料记录的 templateId 字段为 null
- * 
+ *
  * @param itemTemplateId 子项模板ID
  * @returns 模板物料列表
  */
@@ -117,8 +117,8 @@ GET /erp/subsystem/material-template/list-by-item/{itemTemplateId}?templateId={t
 
 **请求参数**：
 
--   `itemTemplateId`（路径参数，必填）：子项模板 ID
--   `templateId`（查询参数，必填）：子系统模板 ID
+- `itemTemplateId`（路径参数，必填）：子项模板 ID
+- `templateId`（查询参数，必填）：子系统模板 ID
 
 **返回数据**：
 
@@ -157,13 +157,13 @@ WHERE item_template_id = ?
 
 /**
  * 查询子项在子系统中的物料列表（子系统级别）
- * 
+ *
  * 说明：该接口查询特定子系统中某个子项的物料配置，即 template_id = 子系统ID 的物料
  * 用途：在"子系统详情"页面中使用，查询该子系统中的物料配置
  * 数据特征：返回的物料记录的 templateId 字段有具体值（子系统ID）
- * 
+ *
  * ⚠️ 重要：在子系统详情页面中，必须传递 templateId 参数实现数据隔离
- * 
+ *
  * @param itemTemplateId 子项模板ID（必填）
  * @param templateId 子系统模板ID（必填，用于数据隔离）
  * @returns 子系统物料列表
@@ -176,7 +176,7 @@ export const getItemMaterialsInSubsystem = (
     if (templateId) {
         url += `?templateId=${encodeURIComponent(String(templateId))}`;
     }
-    
+
     return request({
         url: url,
         method: "get",
@@ -288,10 +288,10 @@ async function viewMaterials(itemTemplateId: string | number) {
         itemTemplateId,
         subsystemId.value // ⚠️ 重要：传递子系统ID，实现数据隔离
     );
-    
+
     // 或者使用旧函数名（向后兼容）
     // const { data } = await listMaterialTemplateByItemId(itemTemplateId, subsystemId.value);
-    
+
     materialList.value = data;
     materialsDialogVisible.value = true;
 }
@@ -340,26 +340,26 @@ async function viewMaterials(itemTemplateId) {
 
 1. **在子项模板管理中设置物料数量**
 
-    ```
-    子项：桥架支架
-    物料：槽式桥架
-    默认数量：10个
-    ```
+   ```
+   子项：桥架支架
+   物料：槽式桥架
+   默认数量：10个
+   ```
 
 2. **将子项添加到子系统 A**
 
-    - 系统自动创建子系统物料（从模板复制）
-    - 初始数量：10 个
+   - 系统自动创建子系统物料（从模板复制）
+   - 初始数量：10 个
 
 3. **在子系统 A 中修改物料数量**
 
-    ```
-    修改为：20个
-    ```
+   ```
+   修改为：20个
+   ```
 
 4. **返回子项模板管理查看**
-    - 预期：数量仍然是 10 个（未被修改）
-    - 验证：两个接口返回的数据不同
+   - 预期：数量仍然是 10 个（未被修改）
+   - 验证：两个接口返回的数据不同
 
 ### 测试步骤 2：验证日志
 
@@ -424,6 +424,6 @@ async function viewMaterials(itemTemplateId) {
 
 ## 🔖 相关文档
 
--   [子系统管理模块完整 API 文档](./子系统管理模块完整API文档.md)
--   [子系统物料管理快速参考](./子系统物料管理快速参考.md)
--   [子系统模板 API 文档](./子系统模板API文档.md)
+- [子系统管理模块完整 API 文档](./子系统管理模块完整API文档.md)
+- [子系统物料管理快速参考](./子系统物料管理快速参考.md)
+- [子系统模板 API 文档](./子系统模板API文档.md)

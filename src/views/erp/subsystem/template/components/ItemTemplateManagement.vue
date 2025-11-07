@@ -375,7 +375,7 @@ const handleAddItem = () => {
 const handleItemsSelected = async (items: SubsystemItemTemplateVO[]) => {
   try {
     console.log('开始批量添加子项，选中的子项:', items);
-    
+
     // ✅ 使用正确的接口：addItemToTemplate（将已存在的子项关联到子系统模板）
     // ✅ 传递子项模板ID（itemTemplateId），不会创建新子项
     const promises = items.map(item => {
@@ -539,6 +539,10 @@ const handleMaterialsSelected = async (materials: MaterialVO[]) => {
 const handleEditMaterial = (row: SubsystemMaterialTemplateVO) => {
   resetMaterialForm();
   Object.assign(materialForm, row);
+  // ✅ 确保templateId始终为当前子系统模板ID，保证数据隔离
+  materialForm.templateId = props.templateId;
+  // ✅ 确保itemTemplateId正确设置
+  materialForm.itemTemplateId = selectedItemId.value!;
   materialEditDialog.visible = true;
 };
 
@@ -586,6 +590,9 @@ const submitMaterialEditForm = async () => {
 // 重置物料表单
 const resetMaterialForm = () => {
   materialForm.id = undefined;
+  // ✅ 重置时保留关联ID，确保数据隔离
+  materialForm.templateId = props.templateId;
+  materialForm.itemTemplateId = selectedItemId.value || 0;
   materialForm.materialId = 0;
   materialForm.materialName = '';
   materialForm.defaultQuantity = 1;
