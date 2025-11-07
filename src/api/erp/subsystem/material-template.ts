@@ -35,22 +35,43 @@ export const listMaterialTemplate = (query?: SubsystemMaterialTemplateQuery): Ax
 };
 
 /**
- * 根据子项ID查询物料列表
- * 说明：查询指定子项模板下配置的所有物料
- * @param itemTemplateId 子项模板ID
- * @param templateId 子系统模板ID（可选，传递时只查询该子系统中该子项的物料，不传则查询所有子系统中该子项的物料）
- * @returns 物料列表
+ * 查询子项在子系统中的物料列表（子系统级别）
+ * 
+ * 说明：该接口查询特定子系统中某个子项的物料配置，即 template_id = 子系统ID 的物料
+ * 用途：在"子系统详情"页面中使用，查询该子系统中的物料配置
+ * 数据特征：返回的物料记录的 templateId 字段有具体值（子系统ID）
+ * 
+ * ⚠️ 重要：在子系统详情页面中，必须传递 templateId 参数实现数据隔离
+ * 
+ * @param itemTemplateId 子项模板ID（必填）
+ * @param templateId 子系统模板ID（必填，用于数据隔离）
+ * @returns 子系统物料列表
+ * 
+ * @example
+ * // 在子系统详情页面中调用
+ * const materials = await listMaterialTemplateByItemId(itemId, subsystemId);
  */
-export const listMaterialTemplateByItemId = (
+export const getItemMaterialsInSubsystem = (
   itemTemplateId: string | number,
-  templateId?: string | number
+  templateId: string | number
 ): AxiosPromise<SubsystemMaterialTemplateVO[]> => {
+  // ✅ 修复：直接构造URL，避免params对象序列化导致的数组问题
+  let url = `/erp/subsystem/material-template/list-by-item/${itemTemplateId}`;
+  if (templateId) {
+    // 确保templateId作为单个字符串值传递
+    url += `?templateId=${encodeURIComponent(String(templateId))}`;
+  }
+  
   return request({
-    url: `/erp/subsystem/material-template/list-by-item/${itemTemplateId}`,
-    method: 'get',
-    params: templateId ? { templateId } : {}
+    url: url,
+    method: 'get'
   });
 };
+
+/**
+ * @deprecated 请使用 getItemMaterialsInSubsystem 代替，函数名更清晰
+ */
+export const listMaterialTemplateByItemId = getItemMaterialsInSubsystem;
 
 /**
  * 根据模板ID查询所有物料

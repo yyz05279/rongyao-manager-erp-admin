@@ -124,14 +124,24 @@ export const generateItemCode = (): AxiosPromise<string> => {
 };
 
 /**
- * 获取子项的物料列表
+ * 查询子项模板的默认物料列表（模板级别）
+ * 
+ * 说明：该接口查询子项模板的默认物料配置，即 template_id = NULL 的模板物料
+ * 用途：在"子项模板管理"页面中使用，不涉及具体子系统
+ * 数据特征：返回的物料记录的 templateId 字段为 null
+ * 
  * @param itemTemplateId 子项模板ID
- * @returns 物料列表
+ * @returns 模板物料列表
  */
-export const getItemMaterials = (itemTemplateId: string | number): AxiosPromise<any[]> => {
+export const getItemTemplateMaterials = (itemTemplateId: string | number): AxiosPromise<any[]> => {
   return request({
     url: `/erp/subsystem/item-template/${itemTemplateId}/materials`,
     method: 'get'
   });
 };
+
+/**
+ * @deprecated 请使用 getItemTemplateMaterials 代替，函数名更清晰
+ */
+export const getItemMaterials = getItemTemplateMaterials;
 
