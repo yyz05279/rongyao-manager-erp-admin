@@ -78,7 +78,7 @@
     </el-card>
 
     <!-- 新增/修改对话框 -->
-    <el-dialog :title="dialog.title" v-model="dialog.visible" width="700px" append-to-body>
+    <el-dialog :title="dialog.title" v-model="dialog.visible" width="1000px" append-to-body>
       <el-form ref="formRef" :model="form" :rules="rules" label-width="100px">
         <el-row :gutter="20">
           <el-col :span="12">
@@ -111,10 +111,15 @@
           <el-input v-model="form.remarks" type="textarea" :rows="2" placeholder="请输入备注" />
         </el-form-item>
 
-        <!-- ✅ 新增：物料配置（必填） -->
-        <el-form-item label="物料配置" prop="materials" v-if="!form.id">
+        <!-- ✅ 物料配置（新增和编辑模式都可以增删改） -->
+        <el-form-item label="物料配置" :prop="!form.id ? 'materials' : ''">
           <div style="width: 100%">
-            <el-button type="primary" icon="Plus" @click="handleAddItemMaterial" size="small">
+            <el-button 
+              type="primary" 
+              icon="Plus" 
+              @click="handleAddItemMaterial" 
+              size="small"
+            >
               添加物料
             </el-button>
             <el-alert
@@ -131,6 +136,7 @@
               style="width: 100%; margin-top: 10px"
               border
               size="small"
+              v-loading="editMaterialLoading"
             >
               <el-table-column label="序号" type="index" width="80" align="center" :index="(index) => index + 1" />
               <el-table-column label="物料名称" prop="materialName" min-width="200" show-overflow-tooltip />
@@ -243,6 +249,7 @@
 <script setup name="ItemTemplateManagement" lang="ts">
 import { ref, reactive, onMounted, getCurrentInstance, ComponentInternalInstance, computed } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
+import { InfoFilled } from '@element-plus/icons-vue';
 import {
   listItemTemplate,
   getItemTemplate,
@@ -338,6 +345,12 @@ const materialSelectorVisible = ref(false);
 // 新增子项时的物料选择
 const itemMaterialSelectorVisible = ref(false);
 
+// 编辑模式下的物料加载状态
+const editMaterialLoading = ref(false);
+
+// 记录编辑模式下的原始物料列表（用于比对变更）
+const originalMaterials = ref<any[]>([]);
+
 const materialEditDialog = reactive({
   visible: false,
   loading: false
@@ -426,8 +439,15 @@ const handleUpdate = async (row?: SubsystemItemTemplateVO) => {
   resetForm();
   const itemId = row?.id || ids.value[0];
   try {
+    // 获取子项详情
     const response = await getItemTemplate(itemId);
     Object.assign(form, response.data);
+    
+    // ✅ 编辑模式：加载物料列表
+    if (form.id) {
+      await loadEditMaterialList(form.id);
+    }
+    
     dialog.title = '修改子项';
     dialog.visible = true;
   } catch (error) {
@@ -477,19 +497,21 @@ const submitForm = async () => {
   try {
     await formRef.value?.validate();
 
-    // ✅ 新增模式：检查物料是否已添加
-    if (!form.id) {
-      if (!form.materials || form.materials.length === 0) {
-        ElMessage.warning('请至少添加一个物料');
-        return;
-      }
+    // 检查物料是否已添加（新增和编辑都需要）
+    if (!form.materials || form.materials.length === 0) {
+      ElMessage.warning('请至少添加一个物料');
+      return;
     }
 
     dialog.loading = true;
     if (form.id) {
-      // 编辑模式：不传递 materials
+      // 编辑模式：先更新子项基本信息，再处理物料变更
       const { materials, ...updateData } = form;
       await updateItemTemplate(updateData);
+      
+      // ✅ 处理物料变更
+      await syncMaterialChanges(form.id, form.materials, originalMaterials.value);
+      
       ElMessage.success('修改成功');
     } else {
       // 新增模式：传递完整数据（包含 materials）
@@ -509,6 +531,63 @@ const submitForm = async () => {
   }
 };
 
+// ✅ 新增：同步物料变更
+const syncMaterialChanges = async (
+  itemTemplateId: string | number,
+  currentMaterials: any[],
+  originalMaterialsList: any[]
+) => {
+  try {
+    // 1. 找出新增的物料（没有id的记录）
+    const addedMaterials = currentMaterials.filter(m => !m.id);
+    if (addedMaterials.length > 0) {
+      const addData: SubsystemMaterialTemplateForm[] = addedMaterials.map(m => ({
+        itemTemplateId: itemTemplateId,
+        materialId: m.materialId,
+        defaultQuantity: m.defaultQuantity,
+        isRequired: m.isRequired,
+        remarks: m.remarks
+      }));
+      await addMaterialTemplateBatch(addData);
+    }
+
+    // 2. 找出需要更新的物料（有id且数据有变化）
+    const updatedMaterials = currentMaterials.filter(m => {
+      if (!m.id) return false;
+      const original = originalMaterialsList.find(o => o.id === m.id);
+      if (!original) return false;
+      // 比较关键字段是否有变化
+      return (
+        m.defaultQuantity !== original.defaultQuantity ||
+        m.isRequired !== original.isRequired ||
+        m.remarks !== original.remarks
+      );
+    });
+    
+    for (const material of updatedMaterials) {
+      await updateMaterialTemplate({
+        id: material.id,
+        itemTemplateId: itemTemplateId,
+        materialId: material.materialId,
+        defaultQuantity: material.defaultQuantity,
+        isRequired: material.isRequired,
+        remarks: material.remarks
+      });
+    }
+
+    // 3. 找出需要删除的物料（在原始列表中但不在当前列表中）
+    const currentMaterialIds = currentMaterials.filter(m => m.id).map(m => m.id);
+    const deletedMaterials = originalMaterialsList.filter(m => !currentMaterialIds.includes(m.id));
+    if (deletedMaterials.length > 0) {
+      const deleteIds = deletedMaterials.map(m => m.id);
+      await delMaterialTemplate(deleteIds);
+    }
+  } catch (error) {
+    console.error('同步物料变更失败:', error);
+    throw error;
+  }
+};
+
 // 重置表单
 const resetForm = () => {
   form.id = undefined;
@@ -519,6 +598,7 @@ const resetForm = () => {
   form.unit = '个';
   form.remarks = '';
   form.materials = []; // ✅ 重置物料列表
+  originalMaterials.value = []; // ✅ 重置原始物料列表
   formRef.value?.clearValidate();
 };
 
@@ -582,6 +662,33 @@ const loadMaterialList = async () => {
     ElMessage.error('加载物料列表失败');
   } finally {
     materialLoading.value = false;
+  }
+};
+
+// ✅ 新增：加载编辑模式下的物料列表
+const loadEditMaterialList = async (itemId: string | number) => {
+  editMaterialLoading.value = true;
+  try {
+    const response = await getItemMaterials(itemId);
+    const materials = response.data || [];
+    // 将物料数据映射到表单的materials字段
+    form.materials = materials.map((item: any) => ({
+      id: item.id,
+      materialId: item.materialId,
+      materialName: item.materialName,
+      defaultQuantity: item.defaultQuantity,
+      isRequired: item.isRequired,
+      remarks: item.remarks
+    }));
+    // 保存原始物料列表（深拷贝）用于比对变更
+    originalMaterials.value = JSON.parse(JSON.stringify(form.materials));
+  } catch (error) {
+    console.error('加载物料列表失败:', error);
+    ElMessage.error('加载物料列表失败');
+    form.materials = [];
+    originalMaterials.value = [];
+  } finally {
+    editMaterialLoading.value = false;
   }
 };
 
