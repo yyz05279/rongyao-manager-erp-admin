@@ -17,12 +17,12 @@ export default defineComponent({
           </h3>
         </el-col>
         <el-col :span="12" class="text-right">
-          <el-button 
-            type="danger" 
+          <el-button
+            type="danger"
             plain
-            icon="Delete" 
+            icon="Delete"
             :disabled="selectedItems.length === 0"
-            @click="handleBatchDelete" 
+            @click="handleBatchDelete"
             v-hasPermi="['erp:subsystem:template:remove']"
           >
             批量删除
@@ -566,7 +566,7 @@ const handleBatchDelete = async () => {
 
   try {
     const itemNames = selectedItems.value.map(item => item.itemName).join('、');
-    
+
     await ElMessageBox.confirm(
       `是否确认从模板中移除选中的 ${selectedItems.value.length} 个子项（${itemNames}）？该操作会同时清理这些子项在模板中的所有物料记录。`,
       '批量删除警告',
@@ -584,12 +584,12 @@ const handleBatchDelete = async () => {
     });
 
     await Promise.all(deletePromises);
-    
+
     ElMessage.success(`成功移除 ${selectedItems.value.length} 个子项`);
-    
+
     // 清空选中状态
     selectedItems.value = [];
-    
+
     // 刷新列表
     loadItemList();
   } catch (error) {

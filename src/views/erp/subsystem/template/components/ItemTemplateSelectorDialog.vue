@@ -63,6 +63,7 @@ export default defineComponent({
 
     <!-- 子项列表 -->
     <el-table
+      ref="tableRef"
       v-loading="loading"
       :data="itemList"
       @selection-change="handleSelectionChange"
@@ -169,17 +170,17 @@ export default defineComponent({
             <el-button type="primary" icon="Plus" @click="handleAddItemMaterial" size="small">
               添加物料
             </el-button>
-            <el-alert 
-              v-if="!itemForm.materials || itemForm.materials.length === 0" 
-              title="请至少添加一个物料" 
-              type="warning" 
-              show-icon 
+            <el-alert
+              v-if="!itemForm.materials || itemForm.materials.length === 0"
+              title="请至少添加一个物料"
+              type="warning"
+              show-icon
               :closable="false"
               style="margin-top: 10px"
             />
-            <el-table 
+            <el-table
               v-if="itemForm.materials && itemForm.materials.length > 0"
-              :data="itemForm.materials" 
+              :data="itemForm.materials"
               style="width: 100%; margin-top: 10px"
               border
               size="small"
@@ -187,9 +188,9 @@ export default defineComponent({
               <el-table-column label="物料ID" prop="materialId" width="100" />
               <el-table-column label="默认数量" prop="defaultQuantity" width="120" align="center">
                 <template #default="{ row }">
-                  <el-input-number 
-                    v-model="row.defaultQuantity" 
-                    :min="0" 
+                  <el-input-number
+                    v-model="row.defaultQuantity"
+                    :min="0"
                     :step="1"
                     size="small"
                     style="width: 100%"
@@ -208,10 +209,10 @@ export default defineComponent({
               </el-table-column>
               <el-table-column label="操作" width="80" align="center" fixed="right">
                 <template #default="{ $index }">
-                  <el-button 
-                    link 
-                    type="danger" 
-                    icon="Delete" 
+                  <el-button
+                    link
+                    type="danger"
+                    icon="Delete"
                     @click="handleRemoveItemMaterial($index)"
                     size="small"
                   >
@@ -239,7 +240,7 @@ export default defineComponent({
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, watch } from 'vue';
+import { ref, reactive, computed, watch, nextTick } from 'vue';
 import { ElMessage } from 'element-plus';
 import { listItemTemplate, addItemTemplate } from '@/api/erp/subsystem/item-template';
 import { addItemToTemplate } from '@/api/erp/subsystem/template';
@@ -278,6 +279,7 @@ const total = ref(0);
 const queryParams = reactive<SubsystemItemTemplateQuery>({
   pageNum: 1,
   pageSize: 10,
+  templateId: undefined, // 将在加载时设置
   itemName: '',
   itemCode: '',
   itemType: ''
@@ -305,8 +307,8 @@ const itemForm = reactive<SubsystemItemTemplateForm>({
 const itemRules = {
   itemName: [{ required: true, message: '请输入子项名称', trigger: 'blur' }],
   materials: [
-    { 
-      required: true, 
+    {
+      required: true,
       validator: (rule: any, value: any, callback: any) => {
         if (!value || value.length === 0) {
           callback(new Error('请至少添加一个物料'));
@@ -336,6 +338,8 @@ const itemFormMaterialIds = computed(() => {
 // 监听对话框打开
 watch(dialogVisible, (newVal) => {
   if (newVal) {
+    // 设置 templateId 参数用于标记已添加的子项
+    queryParams.templateId = props.templateId;
     loadItemList();
   } else {
     resetSearch();
@@ -359,6 +363,9 @@ const loadItemList = async () => {
       itemList.value = [];
       total.value = 0;
     }
+
+    // 自动勾选已添加的子项
+    autoSelectAddedItems();
   } catch (error) {
     console.error('加载子项列表失败:', error);
     ElMessage.error('加载子项列表失败');
@@ -369,14 +376,46 @@ const loadItemList = async () => {
   }
 };
 
-// 检查子项是否已添加
+// 检查子项是否已添加（使用后端返回的 isAdded 字段）
 const isAdded = (row: SubsystemItemTemplateVO): boolean => {
+  // 优先使用后端返回的 isAdded 字段
+  if (row.isAdded !== undefined && row.isAdded !== null) {
+    return row.isAdded;
+  }
+  // 向后兼容：使用 existingItemIds prop
   return props.existingItemIds.includes(Number(row.id));
 };
 
-// 检查行是否可选择（已添加的不能再选）
+// 检查行是否可选择
+// 根据文档：所有行都可以勾选，用户可以取消已添加的或新增未添加的
 const checkSelectable = (row: SubsystemItemTemplateVO): boolean => {
-  return !isAdded(row);
+  return true;
+
+  // 如果只允许勾选未添加的子项，可以使用：
+  // return !isAdded(row);
+};
+
+// 自动勾选已添加的子项（基于 isAdded 字段）
+const autoSelectAddedItems = async () => {
+  // 使用 nextTick 确保表格渲染完成
+  await nextTick();
+
+  if (!tableRef.value) {
+    console.warn('表格组件未找到，无法自动勾选');
+    return;
+  }
+
+  // 清空之前的选择
+  tableRef.value.clearSelection();
+
+  // 勾选 isAdded 为 true 的行
+  itemList.value.forEach((item) => {
+    if (item.isAdded === true) {
+      tableRef.value.toggleRowSelection(item, true);
+    }
+  });
+
+  console.log(`已自动勾选 ${itemList.value.filter(item => item.isAdded).length} 个已添加的子项`);
 };
 
 // 选择变化
@@ -406,8 +445,12 @@ const resetSearch = () => {
   queryParams.itemType = '';
   queryParams.pageNum = 1;
   queryParams.pageSize = 10;
+  queryParams.templateId = undefined;
   selectedItems.value = [];
 };
+
+// 引用表格组件
+const tableRef = ref();
 
 // 页码变化
 const handlePageChange = (page: number) => {
@@ -440,9 +483,9 @@ const submitItemForm = async () => {
     }
 
     itemDialog.loading = true;
-    
+
     console.log('开始创建子项模板:', itemForm);
-    
+
     // ✅ 步骤1: 创建子项模板并绑定物料（一次性完成）
     const createData = {
       templateId: props.templateId, // ✅ 传递子系统模板ID，自动关联
@@ -455,9 +498,9 @@ const submitItemForm = async () => {
       remarks: itemForm.remarks,
       materials: itemForm.materials // ✅ 传递物料列表
     };
-    
+
     await addItemTemplate(createData);
-    
+
     console.log('子项模板创建并关联成功');
     ElMessage.success('新增子项模板并关联成功');
 
@@ -500,7 +543,7 @@ const handleItemMaterialsSelected = (materials: MaterialVO[]) => {
   if (!itemForm.materials) {
     itemForm.materials = [];
   }
-  
+
   materials.forEach(material => {
     // 避免重复添加
     if (!itemForm.materials!.some(m => m.materialId === material.id)) {
