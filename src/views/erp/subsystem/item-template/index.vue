@@ -132,7 +132,8 @@
               border
               size="small"
             >
-              <el-table-column label="物料ID" prop="materialId" width="100" />
+              <el-table-column label="序号" type="index" width="80" align="center" :index="(index) => index + 1" />
+              <el-table-column label="物料名称" prop="materialName" min-width="200" show-overflow-tooltip />
               <el-table-column label="默认数量" prop="defaultQuantity" width="120" align="center">
                 <template #default="{ row }">
                   <el-input-number
@@ -537,6 +538,7 @@ const handleItemMaterialsSelected = (materials: MaterialVO[]) => {
     if (!form.materials!.some(m => m.materialId === material.id)) {
       form.materials!.push({
         materialId: material.id as number,
+        materialName: material.materialName, // 保存物料名称
         defaultQuantity: 1,
         isRequired: true,
         remarks: ''
