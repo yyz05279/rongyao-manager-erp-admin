@@ -3,34 +3,24 @@
  */
 export interface MaterialQuery extends PageQuery {
   /**
-   * 物料名称
+   * 物料名称（模糊查询）
    */
-  name?: string;
+  materialName?: string;
 
   /**
-   * 物料编码
+   * 物料编码（模糊查询）
    */
-  itemCode?: string;
+  materialCode?: string;
 
   /**
-   * 物料清单ID
+   * 物料类型
    */
-  shippingListId?: string | number;
+  materialType?: string;
 
   /**
    * 物料状态
    */
-  status?: number;
-
-  /**
-   * 生产日期范围查询 - 开始日期
-   */
-  productionDateStart?: string;
-
-  /**
-   * 生产日期范围查询 - 结束日期
-   */
-  productionDateEnd?: string;
+  status?: string;
 
   /**
    * 日期范围参数
@@ -40,6 +30,7 @@ export interface MaterialQuery extends PageQuery {
 
 /**
  * 物料视图对象
+ * 物料管理模块只负责管理物料的基本信息和包装规格
  */
 export interface MaterialVO {
   /**
@@ -47,35 +38,23 @@ export interface MaterialVO {
    */
   id: string | number;
 
-  /**
-   * 物料清单ID
-   */
-  shippingListId?: string | number;
-  
-  /**
-   * 物料清单ID（后端字段）
-   */
-  materialListId?: string | number;
+  // ========== 基础信息 ==========
 
   /**
-   * 物料编码（前端字段）
-   */
-  itemCode?: string;
-  
-  /**
-   * 物料编码（后端字段）
+   * 物料编码（后端自动生成，格式：WL + yyyyMMdd + 6位序号）
    */
   materialCode?: string;
 
   /**
-   * 物料名称（前端字段）
-   */
-  itemName?: string;
-  
-  /**
-   * 物料名称（后端字段）
+   * 物料名称（必填）
    */
   materialName?: string;
+
+  /**
+   * 物料类型（必填）
+   * @see MaterialType
+   */
+  materialType?: string;
 
   /**
    * 规格型号
@@ -83,64 +62,14 @@ export interface MaterialVO {
   specification?: string;
 
   /**
-   * 设备类型（前端字段）
-   */
-  equipmentType?: string;
-  
-  /**
-   * 物料类型（后端字段）
-   */
-  materialType?: string;
-
-  /**
-   * 数量
-   */
-  quantity: number;
-
-  /**
-   * 单位
+   * 单位（必填）
    */
   unit?: string;
-
-  /**
-   * 单重（kg）
-   */
-  unitWeight?: number;
-
-  /**
-   * 总重（kg）
-   */
-  totalWeight?: number;
-
-  /**
-   * 单体积（m³）
-   */
-  unitVolume?: number;
-
-  /**
-   * 总体积（m³）
-   */
-  totalVolume?: number;
-
-  /**
-   * 制造商
-   */
-  manufacturer?: string;
 
   /**
    * 型号
    */
   model?: string;
-
-  /**
-   * 序列号
-   */
-  serialNumber?: string;
-
-  /**
-   * 生产日期
-   */
-  productionDate?: string;
 
   /**
    * 是否易碎品（0-否，1-是）
@@ -152,10 +81,34 @@ export interface MaterialVO {
    */
   isHazardous?: number;
 
+  // ========== 包装规格字段 ==========
+
   /**
-   * 包装方式
+   * 包装数量（每包/每箱的数量）
    */
-  packagingMethod?: string;
+  packageQuantity?: number;
+
+  /**
+   * 包装单位（袋、箱、卷等）
+   */
+  packageUnit?: string;
+
+  /**
+   * 基础单位（颗、个、米等，最小计量单位）
+   */
+  baseUnit?: string;
+
+  /**
+   * 包装重量（单包重量，kg）
+   */
+  packageWeight?: number;
+
+  /**
+   * 包装体积（单包体积，m³）
+   */
+  packageVolume?: number;
+
+  // ========== 系统字段 ==========
 
   /**
    * 备注
@@ -166,6 +119,11 @@ export interface MaterialVO {
    * 版本号（用于乐观锁）
    */
   version?: number;
+
+  /**
+   * 物料状态
+   */
+  status?: string;
 
   /**
    * 创建时间
@@ -176,10 +134,33 @@ export interface MaterialVO {
    * 更新时间
    */
   updateTime?: string;
+
+  /**
+   * 创建人
+   */
+  createBy?: string;
+
+  /**
+   * 更新人
+   */
+  updateBy?: string;
+
+  // ========== 兼容旧字段名 ==========
+
+  /**
+   * @deprecated 使用 materialCode 替代
+   */
+  itemCode?: string;
+
+  /**
+   * @deprecated 使用 materialName 替代
+   */
+  itemName?: string;
 }
 
 /**
  * 物料表单对象
+ * 物料管理模块只负责管理物料的基本信息和包装规格
  */
 export interface MaterialForm extends BaseEntity {
   /**
@@ -187,20 +168,23 @@ export interface MaterialForm extends BaseEntity {
    */
   id?: string | number;
 
-  /**
-   * 物料清单ID
-   */
-  shippingListId?: string | number;
+  // ========== 基础信息 ==========
 
   /**
-   * 物料编码
+   * 物料编码（后端自动生成，编辑时需要）
    */
-  itemCode?: string;
+  materialCode?: string;
 
   /**
-   * 物料名称
+   * 物料名称（必填）
    */
-  itemName?: string;
+  materialName?: string;
+
+  /**
+   * 物料类型（必填）
+   * @see MaterialType
+   */
+  materialType?: string;
 
   /**
    * 规格型号
@@ -208,54 +192,14 @@ export interface MaterialForm extends BaseEntity {
   specification?: string;
 
   /**
-   * 数量
-   */
-  quantity?: number;
-
-  /**
-   * 单位
+   * 单位（必填）
    */
   unit?: string;
-
-  /**
-   * 单重（kg）
-   */
-  unitWeight?: number;
-
-  /**
-   * 总重（kg）
-   */
-  totalWeight?: number;
-
-  /**
-   * 单体积（m³）
-   */
-  unitVolume?: number;
-
-  /**
-   * 总体积（m³）
-   */
-  totalVolume?: number;
-
-  /**
-   * 制造商
-   */
-  manufacturer?: string;
 
   /**
    * 型号
    */
   model?: string;
-
-  /**
-   * 序列号
-   */
-  serialNumber?: string;
-
-  /**
-   * 生产日期
-   */
-  productionDate?: string;
 
   /**
    * 是否易碎品（0-否，1-是）
@@ -267,10 +211,34 @@ export interface MaterialForm extends BaseEntity {
    */
   isHazardous?: number;
 
+  // ========== 包装规格字段（可选） ==========
+
   /**
-   * 包装方式
+   * 包装数量（每包/每箱的数量）
    */
-  packagingMethod?: string;
+  packageQuantity?: number;
+
+  /**
+   * 包装单位（袋、箱、卷等）
+   */
+  packageUnit?: string;
+
+  /**
+   * 基础单位（颗、个、米等，最小计量单位）
+   */
+  baseUnit?: string;
+
+  /**
+   * 包装重量（单包重量，kg）
+   */
+  packageWeight?: number;
+
+  /**
+   * 包装体积（单包体积，m³）
+   */
+  packageVolume?: number;
+
+  // ========== 系统字段 ==========
 
   /**
    * 备注
@@ -282,4 +250,30 @@ export interface MaterialForm extends BaseEntity {
    */
   version?: number;
 }
+
+/**
+ * 物料类型枚举
+ */
+export enum MaterialType {
+  GENERAL = 'GENERAL',                    // 通用物料
+  MECHANICAL = 'MECHANICAL',              // 机械设备
+  ELECTRICAL = 'ELECTRICAL',              // 电气设备
+  PIPELINE = 'PIPELINE',                  // 管道材料
+  BURNER = 'BURNER',                      // 燃烧器
+  AUXILIARY = 'AUXILIARY',                // 辅助材料
+  STANDARD_PARTS = 'STANDARD_PARTS'       // 标准件
+}
+
+/**
+ * 物料类型选项
+ */
+export const MaterialTypeOptions = [
+  { label: '通用物料', value: 'GENERAL' },
+  { label: '机械设备', value: 'MECHANICAL' },
+  { label: '电气设备', value: 'ELECTRICAL' },
+  { label: '管道材料', value: 'PIPELINE' },
+  { label: '燃烧器', value: 'BURNER' },
+  { label: '辅助材料', value: 'AUXILIARY' },
+  { label: '标准件', value: 'STANDARD_PARTS' }
+];
 
