@@ -28,7 +28,7 @@ const subsystemRouter: RouteOption = {
     },
     // 子系统模板
     {
-      path: 'template',
+      path: 'equipment-subsystem-template',
       component: () => import('@/views/erp/subsystem/template/index.vue'),
       name: 'SubsystemTemplate',
       meta: {
@@ -39,7 +39,7 @@ const subsystemRouter: RouteOption = {
     },
     // 子项模板管理
     {
-      path: 'item-template',
+      path: 'equipment-item-template',
       component: () => import('@/views/erp/subsystem/item-template/index.vue'),
       name: 'ItemTemplateManagement',
       meta: {
