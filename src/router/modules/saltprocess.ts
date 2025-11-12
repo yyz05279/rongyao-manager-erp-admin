@@ -564,6 +564,28 @@ const saltprocessRouter: RouteOption = {
         title: '编辑发货清单',
         activeMenu: '/saltprocess/shipping'
       }
+    },
+
+    // 设备系统管理
+    {
+      path: 'equipment-system-template',
+      component: () => import('@/views/erp/saltprocess/equipment-system/template/index.vue'),
+      name: 'EquipmentSystemTemplate',
+      meta: {
+        title: '设备系统模板管理',
+        icon: 'component',
+        permissions: ['erp:saltprocess:equipmentSystemTemplate:list']
+      }
+    },
+    {
+      path: 'equipment-system',
+      component: () => import('@/views/erp/saltprocess/equipment-system/index.vue'),
+      name: 'ProjectEquipmentSystem',
+      meta: {
+        title: '项目设备系统管理',
+        icon: 'system',
+        permissions: ['erp:saltprocess:projectEquipmentSystem:list']
+      }
     }
   ]
 };
