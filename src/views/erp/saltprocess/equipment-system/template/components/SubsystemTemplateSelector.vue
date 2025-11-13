@@ -122,6 +122,23 @@ export default defineComponent({
         </div>
       </div>
     </template>
+
+    <!-- 新建子系统模板对话框 -->
+    <el-dialog
+      title="新建子系统模板"
+      v-model="newTemplateDialog.visible"
+      width="900px"
+      append-to-body
+      :close-on-click-modal="false"
+      @close="handleNewTemplateDialogClose"
+    >
+      <subsystem-template-form-with-items
+        v-if="newTemplateDialog.visible"
+        ref="newTemplateFormRef"
+        @success="handleNewTemplateSuccess"
+        @cancel="newTemplateDialog.visible = false"
+      />
+    </el-dialog>
   </el-dialog>
 </template>
 
@@ -130,7 +147,8 @@ import { ref, reactive, computed, watch } from 'vue';
 import { ElMessage } from 'element-plus';
 import { listSubsystemTemplate } from '@/api/erp/subsystem/template';
 import type { SubsystemTemplateVO, SubsystemTemplateQuery } from '@/api/erp/subsystem/types';
-import type { SubsystemTemplateForm } from '@/api/erp/saltprocess/equipment-system/types';
+import type { SubsystemTemplateForm as SubsystemTemplateFormType } from '@/api/erp/saltprocess/equipment-system/types';
+import SubsystemTemplateFormWithItems from './SubsystemTemplateFormWithItems.vue';
 
 // Props
 interface Props {
@@ -145,7 +163,7 @@ const props = withDefaults(defineProps<Props>(), {
 // Emits
 const emit = defineEmits<{
   'update:modelValue': [value: boolean];
-  confirm: [templates: Array<SubsystemTemplateForm & { mode: string }>];
+  confirm: [templates: Array<SubsystemTemplateFormType & { mode: string }>];
 }>();
 
 // 响应式数据
@@ -154,6 +172,12 @@ const templateList = ref<SubsystemTemplateVO[]>([]);
 const selectedTemplates = ref<SubsystemTemplateVO[]>([]);
 const total = ref(0);
 const tableRef = ref();
+const newTemplateFormRef = ref();
+
+// 新建子系统模板对话框
+const newTemplateDialog = reactive({
+  visible: false
+});
 
 const queryParams = reactive<SubsystemTemplateQuery & { subsystemType?: string }>({
   pageNum: 1,
@@ -271,7 +295,31 @@ const getSubsystemTypeText = (type?: string): string => {
 
 // 新建子系统模板
 const handleAddNewTemplate = () => {
-  ElMessage.info('新建子系统模板功能待实现');
+  newTemplateDialog.visible = true;
+};
+
+// 新建子系统模板成功
+const handleNewTemplateSuccess = async (templateId: number) => {
+  // 关闭对话框
+  newTemplateDialog.visible = false;
+
+  // 刷新列表
+  await loadTemplateList();
+
+  ElMessage.success('新建子系统模板成功');
+
+  // 尝试自动选中新建的模板
+  const newTemplate = templateList.value.find(t => t.id === templateId);
+  if (newTemplate && tableRef.value) {
+    // 自动勾选新建的模板
+    tableRef.value.toggleRowSelection(newTemplate, true);
+    selectedTemplates.value.push(newTemplate);
+  }
+};
+
+// 新建子系统模板对话框关闭
+const handleNewTemplateDialogClose = () => {
+  newTemplateDialog.visible = false;
 };
 
 // 确认选择
@@ -281,10 +329,11 @@ const handleConfirm = () => {
     return;
   }
 
-  // 将选中的模板转换为SubsystemTemplateForm格式
-  const result: Array<SubsystemTemplateForm & { mode: string }> = selectedTemplates.value.map((template, index) => ({
+  // 将选中的模板转换为SubsystemTemplateFormType格式
+  const result: Array<SubsystemTemplateFormType & { mode: string }> = selectedTemplates.value.map((template, index) => ({
     mode: 'reference',
     referenceTemplateId: template.id as number,
+    referenceTemplateName: template.templateName, // 添加模板名称用于前端显示
     sequenceNumber: index + 1,
     remarks: ''
   }));

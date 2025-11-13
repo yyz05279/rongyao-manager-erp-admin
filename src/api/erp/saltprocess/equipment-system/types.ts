@@ -96,6 +96,7 @@ export enum SubsystemType {
 export interface SubsystemTemplateForm {
   // 方式一：引用已存在的独立子系统模板（推荐）
   referenceTemplateId?: number;       // 引用的独立子系统模板ID
+  referenceTemplateName?: string;     // 引用的模板名称（仅用于前端显示，不提交到后端）
 
   // 方式二：新建子系统模板（当不使用referenceTemplateId时必填）
   subsystemName?: string;             // 子系统名称
@@ -231,10 +232,11 @@ export interface EquipmentSystemStatistics {
 }
 
 /**
- * 设备系统模板详情（包含统计信息）
+ * 设备系统模板详情（包含统计信息和子系统模板列表）
  */
 export interface EquipmentSystemTemplateDetailVO extends EquipmentSystemTemplateVO {
   statistics?: EquipmentSystemStatistics;
+  subsystemTemplates?: SubsystemTemplateForm[];  // 子系统模板列表
 }
 
 /**

@@ -113,7 +113,7 @@
         </el-table-column>
         <el-table-column label="子系统数量" prop="subsystemCount" width="110" align="center">
           <template #default="scope">
-            <el-tag type="primary" size="small">{{ scope.row.subsystemCount || 0 }}</el-tag>
+            <el-tag type="info" size="small">{{ scope.row.subsystemCount || 0 }}</el-tag>
           </template>
         </el-table-column>
         <el-table-column label="总子项数" prop="totalItems" width="100" align="center">
