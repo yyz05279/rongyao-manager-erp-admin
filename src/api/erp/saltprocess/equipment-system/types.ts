@@ -1,6 +1,6 @@
 /**
  * 设备系统管理模块 - 类型定义
- * 基于后端 API v1.0 文档
+ * 基于后端 API v1.2 文档 (更新日期: 2025-01-12)
  */
 
 // ==================== 通用类型 ====================
@@ -81,7 +81,40 @@ export interface EquipmentSystemTemplateVO {
 }
 
 /**
+ * 子系统类型枚举
+ */
+export enum SubsystemType {
+  MECHANICAL = 'MECHANICAL',  // 机械设备
+  ELECTRICAL = 'ELECTRICAL',  // 电控设备
+  PIPELINE = 'PIPELINE'        // 管路设备
+}
+
+/**
+ * 子系统模板表单数据（支持两种方式）
+ * 基于 API v1.2 文档
+ */
+export interface SubsystemTemplateForm {
+  // 方式一：引用已存在的独立子系统模板（推荐）
+  referenceTemplateId?: number;       // 引用的独立子系统模板ID
+
+  // 方式二：新建子系统模板（当不使用referenceTemplateId时必填）
+  subsystemName?: string;             // 子系统名称
+  subsystemType?: string;             // 子系统类型（MECHANICAL/ELECTRICAL/PIPELINE）
+  category?: string;                  // 子系统分类
+  specification?: string;             // 规格型号
+  model?: string;                     // 型号
+  manufacturer?: string;              // 制造商
+  description?: string;               // 描述
+  status?: string;                    // 状态
+
+  // 通用字段（两种方式都可用）
+  sequenceNumber?: number;            // 排序号
+  remarks?: string;                   // 备注
+}
+
+/**
  * 设备系统模板表单数据
+ * 基于 API v1.2 文档
  */
 export interface EquipmentSystemTemplateForm {
   id?: string | number;               // 主键ID（修改时必填）
@@ -90,10 +123,25 @@ export interface EquipmentSystemTemplateForm {
   systemType: string;                 // 系统类型（必填）
   category?: string;                  // 分类
   description?: string;               // 描述
-  status?: string;                    // 状态
+  status?: string;                    // 状态（DRAFT/ACTIVE/ARCHIVED）
   isStandard?: boolean;               // 是否标准模板
   version?: string;                   // 版本号
   remarks?: string;                   // 备注
+  subsystemTemplates: SubsystemTemplateForm[];  // 子系统模板列表（必填，至少1个）
+}
+
+/**
+ * 子系统模板简要信息（用于显示和参考）
+ */
+export interface SubsystemTemplateSimpleVO {
+  id: number;                         // 子系统模板ID
+  templateCode: string;               // 模板编号
+  templateName: string;               // 模板名称
+  category?: string;                  // 分类
+  version?: string;                   // 版本号
+  status?: string;                    // 状态
+  itemCount?: number;                 // 子项数量
+  materialCount?: number;             // 物料数量
 }
 
 // ==================== 项目设备系统相关类型 ====================
