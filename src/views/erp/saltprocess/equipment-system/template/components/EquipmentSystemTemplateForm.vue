@@ -85,7 +85,7 @@
             <el-table-column type="index" label="序号" width="60" align="center" />
             <el-table-column label="添加方式" width="100" align="center">
               <template #default="scope">
-                <el-tag :type="scope.row.mode === 'reference' ? 'success' : 'primary'" size="small">
+                <el-tag :type="getAddModeTagType(scope.row.mode)" size="small">
                   {{ scope.row.mode === 'reference' ? '引用模板' : '新建模板' }}
                 </el-tag>
               </template>
@@ -152,6 +152,7 @@ import {
   updateEquipmentSystemTemplate
 } from '@/api/erp/saltprocess/equipment-system/template';
 import type { EquipmentSystemTemplateForm, SubsystemTemplateForm } from '@/api/erp/saltprocess/equipment-system/types';
+import { getSubsystemTemplate } from '@/api/erp/subsystem/template';
 import SubsystemTemplateSelector from './SubsystemTemplateSelector.vue';
 
 // Props
@@ -203,7 +204,7 @@ const rules = reactive<FormRules>({
   status: [{ required: true, message: '请选择状态', trigger: 'change' }],
   subsystemTemplates: [
     {
-      validator: (rule: any, value: any, callback: any) => {
+      validator: (_rule: any, _value: any, callback: any) => {
         if (form.subsystemTemplates.length === 0) {
           callback(new Error('请至少添加一个子系统模板'));
         } else {
@@ -248,10 +249,33 @@ const getTemplateDetail = async () => {
 
     // 处理子系统模板数据：添加mode字段用于前端显示
     if (data.subsystemTemplates && Array.isArray(data.subsystemTemplates)) {
-      form.subsystemTemplates = data.subsystemTemplates.map((item: any) => ({
-        ...item,
-        mode: item.referenceTemplateId ? 'reference' : 'create'
-      }));
+      // 为每个引用的子系统模板获取名称
+      const subsystemTemplatesWithNames = await Promise.all(
+        data.subsystemTemplates.map(async (item: any) => {
+          const mode = item.referenceTemplateId ? 'reference' : 'create';
+          let referenceTemplateName = undefined;
+
+          // 如果是引用模板，获取模板名称
+          if (mode === 'reference' && item.referenceTemplateId) {
+            try {
+              const templateRes = await getSubsystemTemplate(item.referenceTemplateId);
+              referenceTemplateName = (templateRes.data as any).templateName;
+            } catch (error) {
+              console.error(`获取子系统模板名称失败 (ID: ${item.referenceTemplateId}):`, error);
+              // 如果获取失败，使用默认值
+              referenceTemplateName = undefined;
+            }
+          }
+
+          return {
+            ...item,
+            mode,
+            referenceTemplateName
+          };
+        })
+      );
+
+      form.subsystemTemplates = subsystemTemplatesWithNames;
     } else {
       form.subsystemTemplates = [];
     }
@@ -275,10 +299,18 @@ const cancel = () => {
   emit('cancel');
 };
 
+// 获取添加方式标签类型
+const getAddModeTagType = (mode?: string): 'success' | 'info' => {
+  return mode === 'reference' ? 'success' : 'info';
+};
+
 // 获取子系统显示名称
 const getSubsystemDisplayName = (subsystem: SubsystemTemplateForm & { mode?: string }): string => {
   if (subsystem.mode === 'reference') {
-    return `[引用] ID: ${subsystem.referenceTemplateId}`;
+    // 优先显示模板名称，如果没有则显示ID
+    return subsystem.referenceTemplateName
+      ? subsystem.referenceTemplateName
+      : `ID: ${subsystem.referenceTemplateId}`;
   } else {
     return subsystem.subsystemName || '未命名';
   }
@@ -300,7 +332,7 @@ const handleAddSubsystem = () => {
 };
 
 // 编辑子系统（暂不支持编辑，只能删除后重新添加）
-const handleEditSubsystem = (index: number) => {
+const handleEditSubsystem = (_index: number) => {
   ElMessage.info('暂不支持编辑，请删除后重新添加');
 };
 
@@ -335,9 +367,9 @@ const submitForm = async () => {
           delete submitData.templateCode;
         }
 
-        // 处理子系统模板数据：移除mode字段（仅用于前端UI控制）
+        // 处理子系统模板数据：移除mode和referenceTemplateName字段（仅用于前端UI控制）
         submitData.subsystemTemplates = form.subsystemTemplates.map(item => {
-          const { mode, ...rest } = item as any;
+          const { mode, referenceTemplateName, ...rest } = item as any;
           return rest;
         });
 

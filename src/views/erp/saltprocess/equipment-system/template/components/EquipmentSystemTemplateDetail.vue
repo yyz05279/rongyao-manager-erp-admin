@@ -28,7 +28,7 @@
         <el-tag v-else type="info" size="small">否</el-tag>
       </el-descriptions-item>
       <el-descriptions-item label="子系统数量">
-        <el-tag type="primary" size="small">{{ detail.subsystemCount || 0 }}</el-tag>
+        <el-tag type="info" size="small">{{ detail.subsystemCount || 0 }}</el-tag>
       </el-descriptions-item>
       <el-descriptions-item label="总子项数">
         <el-tag type="success" size="small">{{ detail.totalItems || 0 }}</el-tag>
@@ -86,6 +86,11 @@
       </el-row>
     </el-card>
 
+    <!-- 子系统模板管理 -->
+    <el-card shadow="never" class="mt-4">
+      <subsystem-template-management :template-id="templateId" @refresh="handleRefresh" />
+    </el-card>
+
     <div class="dialog-footer mt-4">
       <el-button @click="handleClose">关 闭</el-button>
     </div>
@@ -105,6 +110,7 @@ import { ElMessage } from 'element-plus';
 import { getEquipmentSystemTemplate } from '@/api/erp/saltprocess/equipment-system/template';
 import type { EquipmentSystemTemplateDetailVO } from '@/api/erp/saltprocess/equipment-system/types';
 import { parseTime } from '@/utils/ruoyi';
+import SubsystemTemplateManagement from './SubsystemTemplateManagement.vue';
 
 // Props
 interface Props {
@@ -139,6 +145,11 @@ const getDetail = async () => {
   } finally {
     loading.value = false;
   }
+};
+
+// 处理刷新
+const handleRefresh = () => {
+  getDetail();
 };
 
 // 获取系统类型标签类型
@@ -191,6 +202,12 @@ const handleClose = () => {
 
 <style scoped lang="scss">
 .equipment-system-template-detail {
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
   .card-title {
     font-weight: 600;
     font-size: 16px;
