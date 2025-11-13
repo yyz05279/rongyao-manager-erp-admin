@@ -123,7 +123,6 @@ export default defineComponent({
 import { ref, reactive, computed, onMounted } from 'vue';
 import { ElMessage, type FormInstance, type FormRules } from 'element-plus';
 import { generateSubsystemTemplateCode, addSubsystemTemplate } from '@/api/erp/subsystem/template';
-import { batchAddItemsToTemplate } from '@/api/erp/subsystem/template';
 import type { SubsystemTemplateForm } from '@/api/erp/subsystem/types';
 import ItemTemplateSelectorDialog from '@/views/erp/subsystem/template/components/ItemTemplateSelectorDialog.vue';
 
@@ -231,7 +230,7 @@ const handleSubmit = async () => {
     if (valid) {
       submitting.value = true;
       try {
-        // 第一步：创建子系统模板
+        // 构造提交数据，包含子项列表
         const templateData: SubsystemTemplateForm = {
           templateCode: form.templateCode,
           templateName: form.templateName,
@@ -240,30 +239,26 @@ const handleSubmit = async () => {
           isStandard: form.isStandard,
           version: form.version,
           status: form.status,
-          remarks: form.remarks
-        };
-
-        const templateResponse = await addSubsystemTemplate(templateData);
-
-        // 假设后端返回的数据中包含新创建的模板ID
-        // 如果后端没有返回ID，需要重新查询列表获取最新的模板ID
-        const templateId = (templateResponse as any).data?.id || (templateResponse as any).data;
-
-        if (!templateId) {
-          throw new Error('未能获取新创建的模板ID');
-        }
-
-        // 第二步：批量添加子项到模板
-        if (form.items.length > 0) {
-          const itemsData = form.items.map(item => ({
+          remarks: form.remarks,
+          // 添加子项列表（如果有）
+          items: form.items.length > 0 ? form.items.map(item => ({
             itemTemplateId: item.itemTemplateId,
             quantity: item.quantity,
             sequenceNumber: item.sequenceNumber,
             isRequired: item.isRequired,
             remarks: item.remarks
-          }));
+          })) : undefined
+        };
 
-          await batchAddItemsToTemplate(templateId, itemsData);
+        // 调用新增接口，一次性创建模板和子项
+        // 根据API文档，响应格式为：{ code: 200, msg: "操作成功", data: TemplateVO }
+        const templateResponse = await addSubsystemTemplate(templateData);
+
+        // 获取新创建的模板ID
+        const templateId = (templateResponse as any).data?.id;
+
+        if (!templateId) {
+          throw new Error('未能获取新创建的模板ID，请检查后端响应格式');
         }
 
         ElMessage.success('新建子系统模板成功');

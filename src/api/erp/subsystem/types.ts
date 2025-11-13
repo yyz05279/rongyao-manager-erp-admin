@@ -322,9 +322,21 @@ export interface SubsystemTemplateVO {
 }
 
 /**
+ * 子项关联对象（用于创建/编辑模板时传递子项信息）
+ * 基于API文档 v1.0.0 - 2025-11-13
+ */
+export interface TemplateItemRelForm {
+  itemTemplateId: number;               // 子项模板ID（必填）
+  sequenceNumber?: number;              // 排序号
+  quantity?: number;                    // 默认数量
+  isRequired?: boolean;                 // 是否必需
+  remarks?: string;                     // 备注
+}
+
+/**
  * 子系统模板表单数据
  * 注意：模板不包含项目信息和负责人信息
- * 基于API文档 v1.0
+ * 基于API文档 v1.0.0 - 2025-11-13
  */
 export interface SubsystemTemplateForm {
   id?: string | number;                 // 主键ID（修改时必填）
@@ -338,6 +350,7 @@ export interface SubsystemTemplateForm {
   sourceProjectId?: string | number;    // 来源项目ID
   relatedProductId?: string | number;   // 关联产品ID
   remarks?: string;                     // 备注
+  items?: TemplateItemRelForm[];        // 子项列表（可选，用于在创建/编辑模板时同时添加子项）
 }
 
 /**
