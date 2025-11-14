@@ -214,6 +214,8 @@ import SubsystemTemplateDetail from '@/views/erp/subsystem/template/components/S
 // Props
 interface Props {
   templateId: string | number;
+  /** 子系统模版列表数据(从父组件传递,避免重复调用API) */
+  subsystemTemplates?: Array<SubsystemTemplateForm & { mode?: string }>;
 }
 
 const props = defineProps<Props>();
@@ -266,36 +268,20 @@ const existingTemplateIds = computed(() => {
 
 // 加载子系统列表
 const loadSubsystemList = async () => {
+  // 如果父组件已经传递了数据(数组长度>0或者是空数组),直接使用,避免重复调用API
+  if (props.subsystemTemplates !== undefined) {
+    await processSubsystemTemplates(props.subsystemTemplates);
+    return;
+  }
+
+  // 如果没有传递数据(undefined),则调用API获取
   loading.value = true;
   try {
     const res = await getEquipmentSystemTemplate(props.templateId);
     const data = res.data as any;
 
     if (data.subsystemTemplates && Array.isArray(data.subsystemTemplates)) {
-      // 为每个引用的子系统模板获取名称
-      const subsystemTemplatesWithNames = await Promise.all(
-        data.subsystemTemplates.map(async (item: any) => {
-          const mode = item.referenceTemplateId ? 'reference' : 'create';
-          let referenceTemplateName = undefined;
-
-          if (mode === 'reference' && item.referenceTemplateId) {
-            try {
-              const templateRes = await getSubsystemTemplate(item.referenceTemplateId);
-              referenceTemplateName = (templateRes.data as any).templateName;
-            } catch (error) {
-              console.error(`获取子系统模板名称失败 (ID: ${item.referenceTemplateId}):`, error);
-            }
-          }
-
-          return {
-            ...item,
-            mode,
-            referenceTemplateName
-          };
-        })
-      );
-
-      subsystemList.value = subsystemTemplatesWithNames;
+      await processSubsystemTemplates(data.subsystemTemplates);
     } else {
       subsystemList.value = [];
     }
@@ -307,11 +293,50 @@ const loadSubsystemList = async () => {
   }
 };
 
+// 处理子系统模版数据(为引用模式的子系统获取名称)
+const processSubsystemTemplates = async (templates: any[]) => {
+  const subsystemTemplatesWithNames = await Promise.all(
+    templates.map(async (item: any) => {
+      const mode = item.referenceTemplateId ? 'reference' : 'create';
+      let referenceTemplateName = undefined;
+
+      if (mode === 'reference' && item.referenceTemplateId) {
+        try {
+          const templateRes = await getSubsystemTemplate(item.referenceTemplateId);
+          referenceTemplateName = (templateRes.data as any).templateName;
+        } catch (error) {
+          console.error(`获取子系统模板名称失败 (ID: ${item.referenceTemplateId}):`, error);
+        }
+      }
+
+      return {
+        ...item,
+        mode,
+        referenceTemplateName
+      };
+    })
+  );
+
+  subsystemList.value = subsystemTemplatesWithNames;
+};
+
+// 监听props变化
+watch(
+  () => props.subsystemTemplates,
+  (newSubsystemTemplates) => {
+    // 如果父组件传递了数据,直接使用
+    if (newSubsystemTemplates !== undefined) {
+      processSubsystemTemplates(newSubsystemTemplates);
+    }
+  },
+  { deep: true }
+);
+
 // 监听templateId变化
 watch(
   () => props.templateId,
-  (newVal) => {
-    if (newVal) {
+  (newTemplateId) => {
+    if (newTemplateId) {
       loadSubsystemList();
     }
   },
@@ -462,18 +487,18 @@ const saveSubsystems = async (newList: Array<SubsystemTemplateForm & { mode?: st
 };
 
 // 查看子系统详情
-const handleViewSubsystem = (row: SubsystemTemplateForm & { mode?: string; referenceTemplateName?: string }) => {
-  // 检查是否有 referenceTemplateId
-  if (row.referenceTemplateId) {
-    // 引用模式：显示引用的子系统模板详情
-    // API调用将在SubsystemTemplateDetail组件内部完成
-    viewDialog.value.mode = 'reference';
-    viewDialog.value.subsystemId = row.referenceTemplateId;
-    viewDialog.value.subsystemName = row.referenceTemplateName || row.subsystemName || `ID: ${row.referenceTemplateId}`;
+const handleViewSubsystem = (row: SubsystemTemplateForm & { mode?: string; referenceTemplateName?: string; id?: string | number }) => {
+  // 无论是引用模式还是新建模式，都使用子系统的ID来调用API获取详情
+  // 因为新建模式的子系统也会保存到数据库中，有自己的ID和子项数据
+  if (row.id) {
+    viewDialog.value.mode = 'reference';  // 使用reference模式来触发API调用
+    viewDialog.value.subsystemId = row.id;  // 使用子系统自己的ID
+    viewDialog.value.subsystemName = row.subsystemName || row.referenceTemplateName || `ID: ${row.id}`;
     viewDialog.value.subsystemData = null;
     viewDialog.value.visible = true;
   } else {
-    // 新建模式：显示子系统基本信息
+    // 如果没有ID（理论上不应该出现这种情况），显示基本信息
+    console.warn('子系统没有ID，无法调用API');
     viewDialog.value.mode = 'create';
     viewDialog.value.subsystemId = null;
     viewDialog.value.subsystemName = row.subsystemName || '未命名';

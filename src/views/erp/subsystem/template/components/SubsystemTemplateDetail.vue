@@ -57,8 +57,12 @@
     </el-card>
 
     <!-- 子项和物料模板管理 -->
-    <el-card shadow="never" class="detail-card">
-      <item-template-management :template-id="templateId" />
+    <el-card shadow="never" class="detail-card" v-if="!loading">
+      <item-template-management
+        :template-id="templateId"
+        :items="templateInfo.items || []"
+        :use-equipment-system-api="useEquipmentSystemApi"
+      />
     </el-card>
   </div>
 </template>
