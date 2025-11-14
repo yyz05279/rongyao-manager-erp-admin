@@ -53,6 +53,11 @@ export default defineComponent({
             {{ getSubsystemDisplayName(scope.row) }}
           </template>
         </el-table-column>
+        <el-table-column label="分类" width="180" align="center">
+          <template #default="scope">
+            {{ getSubsystemTypeText(scope.row.category) }}
+          </template>
+        </el-table-column>
         <el-table-column label="类型" width="180" align="center">
           <template #default="scope">
             {{ getSubsystemTypeText(scope.row.subsystemType) }}
