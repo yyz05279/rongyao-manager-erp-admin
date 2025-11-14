@@ -82,7 +82,7 @@
             style="width: 100%; margin-top: 10px"
             max-height="300"
           >
-            <el-table-column type="index" label="序号" width="60" align="center" />
+            <!-- <el-table-column type="index" label="序号" width="60" align="center" /> -->
             <el-table-column label="添加方式" width="100" align="center">
               <template #default="scope">
                 <el-tag :type="getAddModeTagType(scope.row.mode)" size="small">
@@ -152,7 +152,6 @@ import {
   updateEquipmentSystemTemplate
 } from '@/api/erp/saltprocess/equipment-system/template';
 import type { EquipmentSystemTemplateForm, SubsystemTemplateForm } from '@/api/erp/saltprocess/equipment-system/types';
-import { getSubsystemTemplate } from '@/api/erp/subsystem/template';
 import SubsystemTemplateSelector from './SubsystemTemplateSelector.vue';
 
 // Props
@@ -248,34 +247,21 @@ const getTemplateDetail = async () => {
     Object.assign(form, data);
 
     // 处理子系统模板数据：添加mode字段用于前端显示
+    // 注意：后端已经返回了完整的子系统信息（包括subsystemName），不需要额外调用API获取名称
     if (data.subsystemTemplates && Array.isArray(data.subsystemTemplates)) {
-      // 为每个引用的子系统模板获取名称
-      const subsystemTemplatesWithNames = await Promise.all(
-        data.subsystemTemplates.map(async (item: any) => {
-          const mode = item.referenceTemplateId ? 'reference' : 'create';
-          let referenceTemplateName = undefined;
+      const subsystemTemplatesWithMode = data.subsystemTemplates.map((item: any) => {
+        const mode = item.referenceTemplateId ? 'reference' : 'create';
 
-          // 如果是引用模板，获取模板名称
-          if (mode === 'reference' && item.referenceTemplateId) {
-            try {
-              const templateRes = await getSubsystemTemplate(item.referenceTemplateId);
-              referenceTemplateName = (templateRes.data as any).templateName;
-            } catch (error) {
-              console.error(`获取子系统模板名称失败 (ID: ${item.referenceTemplateId}):`, error);
-              // 如果获取失败，使用默认值
-              referenceTemplateName = undefined;
-            }
-          }
+        return {
+          ...item,
+          mode,
+          // 后端已经返回了subsystemName，不需要额外获取referenceTemplateName
+          // 如果需要显示引用的模板名称，可以直接使用subsystemName
+          referenceTemplateName: item.subsystemName
+        };
+      });
 
-          return {
-            ...item,
-            mode,
-            referenceTemplateName
-          };
-        })
-      );
-
-      form.subsystemTemplates = subsystemTemplatesWithNames;
+      form.subsystemTemplates = subsystemTemplatesWithMode;
     } else {
       form.subsystemTemplates = [];
     }
