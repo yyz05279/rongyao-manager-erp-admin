@@ -93,6 +93,22 @@ export const usePermissionStore = defineStore('permission', () => {
    */
   const filterAsyncRouter = (asyncRouterMap: RouteOption[], lastRouter?: RouteOption, type = false): RouteOption[] => {
     return asyncRouterMap.filter((route) => {
+      // 清理路由数据中的空格(防止后台配置错误导致URL中出现%20)
+      if (route.path) {
+        route.path = route.path.trim();
+      }
+      if (route.name && typeof route.name === 'string') {
+        route.name = route.name.trim();
+      }
+      if (route.component && typeof route.component === 'string') {
+        route.component = route.component.trim();
+      }
+      if (route.meta) {
+        if (route.meta.title) {
+          route.meta.title = route.meta.title.trim();
+        }
+      }
+
       // 过滤租户管理相关路由 - 如需重新启用请注释掉下面的过滤逻辑
       if (route.path === '/system/tenant' ||
           route.path === '/system/tenantPackage' ||
