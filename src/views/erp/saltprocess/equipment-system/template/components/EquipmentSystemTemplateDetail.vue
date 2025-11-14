@@ -87,8 +87,12 @@
     </el-card>
 
     <!-- 子系统模板管理 -->
-    <el-card shadow="never" class="mt-4">
-      <subsystem-template-management :template-id="templateId" @refresh="handleRefresh" />
+    <el-card shadow="never" class="mt-4" v-if="!loading">
+      <subsystem-template-management
+        :template-id="templateId"
+        :subsystem-templates="detail.subsystemTemplates || []"
+        @refresh="handleRefresh"
+      />
     </el-card>
 
     <div class="dialog-footer mt-4">

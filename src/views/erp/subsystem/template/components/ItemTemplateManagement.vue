@@ -313,9 +313,15 @@ import ItemTemplateSelectorDialog from './ItemTemplateSelectorDialog.vue';
 // Props
 interface Props {
   templateId: number | string;
+  /** 子项列表数据(从父组件传递,避免重复调用API) */
+  items?: TemplateItemRelVO[];
+  /** 是否使用设备系统模式的API */
+  useEquipmentSystemApi?: boolean;
 }
 
-const props = defineProps<Props>();
+const props = withDefaults(defineProps<Props>(), {
+  useEquipmentSystemApi: false
+});
 
 // 响应式数据
 const loading = ref(false);
@@ -413,6 +419,13 @@ const itemFormMaterialIds = computed(() => {
 const loadItemList = async () => {
   if (!props.templateId) return;
 
+  // 如果父组件已经传递了items数据(数组长度>0或者是空数组),直接使用,避免重复调用API
+  if (props.items !== undefined) {
+    itemList.value = props.items;
+    return;
+  }
+
+  // 如果没有传递数据(undefined),则调用API获取
   loading.value = true;
   try {
     const response = await getTemplateItems(props.templateId);
@@ -448,12 +461,28 @@ const loadMaterialList = async () => {
   }
 };
 
-// 监听模板ID变化
-watch(() => props.templateId, (newVal) => {
-  if (newVal) {
-    loadItemList();
-  }
-}, { immediate: true });
+// 监听items变化
+watch(
+  () => props.items,
+  (newItems) => {
+    // 如果父组件传递了数据,直接使用
+    if (newItems !== undefined) {
+      itemList.value = newItems;
+    }
+  },
+  { deep: true }
+);
+
+// 监听templateId变化
+watch(
+  () => props.templateId,
+  (newTemplateId) => {
+    if (newTemplateId) {
+      loadItemList();
+    }
+  },
+  { immediate: true }
+);
 
 // 子项选择变化
 const handleItemSelectionChange = (selection: TemplateItemRelVO[]) => {
