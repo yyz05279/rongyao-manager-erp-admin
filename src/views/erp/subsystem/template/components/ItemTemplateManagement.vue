@@ -49,7 +49,7 @@ export default defineComponent({
         style="width: 100%"
       >
         <el-table-column type="selection" width="55" align="center" />
-        <el-table-column label="子项编号" prop="itemCode" width="180" show-overflow-tooltip />
+        <el-table-column label="子项编号" prop="templateCode" width="180" show-overflow-tooltip />
         <el-table-column label="子项名称" prop="itemName" width="200" show-overflow-tooltip />
         <el-table-column label="子项类型" prop="itemType" width="150" align="center" />
         <el-table-column label="默认数量" prop="defaultQuantity" width="120" align="center" />
