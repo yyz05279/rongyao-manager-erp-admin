@@ -53,12 +53,11 @@ export default defineComponent({
             {{ getSubsystemDisplayName(scope.row) }}
           </template>
         </el-table-column>
-        <el-table-column label="类型" width="120" align="center">
+        <el-table-column label="类型" width="180" align="center">
           <template #default="scope">
             {{ getSubsystemTypeText(scope.row.subsystemType) }}
           </template>
         </el-table-column>
-        <el-table-column prop="sequenceNumber" label="排序号" width="100" align="center" />
         <el-table-column prop="remarks" label="备注" min-width="150" show-overflow-tooltip />
         <el-table-column label="操作" align="center" width="200" fixed="right">
           <template #default="scope">
@@ -138,9 +137,6 @@ export default defineComponent({
         <el-descriptions-item label="预估重量">
           {{ viewDialog.subsystemData.estimatedWeight ? `${viewDialog.subsystemData.estimatedWeight} kg` : '-' }}
         </el-descriptions-item>
-        <el-descriptions-item label="排序号">
-          {{ viewDialog.subsystemData.sequenceNumber || '-' }}
-        </el-descriptions-item>
         <el-descriptions-item label="状态">
           <el-tag :type="getStatusTagType(viewDialog.subsystemData.status)" size="small">
             {{ getStatusText(viewDialog.subsystemData.status) }}
@@ -174,14 +170,6 @@ export default defineComponent({
         :rules="editRules"
         label-width="100px"
       >
-        <el-form-item label="排序号" prop="sequenceNumber">
-          <el-input-number
-            v-model="editForm.sequenceNumber"
-            :min="1"
-            :step="1"
-            style="width: 100%"
-          />
-        </el-form-item>
         <el-form-item label="备注" prop="remarks">
           <el-input
             v-model="editForm.remarks"
@@ -249,15 +237,10 @@ const editDialog = ref({
 const editFormRef = ref<FormInstance>();
 const editForm = ref({
   index: -1,
-  sequenceNumber: 1,
   remarks: ''
 });
 
-const editRules: FormRules = {
-  sequenceNumber: [
-    { required: true, message: '请输入排序号', trigger: 'blur' }
-  ]
-};
+const editRules: FormRules = {};
 
 // 计算已添加的子系统模板ID列表
 const existingTemplateIds = computed(() => {
@@ -293,31 +276,22 @@ const loadSubsystemList = async () => {
   }
 };
 
-// 处理子系统模版数据(为引用模式的子系统获取名称)
+// 处理子系统模版数据
+// 注意：后端已经返回了完整的子系统信息（包括subsystemName），不需要额外调用API获取名称
 const processSubsystemTemplates = async (templates: any[]) => {
-  const subsystemTemplatesWithNames = await Promise.all(
-    templates.map(async (item: any) => {
-      const mode = item.referenceTemplateId ? 'reference' : 'create';
-      let referenceTemplateName = undefined;
+  const subsystemTemplatesWithMode = templates.map((item: any) => {
+    const mode = item.referenceTemplateId ? 'reference' : 'create';
 
-      if (mode === 'reference' && item.referenceTemplateId) {
-        try {
-          const templateRes = await getSubsystemTemplate(item.referenceTemplateId);
-          referenceTemplateName = (templateRes.data as any).templateName;
-        } catch (error) {
-          console.error(`获取子系统模板名称失败 (ID: ${item.referenceTemplateId}):`, error);
-        }
-      }
+    return {
+      ...item,
+      mode,
+      // 后端已经返回了subsystemName，不需要额外获取referenceTemplateName
+      // 如果需要显示引用的模板名称，可以直接使用subsystemName
+      referenceTemplateName: item.subsystemName
+    };
+  });
 
-      return {
-        ...item,
-        mode,
-        referenceTemplateName
-      };
-    })
-  );
-
-  subsystemList.value = subsystemTemplatesWithNames;
+  subsystemList.value = subsystemTemplatesWithMode;
 };
 
 // 监听props变化
@@ -397,14 +371,8 @@ const handleAddSubsystem = () => {
 // 处理子系统确认
 const handleSubsystemConfirm = async (newSubsystemList: Array<SubsystemTemplateForm & { mode: string }>) => {
   try {
-    // 添加到列表
-    const newSubsystems = newSubsystemList.map((item, index) => ({
-      ...item,
-      sequenceNumber: subsystemList.value.length + index + 1
-    }));
-
     // 更新到后端
-    await saveSubsystems([...subsystemList.value, ...newSubsystems]);
+    await saveSubsystems([...subsystemList.value, ...newSubsystemList]);
 
     ElMessage.success('添加成功');
     loadSubsystemList();
@@ -511,7 +479,6 @@ const handleViewSubsystem = (row: SubsystemTemplateForm & { mode?: string; refer
 const handleEditSubsystem = (row: SubsystemTemplateForm & { mode?: string }, index: number) => {
   editForm.value = {
     index: index,
-    sequenceNumber: row.sequenceNumber || 1,
     remarks: row.remarks || ''
   };
   editDialog.value.visible = true;
@@ -528,7 +495,6 @@ const submitEdit = async () => {
     const newList = [...subsystemList.value];
     newList[editForm.value.index] = {
       ...newList[editForm.value.index],
-      sequenceNumber: editForm.value.sequenceNumber,
       remarks: editForm.value.remarks
     };
 
