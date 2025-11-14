@@ -26,7 +26,7 @@
       <template #header>
         <el-row :gutter="10" class="mb8">
           <el-col :span="1.5">
-            <el-button type="primary" plain icon="Plus" @click="handleAdd" v-hasPermi="['erp:subsystem:template:add']"> 新增子项 </el-button>
+            <el-button type="primary" plain icon="Plus" @click="handleAdd" v-hasPermi="['erp:subsystem:template:add']"> 新增模版 </el-button>
           </el-col>
           <el-col :span="1.5">
             <el-button type="success" plain icon="Edit" :disabled="single" @click="handleUpdate" v-hasPermi="['erp:subsystem:template:edit']">
@@ -430,7 +430,7 @@ const handleRowClick = (row: SubsystemItemTemplateVO) => {
 // 新增
 const handleAdd = () => {
   resetForm();
-  dialog.title = '新增子项';
+  dialog.title = '新增子项模版';
   dialog.visible = true;
 };
 

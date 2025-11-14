@@ -53,8 +53,8 @@
         <el-input v-model="form.remarks" type="textarea" :rows="2" placeholder="请输入备注" />
       </el-form-item>
 
-      <!-- 子项列表 -->
-      <el-form-item label="子项配置" prop="items" required>
+      <!-- 子项列表（仅在非隐藏模式下显示） -->
+      <el-form-item v-if="!hideItems" label="子项配置" prop="items" required>
         <div style="width: 100%">
           <div class="mb-2">
             <el-button type="primary" icon="Plus" size="small" @click="handleAddItem">
@@ -126,6 +126,17 @@ import { generateSubsystemTemplateCode, addSubsystemTemplate } from '@/api/erp/s
 import type { SubsystemTemplateForm } from '@/api/erp/subsystem/types';
 import ItemTemplateSelectorDialog from '@/views/erp/subsystem/template/components/ItemTemplateSelectorDialog.vue';
 
+// Props
+interface Props {
+  hideItems?: boolean; // 是否隐藏子项列表（编辑模式下使用）
+  initialData?: Partial<SubsystemTemplateForm>; // 初始数据（编辑模式下使用）
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  hideItems: false,
+  initialData: undefined
+});
+
 // Emits
 const emit = defineEmits<{
   success: [templateId: number];
@@ -151,22 +162,31 @@ const form = reactive<SubsystemTemplateForm & { items: any[] }>({
 });
 
 // 表单验证规则
-const rules = reactive<FormRules>({
-  templateName: [
-    { required: true, message: '请输入模板名称', trigger: 'blur' }
-  ],
-  items: [
-    {
-      validator: (rule, value, callback) => {
-        if (!value || value.length === 0) {
-          callback(new Error('请至少添加一个子项模板'));
-        } else {
-          callback();
-        }
-      },
-      trigger: 'change'
-    }
-  ]
+// 表单验证规则（根据 hideItems 动态调整）
+const rules = computed<FormRules>(() => {
+  const baseRules: FormRules = {
+    templateName: [
+      { required: true, message: '请输入模板名称', trigger: 'blur' }
+    ]
+  };
+
+  // 只有在不隐藏子项列表时才验证 items
+  if (!props.hideItems) {
+    baseRules.items = [
+      {
+        validator: (rule, value, callback) => {
+          if (!value || value.length === 0) {
+            callback(new Error('请至少添加一个子项模板'));
+          } else {
+            callback();
+          }
+        },
+        trigger: 'change'
+      }
+    ];
+  }
+
+  return baseRules;
 });
 
 // 已存在的子项ID列表
@@ -178,11 +198,17 @@ const existingItemIds = computed(() => {
 
 // 生命周期
 onMounted(async () => {
-  try {
-    const response = await generateSubsystemTemplateCode();
-    form.templateCode = response.data;
-  } catch (error) {
-    console.error('生成模板编号失败:', error);
+  // 如果有初始数据，填充表单
+  if (props.initialData) {
+    Object.assign(form, props.initialData);
+  } else {
+    // 否则生成新的模板编号
+    try {
+      const response = await generateSubsystemTemplateCode();
+      form.templateCode = response.data;
+    } catch (error) {
+      console.error('生成模板编号失败:', error);
+    }
   }
 });
 
