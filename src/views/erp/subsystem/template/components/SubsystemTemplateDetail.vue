@@ -57,12 +57,8 @@
     </el-card>
 
     <!-- 子项和物料模板管理 -->
-    <el-card shadow="never" class="detail-card" v-if="!loading">
-      <item-template-management
-        :template-id="templateId"
-        :items="templateInfo.items || []"
-        :use-equipment-system-api="useEquipmentSystemApi"
-      />
+    <el-card shadow="never" class="detail-card">
+      <item-template-management :template-id="templateId" />
     </el-card>
   </div>
 </template>
@@ -116,7 +112,30 @@ const getDetail = async () => {
     const res = props.useEquipmentSystemApi
       ? await getSubsystemTemplateDetail(props.templateId)
       : await getSubsystemTemplate(props.templateId);
-    templateInfo.value = res.data;
+
+    // 如果使用设备系统API，需要进行字段映射
+    if (props.useEquipmentSystemApi) {
+      const data = res.data as any;
+      templateInfo.value = {
+        id: data.id,
+        templateCode: data.templateCode,
+        templateName: data.subsystemName, // API返回subsystemName，映射为templateName
+        category: data.category,
+        description: data.description,
+        version: data.version || '-', // API可能不返回version
+        isStandard: data.isStandard || false, // API可能不返回isStandard
+        status: data.status,
+        totalItems: data.itemCount || 0, // API返回itemCount，映射为totalItems
+        totalMaterials: data.materialCount || 0, // API返回materialCount，映射为totalMaterials
+        remarks: data.remarks,
+        createTime: data.createTime,
+        updateTime: data.updateTime,
+        createByName: data.createByName,
+        updateByName: data.updateByName
+      };
+    } else {
+      templateInfo.value = res.data;
+    }
   } catch (error) {
     console.error('获取模板详情失败:', error);
     ElMessage.error('获取模板详情失败');
