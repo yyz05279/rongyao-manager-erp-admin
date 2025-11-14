@@ -94,6 +94,8 @@ export enum SubsystemType {
  * 基于 API v1.2 文档
  */
 export interface SubsystemTemplateForm {
+  id?: string | number;               // 子系统模板ID（编辑时使用）
+
   // 方式一：引用已存在的独立子系统模板（推荐）
   referenceTemplateId?: number;       // 引用的独立子系统模板ID
   referenceTemplateName?: string;     // 引用的模板名称（仅用于前端显示，不提交到后端）
@@ -106,11 +108,27 @@ export interface SubsystemTemplateForm {
   model?: string;                     // 型号
   manufacturer?: string;              // 制造商
   description?: string;               // 描述
+  estimatedWeight?: number;           // 预估重量(kg)
   status?: string;                    // 状态
 
   // 通用字段（两种方式都可用）
   sequenceNumber?: number;            // 排序号
   remarks?: string;                   // 备注
+}
+
+/**
+ * 子系统模板修改表单数据
+ * 基于接口文档: 子系统模版修改接口文档.md (更新于 2025-01-14)
+ */
+export interface SubsystemTemplateUpdateForm {
+  id: string | number;                // 必填：子系统模版ID（支持字符串和数字，避免雪花算法ID精度丢失）
+  subsystemName?: string;             // 可选：子系统名称（最大100字符）
+  category?: string;                  // 可选：子系统类别（最大50字符）
+  subsystemType?: string;             // 可选：子系统类型（手动输入，最大50字符）
+  description?: string;               // 可选：描述（最大500字符）
+  sequenceNumber?: number;            // 可选：排序号（不能小于0）
+  status?: string;                    // 可选：状态（DRAFT-草稿，ACTIVE-启用，INACTIVE-停用，ARCHIVED-归档）
+  remarks?: string;                   // 可选：备注（最大500字符）
 }
 
 /**
