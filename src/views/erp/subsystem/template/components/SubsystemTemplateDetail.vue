@@ -74,6 +74,7 @@ export default defineComponent({
 import { ref, onMounted } from 'vue';
 import { ElMessage } from 'element-plus';
 import { getSubsystemTemplate } from '@/api/erp/subsystem/template';
+import { getSubsystemTemplateDetail } from '@/api/erp/saltprocess/equipment-system/template';
 import type { SubsystemTemplateDetailVO } from '@/api/erp/subsystem/types';
 import { parseTime } from '@/utils/ruoyi';
 import ItemTemplateManagement from './ItemTemplateManagement.vue';
@@ -81,9 +82,13 @@ import ItemTemplateManagement from './ItemTemplateManagement.vue';
 // Props
 interface Props {
   templateId: string | number;
+  /** 是否使用设备系统模式的API（用于设备系统模版详情页面） */
+  useEquipmentSystemApi?: boolean;
 }
 
-const props = defineProps<Props>();
+const props = withDefaults(defineProps<Props>(), {
+  useEquipmentSystemApi: false
+});
 
 // Emits
 const emit = defineEmits<{
@@ -103,7 +108,10 @@ onMounted(() => {
 const getDetail = async () => {
   loading.value = true;
   try {
-    const res = await getSubsystemTemplate(props.templateId);
+    // 根据模式选择不同的API
+    const res = props.useEquipmentSystemApi
+      ? await getSubsystemTemplateDetail(props.templateId)
+      : await getSubsystemTemplate(props.templateId);
     templateInfo.value = res.data;
   } catch (error) {
     console.error('获取模板详情失败:', error);
