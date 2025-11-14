@@ -161,8 +161,9 @@ export default defineComponent({
     <el-dialog
       title="编辑子系统"
       v-model="editDialog.visible"
-      width="600px"
+      width="800px"
       append-to-body
+      destroy-on-close
     >
       <el-form
         ref="editFormRef"
@@ -170,19 +171,49 @@ export default defineComponent({
         :rules="editRules"
         label-width="100px"
       >
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="子系统名称" prop="subsystemName">
+              <el-input v-model="editForm.subsystemName" placeholder="请输入子系统名称" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="分类" prop="category">
+              <el-input v-model="editForm.category" placeholder="请输入分类" />
+            </el-form-item>
+          </el-col>
+        </el-row>
+
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="子系统类型" prop="subsystemType">
+              <el-input v-model="editForm.subsystemType" placeholder="请输入子系统类型" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="状态" prop="status">
+              <el-select v-model="editForm.status" placeholder="请选择状态" style="width: 100%">
+                <el-option label="草稿" value="DRAFT" />
+                <el-option label="启用" value="ACTIVE" />
+                <el-option label="停用" value="INACTIVE" />
+              </el-select>
+            </el-form-item>
+          </el-col>
+        </el-row>
+
+        <el-form-item label="描述" prop="description">
+          <el-input v-model="editForm.description" type="textarea" :rows="2" placeholder="请输入描述" />
+        </el-form-item>
+
         <el-form-item label="备注" prop="remarks">
-          <el-input
-            v-model="editForm.remarks"
-            type="textarea"
-            :rows="4"
-            placeholder="请输入备注信息"
-          />
+          <el-input v-model="editForm.remarks" type="textarea" :rows="2" placeholder="请输入备注" />
         </el-form-item>
       </el-form>
-      <template #footer>
+
+      <div class="dialog-footer" style="text-align: right; margin-top: 20px">
         <el-button @click="editDialog.visible = false">取消</el-button>
-        <el-button type="primary" :loading="editDialog.loading" @click="submitEdit">确定</el-button>
-      </template>
+        <el-button type="primary" @click="submitEdit" :loading="editDialog.loading">确定</el-button>
+      </div>
     </el-dialog>
   </div>
 </template>
@@ -190,11 +221,9 @@ export default defineComponent({
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import type { FormInstance, FormRules } from 'element-plus';
 import { Menu } from '@element-plus/icons-vue';
-import type { SubsystemTemplateForm } from '@/api/erp/saltprocess/equipment-system/types';
-import { getEquipmentSystemTemplate, updateEquipmentSystemTemplate } from '@/api/erp/saltprocess/equipment-system/template';
-import { getSubsystemTemplate } from '@/api/erp/subsystem/template';
+import type { SubsystemTemplateForm, SubsystemTemplateUpdateForm } from '@/api/erp/saltprocess/equipment-system/types';
+import { getEquipmentSystemTemplate, updateEquipmentSystemTemplate, updateSubsystemTemplate } from '@/api/erp/saltprocess/equipment-system/template';
 import { parseTime } from '@/utils/ruoyi';
 import SubsystemTemplateSelector from './SubsystemTemplateSelector.vue';
 import SubsystemTemplateDetail from '@/views/erp/subsystem/template/components/SubsystemTemplateDetail.vue';
@@ -234,13 +263,45 @@ const editDialog = ref({
   loading: false
 });
 
-const editFormRef = ref<FormInstance>();
-const editForm = ref({
+const editFormRef = ref();
+const editForm = ref<{
+  id: string | number;
+  index: number;
+  subsystemName: string;
+  category: string;
+  subsystemType: string;
+  description: string;
+  status: string;
+  remarks: string;
+}>({
+  id: '',
   index: -1,
+  subsystemName: '',
+  category: '',
+  subsystemType: '',
+  description: '',
+  status: '',
   remarks: ''
 });
 
-const editRules: FormRules = {};
+const editRules = {
+  subsystemName: [
+    { required: true, message: '请输入子系统名称', trigger: 'blur' },
+    { max: 100, message: '子系统名称长度不能超过100个字符', trigger: 'blur' }
+  ],
+  category: [
+    { max: 50, message: '分类长度不能超过50个字符', trigger: 'blur' }
+  ],
+  subsystemType: [
+    { max: 50, message: '子系统类型长度不能超过50个字符', trigger: 'blur' }
+  ],
+  description: [
+    { max: 500, message: '描述长度不能超过500个字符', trigger: 'blur' }
+  ],
+  remarks: [
+    { max: 500, message: '备注长度不能超过500个字符', trigger: 'blur' }
+  ]
+};
 
 // 计算已添加的子系统模板ID列表
 const existingTemplateIds = computed(() => {
@@ -477,8 +538,21 @@ const handleViewSubsystem = (row: SubsystemTemplateForm & { mode?: string; refer
 
 // 编辑子系统
 const handleEditSubsystem = (row: SubsystemTemplateForm & { mode?: string }, index: number) => {
+  // 检查是否有ID
+  if (!row.id) {
+    ElMessage.warning('该子系统没有ID，无法编辑');
+    return;
+  }
+
+  // 填充表单数据（保持ID为字符串格式，避免雪花算法ID精度丢失）
   editForm.value = {
+    id: row.id,  // 直接使用原始ID，不进行Number()转换
     index: index,
+    subsystemName: row.subsystemName || '',
+    category: row.category || '',
+    subsystemType: row.subsystemType || '',
+    description: row.description || '',
+    status: row.status || '',
     remarks: row.remarks || ''
   };
   editDialog.value.visible = true;
@@ -491,19 +565,17 @@ const submitEdit = async () => {
 
     editDialog.value.loading = true;
 
-    // 更新列表中的数据
-    const newList = [...subsystemList.value];
-    newList[editForm.value.index] = {
-      ...newList[editForm.value.index],
-      remarks: editForm.value.remarks
-    };
+    // 构建提交数据（移除index字段）
+    const { index, ...submitData } = editForm.value;
 
-    // 保存到后端
-    await saveSubsystems(newList);
+    // 调用子系统模板修改接口
+    await updateSubsystemTemplate(submitData as SubsystemTemplateUpdateForm);
 
     ElMessage.success('编辑成功');
     editDialog.value.visible = false;
-    loadSubsystemList();
+
+    // 刷新列表
+    await loadSubsystemList();
     emit('refresh');
   } catch (error: any) {
     if (error !== false) {

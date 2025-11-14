@@ -9,6 +9,7 @@ import {
   EquipmentSystemTemplateVO,
   EquipmentSystemTemplateForm,
   EquipmentSystemTemplateDetailVO,
+  SubsystemTemplateUpdateForm,
   PageResult
 } from './types';
 
@@ -167,6 +168,18 @@ export const getSubsystemTemplateDetail = (id: string | number): AxiosPromise<an
   return request({
     url: `/erp/saltprocess/equipmentSystemTemplate/subsystemTemplate/${id}`,
     method: 'get'
+  });
+};
+
+/**
+ * 修改子系统模版基本信息
+ * @param data 子系统模版修改表单数据
+ */
+export const updateSubsystemTemplate = (data: SubsystemTemplateUpdateForm): AxiosPromise<void> => {
+  return request({
+    url: '/erp/saltprocess/equipmentSystemTemplate/subsystem',
+    method: 'put',
+    data
   });
 };
 
