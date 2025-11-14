@@ -248,7 +248,7 @@ const handleRowClick = (row: SubsystemTemplateVO) => {
 
 // 新增
 const handleAdd = () => {
-  dialog.title = '新增模板';
+  dialog.title = '新增子系统模板';
   dialog.templateId = '';
   dialog.visible = true;
 };
