@@ -173,7 +173,7 @@
     </el-dialog>
 
     <!-- 模板详情对话框 -->
-    <el-dialog title="模板详情" v-model="detailDialog.visible" width="1400px" append-to-body>
+    <el-dialog title="设备系统模版详情" v-model="detailDialog.visible" width="1400px" append-to-body>
       <equipment-system-template-detail v-if="detailDialog.visible" :template-id="detailDialog.templateId" @close="detailDialog.visible = false" />
     </el-dialog>
   </div>

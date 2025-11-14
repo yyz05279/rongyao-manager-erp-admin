@@ -158,3 +158,15 @@ export const archiveEquipmentSystemTemplate = (id: string | number): AxiosPromis
   });
 };
 
+/**
+ * 获取子系统模版详情（用于设备系统模版详情页面）
+ * @param id 子系统模版ID
+ * @returns 子系统模版详情数据（包含子项列表）
+ */
+export const getSubsystemTemplateDetail = (id: string | number): AxiosPromise<any> => {
+  return request({
+    url: `/erp/saltprocess/equipmentSystemTemplate/subsystemTemplate/${id}`,
+    method: 'get'
+  });
+};
+

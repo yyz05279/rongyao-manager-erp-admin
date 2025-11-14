@@ -48,13 +48,6 @@ export default defineComponent({
       >
         <el-table-column type="selection" width="55" align="center" />
         <el-table-column type="index" label="序号" width="60" align="center" />
-        <el-table-column label="添加方式" width="100" align="center">
-          <template #default="scope">
-            <el-tag :type="scope.row.mode === 'reference' ? 'success' : 'info'" size="small">
-              {{ scope.row.mode === 'reference' ? '引用模板' : '新建模板' }}
-            </el-tag>
-          </template>
-        </el-table-column>
         <el-table-column label="子系统名称" min-width="200" show-overflow-tooltip>
           <template #default="scope">
             {{ getSubsystemDisplayName(scope.row) }}
@@ -67,8 +60,14 @@ export default defineComponent({
         </el-table-column>
         <el-table-column prop="sequenceNumber" label="排序号" width="100" align="center" />
         <el-table-column prop="remarks" label="备注" min-width="150" show-overflow-tooltip />
-        <el-table-column label="操作" align="center" width="120" fixed="right">
+        <el-table-column label="操作" align="center" width="200" fixed="right">
           <template #default="scope">
+            <el-tooltip content="查看详情" placement="top">
+              <el-button link type="primary" icon="View" @click="handleViewSubsystem(scope.row)" />
+            </el-tooltip>
+            <el-tooltip content="编辑" placement="top">
+              <el-button link type="primary" icon="Edit" @click="handleEditSubsystem(scope.row, scope.$index)" />
+            </el-tooltip>
             <el-tooltip content="删除" placement="top">
               <el-button link type="danger" icon="Delete" @click="handleDelete(scope.$index)" />
             </el-tooltip>
@@ -83,17 +82,134 @@ export default defineComponent({
       :existing-template-ids="existingTemplateIds"
       @confirm="handleSubsystemConfirm"
     />
+
+    <!-- 子系统详情对话框（引用模式） -->
+    <el-dialog
+      v-if="viewDialog.mode === 'reference'"
+      :title="`子系统模版详情 - ${viewDialog.subsystemName}`"
+      v-model="viewDialog.visible"
+      width="1200px"
+      append-to-body
+      destroy-on-close
+    >
+      <subsystem-template-detail
+        v-if="viewDialog.visible && viewDialog.subsystemId"
+        :template-id="viewDialog.subsystemId"
+        :use-equipment-system-api="true"
+      />
+      <template #footer>
+        <el-button @click="viewDialog.visible = false">关闭</el-button>
+      </template>
+    </el-dialog>
+
+    <!-- 子系统详情对话框（新建模式） -->
+    <el-dialog
+      v-if="viewDialog.mode === 'create'"
+      :title="`子系统详情 - ${viewDialog.subsystemName}`"
+      v-model="viewDialog.visible"
+      width="800px"
+      append-to-body
+    >
+      <el-descriptions :column="2" border v-if="viewDialog.subsystemData">
+        <el-descriptions-item label="子系统名称">
+          {{ viewDialog.subsystemData.subsystemName }}
+        </el-descriptions-item>
+        <el-descriptions-item label="子系统类型">
+          {{ getSubsystemTypeText(viewDialog.subsystemData.subsystemType) }}
+        </el-descriptions-item>
+        <el-descriptions-item label="分类">
+          {{ viewDialog.subsystemData.category || '-' }}
+        </el-descriptions-item>
+        <el-descriptions-item label="规格型号">
+          {{ viewDialog.subsystemData.specification || '-' }}
+        </el-descriptions-item>
+        <el-descriptions-item label="型号">
+          {{ viewDialog.subsystemData.model || '-' }}
+        </el-descriptions-item>
+        <el-descriptions-item label="制造商">
+          {{ viewDialog.subsystemData.manufacturer || '-' }}
+        </el-descriptions-item>
+        <el-descriptions-item label="子项数量">
+          <el-tag type="success" size="small">{{ viewDialog.subsystemData.itemCount || 0 }}</el-tag>
+        </el-descriptions-item>
+        <el-descriptions-item label="物料数量">
+          <el-tag type="warning" size="small">{{ viewDialog.subsystemData.materialCount || 0 }}</el-tag>
+        </el-descriptions-item>
+        <el-descriptions-item label="预估重量">
+          {{ viewDialog.subsystemData.estimatedWeight ? `${viewDialog.subsystemData.estimatedWeight} kg` : '-' }}
+        </el-descriptions-item>
+        <el-descriptions-item label="排序号">
+          {{ viewDialog.subsystemData.sequenceNumber || '-' }}
+        </el-descriptions-item>
+        <el-descriptions-item label="状态">
+          <el-tag :type="getStatusTagType(viewDialog.subsystemData.status)" size="small">
+            {{ getStatusText(viewDialog.subsystemData.status) }}
+          </el-tag>
+        </el-descriptions-item>
+        <el-descriptions-item label="创建时间">
+          {{ parseTime(viewDialog.subsystemData.createTime) }}
+        </el-descriptions-item>
+        <el-descriptions-item label="描述" :span="2">
+          {{ viewDialog.subsystemData.description || '-' }}
+        </el-descriptions-item>
+        <el-descriptions-item label="备注" :span="2">
+          {{ viewDialog.subsystemData.remarks || '-' }}
+        </el-descriptions-item>
+      </el-descriptions>
+      <template #footer>
+        <el-button @click="viewDialog.visible = false">关闭</el-button>
+      </template>
+    </el-dialog>
+
+    <!-- 编辑子系统对话框 -->
+    <el-dialog
+      title="编辑子系统"
+      v-model="editDialog.visible"
+      width="600px"
+      append-to-body
+    >
+      <el-form
+        ref="editFormRef"
+        :model="editForm"
+        :rules="editRules"
+        label-width="100px"
+      >
+        <el-form-item label="排序号" prop="sequenceNumber">
+          <el-input-number
+            v-model="editForm.sequenceNumber"
+            :min="1"
+            :step="1"
+            style="width: 100%"
+          />
+        </el-form-item>
+        <el-form-item label="备注" prop="remarks">
+          <el-input
+            v-model="editForm.remarks"
+            type="textarea"
+            :rows="4"
+            placeholder="请输入备注信息"
+          />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="editDialog.visible = false">取消</el-button>
+        <el-button type="primary" :loading="editDialog.loading" @click="submitEdit">确定</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
+import type { FormInstance, FormRules } from 'element-plus';
 import { Menu } from '@element-plus/icons-vue';
 import type { SubsystemTemplateForm } from '@/api/erp/saltprocess/equipment-system/types';
 import { getEquipmentSystemTemplate, updateEquipmentSystemTemplate } from '@/api/erp/saltprocess/equipment-system/template';
 import { getSubsystemTemplate } from '@/api/erp/subsystem/template';
+import { parseTime } from '@/utils/ruoyi';
 import SubsystemTemplateSelector from './SubsystemTemplateSelector.vue';
+import SubsystemTemplateDetail from '@/views/erp/subsystem/template/components/SubsystemTemplateDetail.vue';
 
 // Props
 interface Props {
@@ -112,6 +228,34 @@ const loading = ref(false);
 const subsystemFormVisible = ref(false);
 const subsystemList = ref<Array<SubsystemTemplateForm & { mode?: string }>>([]);
 const selectedSubsystems = ref<Array<SubsystemTemplateForm & { mode?: string }>>([]);
+
+// 查看详情对话框
+const viewDialog = ref({
+  visible: false,
+  mode: '' as 'reference' | 'create' | '',
+  subsystemId: null as string | number | null,
+  subsystemName: '',
+  subsystemData: null as any
+});
+
+// 编辑对话框
+const editDialog = ref({
+  visible: false,
+  loading: false
+});
+
+const editFormRef = ref<FormInstance>();
+const editForm = ref({
+  index: -1,
+  sequenceNumber: 1,
+  remarks: ''
+});
+
+const editRules: FormRules = {
+  sequenceNumber: [
+    { required: true, message: '请输入排序号', trigger: 'blur' }
+  ]
+};
 
 // 计算已添加的子系统模板ID列表
 const existingTemplateIds = computed(() => {
@@ -191,6 +335,28 @@ const getSubsystemTypeText = (type?: string): string => {
     PIPELINE: '管路设备'
   };
   return type ? typeMap[type] || type : '-';
+};
+
+// 获取状态标签类型
+const getStatusTagType = (status?: string): string => {
+  const typeMap: Record<string, string> = {
+    DRAFT: 'info',
+    ACTIVE: 'success',
+    INACTIVE: 'warning',
+    ARCHIVED: 'danger'
+  };
+  return typeMap[status || ''] || 'info';
+};
+
+// 获取状态文本
+const getStatusText = (status?: string): string => {
+  const textMap: Record<string, string> = {
+    DRAFT: '草稿',
+    ACTIVE: '启用',
+    INACTIVE: '停用',
+    ARCHIVED: '归档'
+  };
+  return textMap[status || ''] || status || '-';
 };
 
 // 选择变化
@@ -293,6 +459,69 @@ const saveSubsystems = async (newList: Array<SubsystemTemplateForm & { mode?: st
     ...templateData,
     subsystemTemplates: submitData
   });
+};
+
+// 查看子系统详情
+const handleViewSubsystem = (row: SubsystemTemplateForm & { mode?: string; referenceTemplateName?: string }) => {
+  // 检查是否有 referenceTemplateId
+  if (row.referenceTemplateId) {
+    // 引用模式：显示引用的子系统模板详情
+    // API调用将在SubsystemTemplateDetail组件内部完成
+    viewDialog.value.mode = 'reference';
+    viewDialog.value.subsystemId = row.referenceTemplateId;
+    viewDialog.value.subsystemName = row.referenceTemplateName || row.subsystemName || `ID: ${row.referenceTemplateId}`;
+    viewDialog.value.subsystemData = null;
+    viewDialog.value.visible = true;
+  } else {
+    // 新建模式：显示子系统基本信息
+    viewDialog.value.mode = 'create';
+    viewDialog.value.subsystemId = null;
+    viewDialog.value.subsystemName = row.subsystemName || '未命名';
+    viewDialog.value.subsystemData = row;
+    viewDialog.value.visible = true;
+  }
+};
+
+// 编辑子系统
+const handleEditSubsystem = (row: SubsystemTemplateForm & { mode?: string }, index: number) => {
+  editForm.value = {
+    index: index,
+    sequenceNumber: row.sequenceNumber || 1,
+    remarks: row.remarks || ''
+  };
+  editDialog.value.visible = true;
+};
+
+// 提交编辑
+const submitEdit = async () => {
+  try {
+    await editFormRef.value?.validate();
+
+    editDialog.value.loading = true;
+
+    // 更新列表中的数据
+    const newList = [...subsystemList.value];
+    newList[editForm.value.index] = {
+      ...newList[editForm.value.index],
+      sequenceNumber: editForm.value.sequenceNumber,
+      remarks: editForm.value.remarks
+    };
+
+    // 保存到后端
+    await saveSubsystems(newList);
+
+    ElMessage.success('编辑成功');
+    editDialog.value.visible = false;
+    loadSubsystemList();
+    emit('refresh');
+  } catch (error: any) {
+    if (error !== false) {
+      console.error('编辑子系统失败:', error);
+      ElMessage.error('编辑失败');
+    }
+  } finally {
+    editDialog.value.loading = false;
+  }
 };
 </script>
 
