@@ -10,6 +10,8 @@ import {
   EquipmentSystemTemplateForm,
   EquipmentSystemTemplateDetailVO,
   SubsystemTemplateUpdateForm,
+  ItemTemplateForm,
+  ItemTemplateVO,
   PageResult
 } from './types';
 
@@ -255,3 +257,58 @@ export const addEquipmentSystemItemMaterialFromBase = (
   });
 };
 
+// ==================== 子项模板管理接口 ====================
+
+/**
+ * 新增设备系统模版关联的子项数据
+ * @param subsystemTemplateId 子系统模版ID
+ * @param data 子项模板表单数据
+ * @returns Promise<void>
+ */
+export const addSubsystemItem = (
+  subsystemTemplateId: string | number,
+  data: ItemTemplateForm[]
+): AxiosPromise<void> => {
+  return request({
+    url: `/erp/saltprocess/equipmentSystemTemplate/subsystem/${subsystemTemplateId}/items`,
+    method: 'post',
+    data
+  });
+};
+
+/**
+ * 编辑设备系统模版关联的子项数据
+ * @param subsystemTemplateId 子系统模版ID
+ * @param id 子项模板ID
+ * @param data 子项模板表单数据
+ * @returns Promise<void>
+ */
+export const updateSubsystemItem = (
+  subsystemTemplateId: string | number,
+  id: string | number,
+  data: ItemTemplateForm
+): AxiosPromise<void> => {
+  return request({
+    url: `/erp/saltprocess/equipmentSystemTemplate/subsystem/${subsystemTemplateId}/items/${id}`,
+    method: 'put',
+    data
+  });
+};
+
+/**
+ * 删除设备系统模版关联的子项数据（支持批量删除）
+ * @param subsystemTemplateId 子系统模版ID
+ * @param ids 子项模板ID数组（逗号分隔）
+ * @returns Promise<void>
+ */
+export const removeSubsystemItems = (
+  subsystemTemplateId: string | number,
+  ids: string | number | Array<string | number>
+): AxiosPromise<void> => {
+  // 处理数组格式，转换为逗号分隔的字符串
+  const idsStr = Array.isArray(ids) ? ids.join(',') : ids;
+  return request({
+    url: `/erp/saltprocess/equipmentSystemTemplate/subsystem/${subsystemTemplateId}/items/${idsStr}`,
+    method: 'delete'
+  });
+};
