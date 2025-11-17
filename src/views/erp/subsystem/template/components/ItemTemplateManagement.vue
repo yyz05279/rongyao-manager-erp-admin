@@ -49,18 +49,18 @@ export default defineComponent({
         style="width: 100%"
       >
         <el-table-column type="selection" width="55" align="center" />
-        <el-table-column label="子项编号" prop="templateCode" width="180" show-overflow-tooltip />
+        <el-table-column label="子项编号" prop="itemCode" width="220" show-overflow-tooltip />
         <el-table-column label="子项名称" prop="itemName" width="200" show-overflow-tooltip />
-        <el-table-column label="子项类型" prop="itemType" width="150" align="center" />
-        <el-table-column label="默认数量" prop="defaultQuantity" width="120" align="center" />
-        <el-table-column label="单位" prop="unit" width="100" align="center" />
-        <el-table-column label="是否必需" prop="isRequired" width="120" align="center">
+        <!-- <el-table-column label="子项类型" prop="itemType" width="150" align="center" /> -->
+        <el-table-column label="数量" prop="quantity" width="150" align="center" />
+        <el-table-column label="单位" prop="unit" width="130" align="center" />
+        <el-table-column label="是否必需" prop="isRequired" width="140" align="center">
           <template #default="scope">
             <el-tag v-if="scope.row.isRequired" type="success" size="small">是</el-tag>
             <el-tag v-else type="info" size="small">否</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="排序号" prop="sequenceNumber" width="100" align="center" />
+        <!-- <el-table-column label="排序号" prop="sequenceNumber" width="100" align="center" /> -->
         <el-table-column label="操作" align="center" width="180" fixed="right">
           <template #default="scope">
             <el-tooltip content="查看物料" placement="top">
@@ -291,6 +291,7 @@ import {
   removeItemFromTemplate,
   addItemToTemplate
 } from '@/api/erp/subsystem/template';
+import { getEquipmentSystemSubsystemItems } from '@/api/erp/saltprocess/equipment-system/template';
 import {
   listMaterialTemplateByItemId,
   addMaterialTemplate,
@@ -428,7 +429,10 @@ const loadItemList = async () => {
   // 如果没有传递数据(undefined),则调用API获取
   loading.value = true;
   try {
-    const response = await getTemplateItems(props.templateId);
+    // 根据模式选择不同的API
+    const response = props.useEquipmentSystemApi
+      ? await getEquipmentSystemSubsystemItems(props.templateId)
+      : await getTemplateItems(props.templateId);
     itemList.value = response.data || [];
   } catch (error) {
     console.error('加载子项列表失败:', error);
