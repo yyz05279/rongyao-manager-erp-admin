@@ -205,3 +205,53 @@ export const getEquipmentSystemItemMaterials = (itemTemplateId: string | number)
   });
 };
 
+/**
+ * 编辑设备系统模版关联的物料数据
+ * @param itemTemplateId 子项模版ID
+ * @param materialId 物料模板ID
+ * @param data 物料模板数据
+ */
+export const updateEquipmentSystemItemMaterial = (
+  itemTemplateId: string | number,
+  materialId: string | number,
+  data: any
+): AxiosPromise<void> => {
+  return request({
+    url: `/erp/saltprocess/equipmentSystemTemplate/item/${itemTemplateId}/materials/${materialId}`,
+    method: 'put',
+    data
+  });
+};
+
+/**
+ * 删除设备系统模版关联的物料数据（支持批量删除）
+ * @param itemTemplateId 子项模版ID
+ * @param materialIds 物料模板ID数组（逗号分隔）
+ */
+export const deleteEquipmentSystemItemMaterials = (
+  itemTemplateId: string | number,
+  materialIds: string | number | Array<string | number>
+): AxiosPromise<void> => {
+  // 处理数组格式，转换为逗号分隔的字符串
+  const ids = Array.isArray(materialIds) ? materialIds.join(',') : materialIds;
+  return request({
+    url: `/erp/saltprocess/equipmentSystemTemplate/item/${itemTemplateId}/materials/${ids}`,
+    method: 'delete'
+  });
+};
+
+/**
+ * 从基础物料库复制新增物料模板
+ * @param itemTemplateId 子项模版ID
+ * @param materialId 基础物料ID
+ */
+export const addEquipmentSystemItemMaterialFromBase = (
+  itemTemplateId: string | number,
+  materialId: string | number
+): AxiosPromise<void> => {
+  return request({
+    url: `/erp/saltprocess/equipmentSystemTemplate/item/${itemTemplateId}/materials/from-base/${materialId}`,
+    method: 'post'
+  });
+};
+

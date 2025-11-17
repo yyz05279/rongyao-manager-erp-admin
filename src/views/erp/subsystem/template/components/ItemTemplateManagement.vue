@@ -78,7 +78,7 @@ export default defineComponent({
     </el-card>
 
     <!-- 物料详情对话框 -->
-    <el-dialog :title="`物料列表 (${selectedItemName})`" v-model="materialDetailDialog.visible" width="1000px" append-to-body>
+    <el-dialog :title="`物料列表 (${selectedItemName})`" v-model="materialDetailDialog.visible" width="1200px" append-to-body>
       <div class="mb-3">
         <el-button type="primary" icon="Plus" @click="handleAddMaterialInDialog" v-hasPermi="['erp:subsystem:template:add']">
           添加物料
@@ -89,15 +89,18 @@ export default defineComponent({
         :data="materialList"
         style="width: 100%"
       >
-        <el-table-column label="物料编码" prop="materialCode" width="200" show-overflow-tooltip />
-        <el-table-column label="物料名称" prop="materialName" min-width="200" show-overflow-tooltip />
-        <el-table-column label="规格型号" prop="specifications" width="200" show-overflow-tooltip />
-        <el-table-column label="默认数量" prop="quantity" width="120" align="center" />
-        <el-table-column label="单位" prop="unit" width="80" align="center" />
-        <el-table-column label="是否必需" prop="isRequired" width="100" align="center">
+        <el-table-column label="物料模板编码" prop="templateCode" width="150" show-overflow-tooltip v-if="useEquipmentSystemApi" />
+        <el-table-column label="物料编码" prop="materialCode" width="150" show-overflow-tooltip />
+        <el-table-column label="物料名称" prop="materialName" min-width="180" show-overflow-tooltip />
+        <el-table-column label="规格型号" prop="specification" width="150" show-overflow-tooltip />
+        <el-table-column label="物料类型" prop="materialType" width="120" show-overflow-tooltip v-if="useEquipmentSystemApi" />
+        <el-table-column label="默认数量" prop="defaultQuantity" width="100" align="center" />
+        <el-table-column label="单位" prop="defaultUnit" width="80" align="center" />
+        <el-table-column label="制造商" prop="manufacturer" width="120" show-overflow-tooltip v-if="useEquipmentSystemApi" />
+        <el-table-column label="状态" prop="status" width="80" align="center" v-if="useEquipmentSystemApi">
           <template #default="scope">
-            <el-tag v-if="scope.row.isRequired" type="success" size="small">是</el-tag>
-            <el-tag v-else type="info" size="small">否</el-tag>
+            <el-tag v-if="scope.row.status === 'ACTIVE'" type="success" size="small">激活</el-tag>
+            <el-tag v-else type="info" size="small">停用</el-tag>
           </template>
         </el-table-column>
         <el-table-column label="备注" prop="remarks" min-width="150" show-overflow-tooltip />
@@ -249,25 +252,131 @@ export default defineComponent({
     />
 
     <!-- 物料编辑对话框 -->
-    <el-dialog title="编辑物料" v-model="materialEditDialog.visible" width="600px" append-to-body>
-      <el-form ref="materialFormRef" :model="materialForm" :rules="materialRules" label-width="100px">
-        <el-form-item label="物料名称">
-          <el-input :value="materialForm.materialName" disabled />
-        </el-form-item>
+    <el-dialog title="编辑物料" v-model="materialEditDialog.visible" width="800px" append-to-body>
+      <el-form ref="materialFormRef" :model="materialForm" :rules="materialRules" label-width="120px">
+        <!-- 基本信息 -->
+        <el-divider content-position="left">基本信息</el-divider>
         <el-row :gutter="20">
           <el-col :span="12">
-            <el-form-item label="默认数量" prop="defaultQuantity">
-              <el-input-number v-model="materialForm.defaultQuantity" :min="0" :step="1" style="width: 100%" />
+            <el-form-item label="物料模板编码" prop="templateCode">
+              <el-input v-model="materialForm.templateCode" placeholder="请输入物料模板编码" maxlength="50" />
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="是否必需" prop="isRequired">
-              <el-switch v-model="materialForm.isRequired" active-text="是" inactive-text="否" />
+            <el-form-item label="物料编码" prop="materialCode">
+              <el-input v-model="materialForm.materialCode" placeholder="请输入物料编码" maxlength="50" />
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="物料名称" prop="materialName">
+              <el-input v-model="materialForm.materialName" placeholder="请输入物料名称" maxlength="200" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="规格型号" prop="specification">
+              <el-input v-model="materialForm.specification" placeholder="请输入规格型号" />
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="物料类型" prop="materialType">
+              <el-input v-model="materialForm.materialType" placeholder="请输入物料类型" maxlength="50" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="物料类别" prop="materialCategory">
+              <el-input v-model="materialForm.materialCategory" placeholder="请输入物料类别" maxlength="50" />
+            </el-form-item>
+          </el-col>
+        </el-row>
+
+        <!-- 数量和单位 -->
+        <el-divider content-position="left">数量和单位</el-divider>
+        <el-row :gutter="20">
+          <el-col :span="8">
+            <el-form-item label="默认数量" prop="defaultQuantity">
+              <el-input-number v-model="materialForm.defaultQuantity" :min="1" :step="1" style="width: 100%" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="8">
+            <el-form-item label="默认单位" prop="defaultUnit">
+              <el-input v-model="materialForm.defaultUnit" placeholder="请输入单位" maxlength="20" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="8">
+            <el-form-item label="预估单重(kg)" prop="estimatedUnitWeight">
+              <el-input-number v-model="materialForm.estimatedUnitWeight" :min="0" :precision="2" :step="0.01" style="width: 100%" />
+            </el-form-item>
+          </el-col>
+        </el-row>
+
+        <!-- 制造商信息 -->
+        <el-divider content-position="left">制造商信息</el-divider>
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="制造商" prop="manufacturer">
+              <el-input v-model="materialForm.manufacturer" placeholder="请输入制造商" maxlength="100" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="型号" prop="model">
+              <el-input v-model="materialForm.model" placeholder="请输入型号" maxlength="100" />
+            </el-form-item>
+          </el-col>
+        </el-row>
+
+        <!-- 包装和存储 -->
+        <el-divider content-position="left">包装和存储</el-divider>
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="包装方式" prop="packageType">
+              <el-input v-model="materialForm.packageType" placeholder="请输入包装方式" maxlength="50" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="存储要求" prop="storageRequirement">
+              <el-input v-model="materialForm.storageRequirement" placeholder="请输入存储要求" maxlength="200" />
+            </el-form-item>
+          </el-col>
+        </el-row>
+
+        <!-- 属性标识 -->
+        <el-divider content-position="left">属性标识</el-divider>
+        <el-row :gutter="20">
+          <el-col :span="8">
+            <el-form-item label="是否易碎" prop="isFragile">
+              <el-switch v-model="materialForm.isFragile" active-text="是" inactive-text="否" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="8">
+            <el-form-item label="是否危险品" prop="isHazardous">
+              <el-switch v-model="materialForm.isHazardous" active-text="是" inactive-text="否" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="8">
+            <el-form-item label="排序号" prop="sequenceNumber">
+              <el-input-number v-model="materialForm.sequenceNumber" :min="0" :step="1" style="width: 100%" />
+            </el-form-item>
+          </el-col>
+        </el-row>
+
+        <!-- 其他信息 -->
+        <el-divider content-position="left">其他信息</el-divider>
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="状态" prop="status">
+              <el-select v-model="materialForm.status" placeholder="请选择状态" style="width: 100%">
+                <el-option label="激活" value="ACTIVE" />
+                <el-option label="停用" value="INACTIVE" />
+              </el-select>
             </el-form-item>
           </el-col>
         </el-row>
         <el-form-item label="备注" prop="remarks">
-          <el-input v-model="materialForm.remarks" type="textarea" :rows="3" placeholder="请输入备注" />
+          <el-input v-model="materialForm.remarks" type="textarea" :rows="3" placeholder="请输入备注" maxlength="500" />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -293,7 +402,10 @@ import {
 } from '@/api/erp/subsystem/template';
 import {
   getEquipmentSystemSubsystemItems,
-  getEquipmentSystemItemMaterials
+  getEquipmentSystemItemMaterials,
+  updateEquipmentSystemItemMaterial,
+  deleteEquipmentSystemItemMaterials,
+  addEquipmentSystemItemMaterialFromBase
 } from '@/api/erp/saltprocess/equipment-system/template';
 
 import {
@@ -391,17 +503,56 @@ const materialEditDialog = reactive({
   loading: false
 });
 
-const materialForm = reactive<SubsystemMaterialTemplateForm & { materialName?: string }>({
-  templateId: 0,
+// 物料表单类型定义（扩展支持所有字段）
+interface MaterialFormData {
+  id?: string | number;
+  templateId?: string | number;
+  itemTemplateId: string | number;
+  templateCode: string;
+  materialCode?: string;
+  materialName: string;
+  specification?: string;
+  materialType?: string;
+  materialCategory?: string;
+  defaultQuantity: number;
+  defaultUnit?: string;
+  estimatedUnitWeight?: number;
+  manufacturer?: string;
+  model?: string;
+  packageType?: string;
+  isFragile?: boolean;
+  isHazardous?: boolean;
+  storageRequirement?: string;
+  sequenceNumber?: number;
+  status?: string;
+  remarks?: string;
+}
+
+const materialForm = reactive<MaterialFormData>({
   itemTemplateId: 0,
-  materialId: 0,
+  templateCode: '',
+  materialCode: '',
   materialName: '',
+  specification: '',
+  materialType: '',
+  materialCategory: '',
   defaultQuantity: 1,
-  isRequired: true,
+  defaultUnit: '',
+  estimatedUnitWeight: 0,
+  manufacturer: '',
+  model: '',
+  packageType: '',
+  isFragile: false,
+  isHazardous: false,
+  storageRequirement: '',
+  sequenceNumber: 0,
+  status: 'ACTIVE',
   remarks: ''
 });
 
 const materialRules = {
+  templateCode: [{ required: true, message: '请输入物料模板编码', trigger: 'blur' }],
+  materialName: [{ required: true, message: '请输入物料名称', trigger: 'blur' }],
   defaultQuantity: [{ required: true, message: '请输入默认数量', trigger: 'blur' }]
 };
 
@@ -500,8 +651,8 @@ const handleItemSelectionChange = (selection: TemplateItemRelVO[]) => {
 
 // 子项行点击
 const handleItemClick = (row: any) => {
-  // 后端返回的字段名是 itemTemplateId
-  selectedItemId.value = row.itemTemplateId || row.id;
+  // 这里的 row.id 是 erp_salt_item_template 表的主键 ID，是获取物料列表所需的 ID
+  selectedItemId.value = row.id;
   selectedItemName.value = row.itemName;
 };
 
@@ -751,16 +902,28 @@ const handleAddMaterialInDialog = () => {
 // 处理选择的物料
 const handleMaterialsSelected = async (materials: MaterialVO[]) => {
   try {
-    const materialTemplates: SubsystemMaterialTemplateForm[] = materials.map(material => ({
-      templateId: props.templateId,
-      itemTemplateId: selectedItemId.value!,
-      materialId: material.id as number,
-      defaultQuantity: 1,
-      isRequired: true,
-      remarks: ''
-    }));
+    // 根据模式选择不同的API
+    if (props.useEquipmentSystemApi) {
+      // 使用设备系统模版API - 从基础物料库复制
+      const promises = materials.map(material =>
+        addEquipmentSystemItemMaterialFromBase(selectedItemId.value!, material.id as number)
+      );
+      await Promise.all(promises);
+    } else {
+      // 使用子系统模版API - 批量添加
+      const materialTemplates: SubsystemMaterialTemplateForm[] = materials.map(material => ({
+        // 修正：这里的 templateId 应该是子系统模板的 ID，itemTemplateId 才是子项的 ID
+        // 根据 addMaterialTemplateBatch 的定义，需要 templateId 和 itemTemplateId
+        templateId: props.templateId,
+        itemTemplateId: selectedItemId.value!, // selectedItemId 就是当前操作的子项 ID
+        materialId: material.id as number,
+        defaultQuantity: 1,
+        isRequired: true,
+        remarks: ''
+      }));
+      await addMaterialTemplateBatch(materialTemplates);
+    }
 
-    await addMaterialTemplateBatch(materialTemplates);
     ElMessage.success(`成功添加 ${materials.length} 个物料`);
     loadMaterialList();
   } catch (error) {
@@ -772,9 +935,8 @@ const handleMaterialsSelected = async (materials: MaterialVO[]) => {
 // 编辑物料
 const handleEditMaterial = (row: SubsystemMaterialTemplateVO) => {
   resetMaterialForm();
+  // 复制所有字段到表单
   Object.assign(materialForm, row);
-  // ✅ 确保templateId始终为当前子系统模板ID，保证数据隔离
-  materialForm.templateId = props.templateId;
   // ✅ 确保itemTemplateId正确设置
   materialForm.itemTemplateId = selectedItemId.value!;
   materialEditDialog.visible = true;
@@ -789,7 +951,15 @@ const handleDeleteMaterial = async (row: SubsystemMaterialTemplateVO) => {
       type: 'warning'
     });
 
-    await delMaterialTemplate(row.id);
+    // 根据模式选择不同的API
+    if (props.useEquipmentSystemApi) {
+      // 使用设备系统模版API
+      await deleteEquipmentSystemItemMaterials(selectedItemId.value!, row.id);
+    } else {
+      // 使用子系统模版API
+      await delMaterialTemplate(row.id);
+    }
+
     ElMessage.success('删除成功');
     loadMaterialList();
   } catch (error) {
@@ -806,7 +976,20 @@ const submitMaterialEditForm = async () => {
     await materialFormRef.value?.validate();
 
     materialEditDialog.loading = true;
-    await updateMaterialTemplate(materialForm);
+
+    // 根据模式选择不同的API
+    if (props.useEquipmentSystemApi) {
+      // 使用设备系统模版API - 支持修改所有字段
+      await updateEquipmentSystemItemMaterial(
+        selectedItemId.value!,
+        materialForm.id!,
+        materialForm
+      );
+    } else {
+      // 使用子系统模版API - 只支持部分字段
+      await updateMaterialTemplate(materialForm as any);
+    }
+
     ElMessage.success('修改成功');
 
     materialEditDialog.visible = false;
@@ -829,13 +1012,25 @@ const indexMethod = (index: number) => {
 // 重置物料表单
 const resetMaterialForm = () => {
   materialForm.id = undefined;
-  // ✅ 重置时保留关联ID，确保数据隔离
   materialForm.templateId = props.templateId;
   materialForm.itemTemplateId = selectedItemId.value || 0;
-  materialForm.materialId = 0;
+  materialForm.templateCode = '';
+  materialForm.materialCode = '';
   materialForm.materialName = '';
+  materialForm.specification = '';
+  materialForm.materialType = '';
+  materialForm.materialCategory = '';
   materialForm.defaultQuantity = 1;
-  materialForm.isRequired = true;
+  materialForm.defaultUnit = '';
+  materialForm.estimatedUnitWeight = 0;
+  materialForm.manufacturer = '';
+  materialForm.model = '';
+  materialForm.packageType = '';
+  materialForm.isFragile = false;
+  materialForm.isHazardous = false;
+  materialForm.storageRequirement = '';
+  materialForm.sequenceNumber = 0;
+  materialForm.status = 'ACTIVE';
   materialForm.remarks = '';
   materialFormRef.value?.clearValidate();
 };
