@@ -89,10 +89,10 @@ export default defineComponent({
         :data="materialList"
         style="width: 100%"
       >
-        <el-table-column label="物料编码" prop="materialCode" width="150" show-overflow-tooltip />
+        <el-table-column label="物料编码" prop="materialCode" width="200" show-overflow-tooltip />
         <el-table-column label="物料名称" prop="materialName" min-width="200" show-overflow-tooltip />
-        <el-table-column label="规格型号" prop="specification" width="150" show-overflow-tooltip />
-        <el-table-column label="默认数量" prop="defaultQuantity" width="120" align="center" />
+        <el-table-column label="规格型号" prop="specifications" width="200" show-overflow-tooltip />
+        <el-table-column label="默认数量" prop="quantity" width="120" align="center" />
         <el-table-column label="单位" prop="unit" width="80" align="center" />
         <el-table-column label="是否必需" prop="isRequired" width="100" align="center">
           <template #default="scope">
@@ -291,7 +291,11 @@ import {
   removeItemFromTemplate,
   addItemToTemplate
 } from '@/api/erp/subsystem/template';
-import { getEquipmentSystemSubsystemItems } from '@/api/erp/saltprocess/equipment-system/template';
+import {
+  getEquipmentSystemSubsystemItems,
+  getEquipmentSystemItemMaterials
+} from '@/api/erp/saltprocess/equipment-system/template';
+
 import {
   listMaterialTemplateByItemId,
   addMaterialTemplate,
@@ -448,12 +452,13 @@ const loadMaterialList = async () => {
 
   materialLoading.value = true;
   try {
-    // ✅ 修复：传递 templateId 参数，实现数据隔离
-    // 只查询当前子系统中该子项的物料，不查询其他子系统的物料
-    const response = await listMaterialTemplateByItemId(
-      selectedItemId.value,
-      props.templateId // ✅ 传递子系统模板ID，确保数据隔离
-    );
+    // 根据模式选择不同的API
+    const response = props.useEquipmentSystemApi
+      ? await getEquipmentSystemItemMaterials(selectedItemId.value)
+      : await listMaterialTemplateByItemId(
+          selectedItemId.value,
+          props.templateId // ✅ 传递子系统模板ID，确保数据隔离
+        );
 
     // ✅ 后端已经按照 templateId 过滤，直接使用返回的数据
     materialList.value = response.data || [];

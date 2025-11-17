@@ -183,7 +183,6 @@ export const updateSubsystemTemplate = (data: SubsystemTemplateUpdateForm): Axio
   });
 };
 
-
 /**
  * 获取指定子系统模版下的所有子项列表
  * @param subsystemTemplateId 设备系统模版与子系统的关联ID
@@ -191,6 +190,17 @@ export const updateSubsystemTemplate = (data: SubsystemTemplateUpdateForm): Axio
 export const getEquipmentSystemSubsystemItems = (subsystemTemplateId: string | number): AxiosPromise<any[]> => {
   return request({
     url: `/erp/saltprocess/equipmentSystemTemplate/subsystem/${subsystemTemplateId}/items`,
+    method: 'get'
+  });
+};
+
+/**
+ * 获取指定子项模版下的所有物料列表
+ * @param itemTemplateId 设备系统模版与子项的关联ID
+ */
+export const getEquipmentSystemItemMaterials = (itemTemplateId: string | number): AxiosPromise<any[]> => {
+  return request({
+    url: `/erp/saltprocess/equipmentSystemTemplate/item/${itemTemplateId}/materials`,
     method: 'get'
   });
 };
