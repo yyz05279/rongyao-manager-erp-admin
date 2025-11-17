@@ -58,7 +58,7 @@
 
     <!-- 子项和物料模板管理 -->
     <el-card shadow="never" class="detail-card">
-      <item-template-management :template-id="templateId" />
+      <item-template-management :template-id="templateId" :use-equipment-system-api="useEquipmentSystemApi" />
     </el-card>
   </div>
 </template>
