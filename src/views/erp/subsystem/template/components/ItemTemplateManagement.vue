@@ -113,7 +113,7 @@ export default defineComponent({
     </el-dialog>
 
     <!-- 子项表单对话框 -->
-    <el-dialog :title="itemDialog.title" v-model="itemDialog.visible" width="700px" append-to-body>
+    <el-dialog :title="itemDialog.title" v-model="itemDialog.visible" width="1000px" append-to-body destroy-on-close>
       <el-form ref="itemFormRef" :model="itemForm" :rules="itemRules" label-width="100px">
         <el-row :gutter="30">
           <el-col :span="12">
@@ -130,19 +130,12 @@ export default defineComponent({
         <el-row :gutter="20">
           <el-col :span="12">
             <el-form-item label="默认数量" prop="defaultQuantity">
-              <el-input-number v-model="itemForm.defaultQuantity" :min="0" :step="1" style="width: 100%" />
+              <el-input-number v-model="itemForm.defaultQuantity" :min="0" :step="1" controls-position="right" style="width: 100%" />
             </el-form-item>
           </el-col>
-        </el-row>
-        <el-row :gutter="20">
           <el-col :span="12">
             <el-form-item label="单位" prop="unit">
               <el-input v-model="itemForm.unit" placeholder="如：个、台等" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="是否必需" prop="isRequired">
-              <el-switch v-model="itemForm.isRequired" active-text="是" inactive-text="否" />
             </el-form-item>
           </el-col>
         </el-row>
@@ -153,8 +146,8 @@ export default defineComponent({
           <el-input v-model="itemForm.remarks" type="textarea" :rows="2" placeholder="请输入备注" />
         </el-form-item>
 
-        <!-- ✅ 新增：物料配置（必填） -->
-        <el-form-item label="物料配置" prop="materials" v-if="!itemForm.id">
+        <!-- 物料配置（新增和编辑都显示） -->
+        <el-form-item label="物料配置" prop="materials">
           <div style="width: 100%">
             <el-button type="primary" icon="Plus" @click="handleAddItemMaterial" size="small">
               添加物料
@@ -173,16 +166,18 @@ export default defineComponent({
               style="width: 100%; margin-top: 10px"
               border
               size="small"
+              v-loading="editMaterialLoading"
             >
               <el-table-column label="序号" type="index" width="80" align="center" :index="indexMethod" />
               <el-table-column label="物料名称" prop="materialName" min-width="200" show-overflow-tooltip />
-              <el-table-column label="默认数量" prop="defaultQuantity" width="120" align="center">
+              <el-table-column label="默认数量" prop="defaultQuantity" width="150" align="center">
                 <template #default="{ row }">
                   <el-input-number
                     v-model="row.defaultQuantity"
-                    :min="0"
+                    :min="1"
                     :step="1"
                     size="small"
+                    controls-position="right"
                     style="width: 100%"
                   />
                 </template>
@@ -194,7 +189,7 @@ export default defineComponent({
               </el-table-column>
               <el-table-column label="备注" prop="remarks" min-width="150">
                 <template #default="{ row }">
-                  <el-input v-model="row.remarks" placeholder="备注" size="small" />
+                  <el-input v-model="row.remarks" placeholder="请输入备注" size="small" />
                 </template>
               </el-table-column>
               <el-table-column label="操作" width="80" align="center" fixed="right">
@@ -282,7 +277,10 @@ import {
   getEquipmentSystemItemMaterials,
   updateEquipmentSystemItemMaterial,
   deleteEquipmentSystemItemMaterials,
-  addEquipmentSystemItemMaterialFromBase
+  addEquipmentSystemItemMaterialFromBase,
+  addSubsystemItem,
+  updateSubsystemItem,
+  removeSubsystemItems
 } from '@/api/erp/saltprocess/equipment-system/template';
 
 import {
@@ -301,6 +299,7 @@ import type {
   SubsystemMaterialTemplateForm,
   TemplateItemRelVO
 } from '@/api/erp/subsystem/types';
+import type { ItemTemplateForm } from '@/api/erp/saltprocess/equipment-system/types';
 import MaterialSelectorDialog from './MaterialSelectorDialog.vue';
 import ItemTemplateSelectorDialog from './ItemTemplateSelectorDialog.vue';
 
@@ -320,6 +319,7 @@ const props = withDefaults(defineProps<Props>(), {
 // 响应式数据
 const loading = ref(false);
 const materialLoading = ref(false);
+const editMaterialLoading = ref(false); // 编辑子项时加载物料的loading状态
 const itemList = ref<TemplateItemRelVO[]>([]);
 const materialList = ref<SubsystemMaterialTemplateVO[]>([]);
 const selectedItems = ref<TemplateItemRelVO[]>([]); // ✅ 新增：已选中的子项列表
@@ -457,6 +457,114 @@ const loadMaterialList = async () => {
   }
 };
 
+// 加载编辑子项时的物料列表
+const loadEditItemMaterials = async (itemTemplateId: string | number) => {
+  if (!itemTemplateId) return;
+
+  editMaterialLoading.value = true;
+  try {
+    // 根据模式选择不同的API
+    const response = props.useEquipmentSystemApi
+      ? await getEquipmentSystemItemMaterials(itemTemplateId)
+      : await listMaterialTemplateByItemId(
+          itemTemplateId,
+          props.templateId // ✅ 传递子系统模板ID，确保数据隔离
+        );
+
+    // 将物料数据映射到表单的materials字段
+    itemForm.materials = (response.data || []).map((material: any) => ({
+      id: material.id,
+      materialId: material.materialId,
+      materialName: material.materialName,
+      defaultQuantity: material.defaultQuantity || 1,
+      isRequired: material.isRequired ?? true,
+      remarks: material.remarks || ''
+    }));
+  } catch (error) {
+    console.error('加载物料列表失败:', error);
+    ElMessage.error('加载物料列表失败');
+  } finally {
+    editMaterialLoading.value = false;
+  }
+};
+
+// 同步子项物料变更（编辑模式）
+const syncItemMaterialChanges = async (itemTemplateId: string | number, currentMaterials: any[]) => {
+  try {
+    // 重新加载原始物料列表
+    const response = props.useEquipmentSystemApi
+      ? await getEquipmentSystemItemMaterials(itemTemplateId)
+      : await listMaterialTemplateByItemId(itemTemplateId, props.templateId);
+
+    const originalMaterials = response.data || [];
+
+    // 1. 找出需要删除的物料（原有但现在没有的）
+    const materialsToDelete = originalMaterials.filter((original: any) =>
+      !currentMaterials.some(current => current.id === original.id)
+    );
+
+    // 2. 找出需要更新的物料（已存在且有变化的）
+    const materialsToUpdate = currentMaterials.filter(current => current.id);
+
+    // 3. 找出需要新增的物料（没有id的）
+    const materialsToAdd = currentMaterials.filter(current => !current.id);
+
+    // 执行删除操作
+    if (materialsToDelete.length > 0) {
+      const deleteIds = materialsToDelete.map((m: any) => m.id);
+      if (props.useEquipmentSystemApi) {
+        await deleteEquipmentSystemItemMaterials(itemTemplateId, deleteIds);
+      } else {
+        await delMaterialTemplate(deleteIds);
+      }
+    }
+
+    // 执行更新操作
+    for (const material of materialsToUpdate) {
+      if (props.useEquipmentSystemApi) {
+        await updateEquipmentSystemItemMaterial(itemTemplateId, material.id, {
+          defaultQuantity: material.defaultQuantity,
+          isRequired: material.isRequired,
+          remarks: material.remarks
+        });
+      } else {
+        await updateMaterialTemplate({
+          id: material.id,
+          defaultQuantity: material.defaultQuantity,
+          isRequired: material.isRequired,
+          remarks: material.remarks
+        } as any);
+      }
+    }
+
+    // 执行新增操作
+    if (materialsToAdd.length > 0) {
+      if (props.useEquipmentSystemApi) {
+        // 使用设备系统API批量添加物料
+        for (const material of materialsToAdd) {
+          await addEquipmentSystemItemMaterialFromBase(itemTemplateId, material.materialId);
+          // 添加后需要更新数量和备注
+          // 注意：这里需要获取新添加的物料ID，可能需要重新查询
+        }
+      } else {
+        // 使用子系统API批量添加物料
+        const addData = materialsToAdd.map(material => ({
+          templateId: props.templateId,
+          itemTemplateId: itemTemplateId,
+          materialId: material.materialId,
+          defaultQuantity: material.defaultQuantity,
+          isRequired: material.isRequired,
+          remarks: material.remarks
+        }));
+        await addMaterialTemplateBatch(addData);
+      }
+    }
+  } catch (error) {
+    console.error('同步物料变更失败:', error);
+    throw error;
+  }
+};
+
 // 监听items变化
 watch(
   () => props.items,
@@ -502,20 +610,36 @@ const handleItemsSelected = async (items: SubsystemItemTemplateVO[]) => {
   try {
     console.log('开始批量添加子项，选中的子项:', items);
 
-    // ✅ 使用正确的接口：addItemToTemplate（将已存在的子项关联到子系统模板）
-    // ✅ 传递子项模板ID（itemTemplateId），不会创建新子项
-    const promises = items.map(item => {
-      const data = {
-        itemTemplateId: item.id!,  // ✅ 传递已存在子项的ID
-        quantity: item.defaultQuantity || 1,
-        isRequired: item.isRequired ?? true,
-        remarks: item.remarks || ''
-      };
-      console.log(`添加子项[${item.itemName}]到模板，参数:`, data);
-      return addItemToTemplate(props.templateId, data);
-    });
-
-    await Promise.all(promises);
+    // 根据模式调用不同的添加接口
+    if (props.useEquipmentSystemApi) {
+      // 设备系统模板模式：收集所有子项数据，进行一次批量新增调用
+      const itemsToCreate = items.map(item => {
+        return {
+          templateCode: item.itemCode || `COPIED_${item.id}`,
+          itemName: item.itemName,
+          itemType: item.itemType,
+          specification: item.specification,
+          description: item.description,
+          defaultQuantity: item.defaultQuantity,
+          defaultUnit: item.unit,
+          status: 'ACTIVE',
+          remarks: item.remarks
+        } as ItemTemplateForm;
+      });
+      await addSubsystemItem(props.templateId, itemsToCreate);
+    } else {
+      // 原有子系统模板模式：关联已存在的子项
+      const promises = items.map(item => {
+        const data = {
+          itemTemplateId: item.id!,
+          quantity: item.defaultQuantity || 1,
+          isRequired: item.isRequired ?? true,
+          remarks: item.remarks || ''
+        };
+        return addItemToTemplate(props.templateId, data);
+      });
+      await Promise.all(promises);
+    }
     ElMessage.success(`成功添加 ${items.length} 个子项到模板`);
     loadItemList();
   } catch (error) {
@@ -525,13 +649,17 @@ const handleItemsSelected = async (items: SubsystemItemTemplateVO[]) => {
 };
 
 // 编辑子项
-const handleEditItem = (row: any) => {
+const handleEditItem = async (row: any) => {
   resetItemForm();
   // 确保使用正确的字段
   Object.assign(itemForm, {
     ...row,
     id: row.itemTemplateId || row.id
   });
+
+  // 加载该子项的物料列表
+  await loadEditItemMaterials(row.itemTemplateId || row.id);
+
   itemDialog.title = '编辑子项';
   itemDialog.visible = true;
 };
@@ -565,8 +693,13 @@ const handleDeleteItem = async (row: any) => {
       }
     );
 
-    // 调用从模板移除子项的接口，需要传入 templateId 和 itemTemplateId
-    await removeItemFromTemplate(props.templateId, itemTemplateId);
+    // 根据模式调用不同的删除接口
+    if (props.useEquipmentSystemApi) {
+      await removeSubsystemItems(props.templateId, itemTemplateId);
+    } else {
+      // 原有子系统模板模式
+      await removeItemFromTemplate(props.templateId, itemTemplateId);
+    }
     ElMessage.success('移除成功');
     loadItemList();
 
@@ -603,13 +736,17 @@ const handleBatchDelete = async () => {
       }
     );
 
-    // 批量删除
-    const deletePromises = selectedItems.value.map(item => {
-      const itemTemplateId = item.itemTemplateId || item.id;
-      return removeItemFromTemplate(props.templateId, itemTemplateId);
-    });
-
-    await Promise.all(deletePromises);
+    // 根据模式调用不同的批量删除接口
+    if (props.useEquipmentSystemApi) {
+      const ids = selectedItems.value.map(item => item.itemTemplateId || item.id);
+      await removeSubsystemItems(props.templateId, ids);
+    } else {
+      const deletePromises = selectedItems.value.map(item => {
+        const itemTemplateId = item.itemTemplateId || item.id;
+        return removeItemFromTemplate(props.templateId, itemTemplateId);
+      });
+      await Promise.all(deletePromises);
+    }
 
     ElMessage.success(`成功移除 ${selectedItems.value.length} 个子项`);
 
@@ -644,27 +781,55 @@ const submitItemForm = async () => {
   try {
     await itemFormRef.value?.validate();
 
-    // ✅ 新增模式：检查物料是否已添加
-    if (!itemForm.id) {
-      if (!itemForm.materials || itemForm.materials.length === 0) {
-        ElMessage.warning('请至少添加一个物料');
-        return;
-      }
+    // 检查物料是否已添加（新增和编辑都需要）
+    if (!itemForm.materials || itemForm.materials.length === 0) {
+      ElMessage.warning('请至少添加一个物料');
+      return;
     }
 
     itemDialog.loading = true;
-    if (itemForm.id) {
-      // 编辑模式：不传递 materials
-      const { materials, ...updateData } = itemForm;
-      await updateItemTemplate(updateData);
-      ElMessage.success('修改成功');
+    if (props.useEquipmentSystemApi) {
+      // 设备系统模板模式
+      const apiData = {
+        id: itemForm.id,
+        templateCode: itemForm.itemCode || `ITEM_${Date.now()}`,
+        itemName: itemForm.itemName,
+        itemType: itemForm.itemType,
+        description: itemForm.description,
+        defaultQuantity: itemForm.defaultQuantity,
+        defaultUnit: itemForm.unit,
+        status: 'ACTIVE', // 假设默认为ACTIVE
+        remarks: itemForm.remarks
+      };
+
+      if (itemForm.id) {
+        // 编辑
+        await updateSubsystemItem(props.templateId, itemForm.id, apiData as any);
+        ElMessage.success('修改成功');
+      } else {
+        // 新增
+        await addSubsystemItem(props.templateId, [apiData as any]);
+        ElMessage.success('添加成功');
+      }
     } else {
-      // 新增模式：传递完整数据（包含 materials）
-      await addItemTemplate({
-        ...itemForm,
-        templateId: props.templateId
-      });
-      ElMessage.success('添加成功');
+      // 原有子系统模板模式
+      if (itemForm.id) {
+        // 编辑模式：更新子项基本信息，并同步物料变更
+        const { materials, ...updateData } = itemForm;
+        await updateItemTemplate(updateData);
+
+        // 同步物料变更
+        await syncItemMaterialChanges(itemForm.id, itemForm.materials);
+
+        ElMessage.success('修改成功');
+      } else {
+        // 新增模式：传递完整数据（包含 materials）
+        await addItemTemplate({
+          ...itemForm,
+          templateId: props.templateId
+        });
+        ElMessage.success('添加成功');
+      }
     }
 
     itemDialog.visible = false;

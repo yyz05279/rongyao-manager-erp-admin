@@ -264,3 +264,69 @@ export interface ProjectEquipmentSystemDetailVO extends ProjectEquipmentSystemVO
   statistics?: EquipmentSystemStatistics;
 }
 
+// ==================== 子项模板相关类型 ====================
+
+/**
+ * 子项类型枚举
+ */
+export enum ItemType {
+  MAIN = 'MAIN',           // 主要部件
+  FASTENER = 'FASTENER',   // 紧固件
+  ACCESSORY = 'ACCESSORY'  // 附件
+}
+
+/**
+ * 子项模板查询参数
+ */
+export interface ItemTemplateQuery {
+  templateCode?: string;        // 子项模板编码（模糊查询）
+  itemName?: string;            // 子项名称（模糊查询）
+  itemType?: string;            // 子项类型（MAIN/FASTENER/ACCESSORY）
+  status?: string;              // 状态
+  subsystemTemplateId?: number; // 子系统模版ID
+}
+
+/**
+ * 子项模板VO（返回对象）
+ */
+export interface ItemTemplateVO {
+  id: string | number;          // 主键ID
+  subsystemTemplateId: number;  // 子系统模版ID
+  templateCode: string;         // 子项模板编码
+  itemName: string;             // 子项名称
+  itemType?: string;            // 子项类型（MAIN/FASTENER/ACCESSORY）
+  specification?: string;       // 规格型号
+  description?: string;         // 描述
+  defaultQuantity?: number;     // 默认数量
+  defaultUnit?: string;         // 默认单位
+  estimatedUnitWeight?: number; // 预估单重(kg)
+  parentItemTemplateId?: number;// 父子项模板ID（支持子项嵌套）
+  sequenceNumber?: number;      // 排序号
+  status?: string;              // 状态
+  remarks?: string;             // 备注
+  createBy?: number;            // 创建人ID
+  createTime?: string;          // 创建时间
+  updateBy?: number;            // 更新人ID
+  updateTime?: string;          // 更新时间
+}
+
+/**
+ * 子项模板表单数据（用于新增和编辑）
+ */
+export interface ItemTemplateForm {
+  id?: string | number;         // 主键ID（编辑时必填）
+  subsystemTemplateId?: number; // 子系统模版ID（新增时从路径参数自动设置）
+  templateCode: string;         // 子项模板编码（必填，最大长度50）
+  itemName: string;             // 子项名称（必填，最大长度100）
+  itemType?: string;            // 子项类型（MAIN/FASTENER/ACCESSORY，最大长度50）
+  specification?: string;       // 规格型号（最大长度500）
+  description?: string;         // 描述（最大长度500）
+  defaultQuantity?: number;     // 默认数量（最小0.01，最多8位整数2位小数）
+  defaultUnit?: string;         // 默认单位（最大长度20）
+  estimatedUnitWeight?: number; // 预估单重(kg)（最小0，最多10位整数2位小数）
+  parentItemTemplateId?: number;// 父子项模板ID（支持子项嵌套）
+  sequenceNumber?: number;      // 排序号（最小0）
+  status?: string;              // 状态（最大长度20）
+  remarks?: string;             // 备注（最大长度500）
+}
+
