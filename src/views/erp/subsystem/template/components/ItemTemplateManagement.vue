@@ -278,6 +278,7 @@ import {
   updateEquipmentSystemItemMaterial,
   deleteEquipmentSystemItemMaterials,
   addEquipmentSystemItemMaterialFromBase,
+  addEquipmentSystemItemMaterialsFromBaseBatch,
   addSubsystemItem,
   updateSubsystemItem,
   removeSubsystemItems
@@ -634,6 +635,7 @@ const handleItemsSelected = async (items: SubsystemItemTemplateVO[]) => {
       // 设备系统模板模式：收集所有子项数据，进行一次批量新增调用
       const itemsToCreate = items.map(item => {
         return {
+          itemTemplateId: item.id as number, // 从子项模板选择的，传递模板ID
           templateCode: item.itemCode || `COPIED_${item.id}`,
           itemName: item.itemName,
           itemType: item.itemType,
@@ -650,7 +652,7 @@ const handleItemsSelected = async (items: SubsystemItemTemplateVO[]) => {
       // 原有子系统模板模式：关联已存在的子项
       const promises = items.map(item => {
         const data = {
-          itemTemplateId: item.id!,
+          itemTemplateId: item.id!, // 从子项模板选择的，传递模板ID
           quantity: item.defaultQuantity || 1,
           isRequired: item.isRequired ?? true,
           remarks: item.remarks || ''
@@ -933,14 +935,19 @@ const handleMaterialsSelected = async (materials: MaterialVO[]) => {
   console.log('selectedItemId:', selectedItemId.value);
   console.log('templateId:', props.templateId);
 
+  // 如果没有新物料，直接返回
+  if (!materials || materials.length === 0) {
+    console.log('没有新物料需要添加');
+    return;
+  }
+
   try {
     // 根据模式选择不同的API
     if (props.useEquipmentSystemApi) {
-      // 使用设备系统模版API - 从基础物料库复制
-      const promises = materials.map(material =>
-        addEquipmentSystemItemMaterialFromBase(selectedItemId.value!, material.id as number)
-      );
-      await Promise.all(promises);
+      // 使用设备系统模版API - 批量从基础物料库复制
+      const materialIds = materials.map(material => material.id as number);
+      console.log('准备批量添加物料，物料ID列表:', materialIds);
+      await addEquipmentSystemItemMaterialsFromBaseBatch(selectedItemId.value!, materialIds);
     } else {
       // 使用子系统模版API - 批量添加
       const materialTemplates: SubsystemMaterialTemplateForm[] = materials.map(material => ({

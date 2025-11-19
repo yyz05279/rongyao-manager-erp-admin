@@ -372,17 +372,29 @@ const loadItemList = async () => {
 
     console.log('后端响应:', response);
 
-    // 处理响应数据
+    // 处理响应数据并转换字段
+    let rawData: any[] = [];
     if (response.rows) {
-      itemList.value = response.rows;
+      rawData = response.rows;
       total.value = response.total || 0;
     } else if (Array.isArray(response.data)) {
-      itemList.value = response.data;
+      rawData = response.data;
       total.value = response.data.length;
     } else {
-      itemList.value = [];
+      rawData = [];
       total.value = 0;
     }
+
+    // 转换数据：如果后端返回的是 templateCode，转换为 itemCode
+    itemList.value = rawData.map((item: any) => {
+      if (item.templateCode && !item.itemCode) {
+        return {
+          ...item,
+          itemCode: item.templateCode
+        };
+      }
+      return item;
+    });
 
     console.log('处理后的 itemList:', itemList.value);
     console.log('itemList 中的 isAdded 字段:', itemList.value.map(item => ({
@@ -669,8 +681,18 @@ const handleConfirm = () => {
     return;
   }
 
-  console.log('准备 emit confirm 事件');
-  emit('confirm', selectedItems.value);
+  // 过滤掉已添加的子项（只提交新增的子项）
+  const newItems = selectedItems.value.filter(item => !isAdded(item));
+
+  if (newItems.length === 0) {
+    ElMessage.warning('没有新增的子项可添加');
+    return;
+  }
+
+  console.log('准备 emit confirm 事件，只提交新增的子项:', newItems);
+  console.log('新增子项数量:', newItems.length);
+  console.log('新增子项数据示例:', JSON.stringify(newItems[0], null, 2));
+  emit('confirm', newItems);
   console.log('emit confirm 事件完成');
   dialogVisible.value = false;
   console.log('对话框已关闭');

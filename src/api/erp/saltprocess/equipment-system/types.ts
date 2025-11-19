@@ -315,6 +315,7 @@ export interface ItemTemplateVO {
  */
 export interface ItemTemplateForm {
   id?: string | number;         // 主键ID（编辑时必填）
+  itemTemplateId?: number;      // 关联的子项模板ID（从模板库选择时使用）
   subsystemTemplateId?: number; // 子系统模版ID（新增时从路径参数自动设置）
   templateCode: string;         // 子项模板编码（必填，最大长度50）
   itemName: string;             // 子项名称（必填，最大长度100）
