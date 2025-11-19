@@ -338,6 +338,20 @@ const itemFormMaterialIds = computed(() => {
 // 监听对话框打开
 watch(dialogVisible, (newVal) => {
   if (newVal) {
+    console.log('========== ItemTemplateSelectorDialog 对话框打开 ==========');
+    console.log('接收到的 props.templateId:', props.templateId);
+    console.log('接收到的 props.existingItemIds (原始):', props.existingItemIds);
+    console.log('props.existingItemIds 类型:', typeof props.existingItemIds);
+    console.log('props.existingItemIds 是否为数组:', Array.isArray(props.existingItemIds));
+    console.log('props.existingItemIds 详细信息:', props.existingItemIds.map((id, index) => ({
+      index,
+      value: id,
+      type: typeof id,
+      isNaN: isNaN(id),
+      stringValue: String(id),
+      numberValue: Number(id)
+    })));
+
     // 设置 templateId 参数用于标记已添加的子项
     queryParams.templateId = props.templateId;
     loadItemList();
@@ -395,10 +409,15 @@ const checkSelectable = (row: SubsystemItemTemplateVO): boolean => {
   // return !isAdded(row);
 };
 
-// 自动勾选已添加的子项（基于 isAdded 字段）
+// 自动勾选已添加的子项（基于 isAdded 字段或 existingItemIds）
 const autoSelectAddedItems = async () => {
   // 使用 nextTick 确保表格渲染完成
   await nextTick();
+
+  console.log('========== 开始自动勾选子项 ==========');
+  console.log('existingItemIds:', props.existingItemIds);
+  console.log('existingItemIds 类型检查:', props.existingItemIds.map(id => ({ id, type: typeof id, isNaN: isNaN(id) })));
+  console.log('itemList:', itemList.value);
 
   if (!tableRef.value) {
     console.warn('表格组件未找到，无法自动勾选');
@@ -408,14 +427,41 @@ const autoSelectAddedItems = async () => {
   // 清空之前的选择
   tableRef.value.clearSelection();
 
-  // 勾选 isAdded 为 true 的行
+  // 过滤掉 NaN 值
+  const validExistingIds = props.existingItemIds.filter(id => !isNaN(id) && id !== null && id !== undefined);
+  console.log('有效的 existingItemIds:', validExistingIds);
+
+  if (validExistingIds.length === 0 && props.existingItemIds.length > 0) {
+    console.error('所有的 existingItemIds 都是无效值（NaN/null/undefined）！');
+  }
+
+  // 勾选已添加的子项
+  let selectedCount = 0;
   itemList.value.forEach((item) => {
+    const itemId = Number(item.id);
+    console.log(`检查子项 ${item.itemName} (id: ${item.id}, 转换后: ${itemId}):`, {
+      isAdded: item.isAdded,
+      inExistingIds: validExistingIds.includes(itemId)
+    });
+
+    // 优先使用后端返回的 isAdded 字段
     if (item.isAdded === true) {
+      console.log('✓ 根据 isAdded 勾选子项:', item.id, item.itemName);
       tableRef.value.toggleRowSelection(item, true);
+      selectedCount++;
+    }
+    // 如果没有 isAdded 字段，使用 existingItemIds 判断
+    else if (!isNaN(itemId) && validExistingIds.includes(itemId)) {
+      console.log('✓ 根据 existingItemIds 勾选子项:', item.id, item.itemName);
+      tableRef.value.toggleRowSelection(item, true);
+      selectedCount++;
+    } else {
+      console.log('✗ 不勾选子项:', item.id, item.itemName);
     }
   });
 
-  console.log(`已自动勾选 ${itemList.value.filter(item => item.isAdded).length} 个已添加的子项`);
+  console.log(`已自动勾选 ${selectedCount} 个已添加的子项`);
+  console.log('========== 自动勾选完成 ==========');
 };
 
 // 选择变化
@@ -571,13 +617,20 @@ const handleRemoveItemMaterial = (index: number) => {
 
 // 确认选择
 const handleConfirm = () => {
+  console.log('=== ItemTemplateSelectorDialog handleConfirm 被调用 ===');
+  console.log('选中的子项数量:', selectedItems.value.length);
+  console.log('选中的子项:', selectedItems.value);
+
   if (selectedItems.value.length === 0) {
     ElMessage.warning('请选择要添加的子项');
     return;
   }
 
+  console.log('准备 emit confirm 事件');
   emit('confirm', selectedItems.value);
+  console.log('emit confirm 事件完成');
   dialogVisible.value = false;
+  console.log('对话框已关闭');
 };
 
 // 关闭对话框

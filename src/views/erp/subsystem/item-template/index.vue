@@ -214,14 +214,14 @@
     <!-- 物料选择对话框（用于子项详情中添加物料） -->
     <material-selector-dialog
       v-model="materialSelectorVisible"
-      :existing-material-ids="existingMaterialIds"
+      :existing-material-codes="existingMaterialCodes"
       @confirm="handleMaterialsSelected"
     />
 
     <!-- 物料选择对话框（用于新增子项时添加物料） -->
     <material-selector-dialog
       v-model="itemMaterialSelectorVisible"
-      :existing-material-ids="itemFormMaterialIds"
+      :existing-material-codes="itemFormMaterialCodes"
       @confirm="handleItemMaterialsSelected"
     />
 
@@ -369,14 +369,14 @@ const materialRules = {
   defaultQuantity: [{ required: true, message: '请输入默认数量', trigger: 'blur' }]
 };
 
-// 计算已存在的物料ID列表
-const existingMaterialIds = computed(() => {
-  return materialList.value.map(item => Number(item.materialId));
+// 计算已存在的物料编码列表（用于物料选择对话框的去重）
+const existingMaterialCodes = computed(() => {
+  return materialList.value.map(item => item.materialCode).filter(Boolean);
 });
 
-// 计算新增子项表单中已选择的物料ID列表
-const itemFormMaterialIds = computed(() => {
-  return form.materials?.map(item => Number(item.materialId)) || [];
+// 计算新增子项表单中已选择的物料编码列表
+const itemFormMaterialCodes = computed(() => {
+  return form.materials?.map(item => item.materialCode).filter(Boolean) || [];
 });
 
 // 表单引用
@@ -614,15 +614,16 @@ const handleItemMaterialsSelected = (materials: MaterialVO[]) => {
   }
 
   materials.forEach(material => {
-    // 避免重复添加
-    if (!form.materials!.some(m => m.materialId === material.id)) {
+    // 避免重复添加（使用 materialCode 判断）
+    if (!form.materials!.some(m => m.materialCode === material.materialCode)) {
       form.materials!.push({
         materialId: material.id as number,
+        materialCode: material.materialCode, // 保存物料编码
         materialName: material.materialName, // 保存物料名称
         defaultQuantity: 1,
         isRequired: true,
         remarks: ''
-      });
+      } as any); // 临时使用 any，后续需要更新类型定义
     }
   });
 
@@ -657,6 +658,12 @@ const loadMaterialList = async () => {
     // 该接口查询 template_id = NULL 的模板物料，不是子系统物料
     const response = await getItemMaterials(materialDialog.itemId);
     materialList.value = response.data || [];
+
+    // 调试日志：查看物料列表数据
+    console.log('========== 物料列表数据 ==========');
+    console.log('materialList:', materialList.value);
+    console.log('existingMaterialCodes:', existingMaterialCodes.value);
+    console.log('物料编码列表:', materialList.value.map(item => item.materialCode));
   } catch (error) {
     console.error('加载物料列表失败:', error);
     ElMessage.error('加载物料列表失败');
@@ -675,11 +682,12 @@ const loadEditMaterialList = async (itemId: string | number) => {
     form.materials = materials.map((item: any) => ({
       id: item.id,
       materialId: item.materialId,
+      materialCode: item.materialCode, // 保存物料编码
       materialName: item.materialName,
       defaultQuantity: item.defaultQuantity,
       isRequired: item.isRequired,
       remarks: item.remarks
-    }));
+    })) as any; // 临时使用 any
     // 保存原始物料列表（深拷贝）用于比对变更
     originalMaterials.value = JSON.parse(JSON.stringify(form.materials));
   } catch (error) {
@@ -694,6 +702,9 @@ const loadEditMaterialList = async (itemId: string | number) => {
 
 // 添加物料
 const handleAddMaterial = () => {
+  console.log('========== 打开物料选择对话框 ==========');
+  console.log('materialList:', materialList.value);
+  console.log('existingMaterialCodes:', existingMaterialCodes.value);
   materialSelectorVisible.value = true;
 };
 

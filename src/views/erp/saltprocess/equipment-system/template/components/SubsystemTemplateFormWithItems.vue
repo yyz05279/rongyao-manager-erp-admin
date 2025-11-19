@@ -106,6 +106,7 @@
     <!-- 子项选择器对话框 -->
     <item-template-selector-dialog
       v-model="itemSelectorVisible"
+      :template-id="0"
       :existing-item-ids="existingItemIds"
       @confirm="handleItemsConfirm"
     />
@@ -191,9 +192,27 @@ const rules = computed<FormRules>(() => {
 
 // 已存在的子项ID列表
 const existingItemIds = computed(() => {
-  return form.items
-    .filter(item => item.itemTemplateId)
-    .map(item => item.itemTemplateId);
+  console.log('计算 existingItemIds，form.items 原始数据:', JSON.parse(JSON.stringify(form.items)));
+
+  const ids = form.items
+    .filter(item => {
+      const hasId = item.itemTemplateId !== undefined && item.itemTemplateId !== null;
+      if (!hasId) {
+        console.warn('发现无效的子项（缺少 itemTemplateId）:', item);
+      }
+      return hasId;
+    })
+    .map(item => {
+      const id = Number(item.itemTemplateId);
+      if (isNaN(id)) {
+        console.error('无法转换为数字的 itemTemplateId:', item.itemTemplateId, '完整对象:', item);
+      }
+      return id;
+    })
+    .filter(id => !isNaN(id)); // 过滤掉 NaN 值
+
+  console.log('计算后的 existingItemIds:', ids);
+  return ids;
 });
 
 // 生命周期
@@ -214,14 +233,51 @@ onMounted(async () => {
 
 // 添加子项
 const handleAddItem = () => {
+  console.log('========== 打开子项选择对话框 ==========');
+  console.log('当前 form.items 原始数据:', form.items);
+  console.log('当前 form.items JSON:', JSON.parse(JSON.stringify(form.items)));
+  console.log('即将传入的 existingItemIds:', existingItemIds.value);
+  console.log('existingItemIds 详细信息:', existingItemIds.value.map(id => ({
+    value: id,
+    type: typeof id,
+    isNaN: isNaN(id),
+    isNumber: typeof id === 'number',
+    isValidNumber: typeof id === 'number' && !isNaN(id)
+  })));
   itemSelectorVisible.value = true;
 };
 
 // 子项选择确认
 const handleItemsConfirm = (items: any[]) => {
+  console.log('handleItemsConfirm 接收到的 items:', JSON.parse(JSON.stringify(items)));
+
   // 添加选中的子项到表单
   items.forEach((item, index) => {
-    form.items.push({
+    console.log(`\n========== 处理第 ${index + 1} 个子项 ==========`);
+    console.log('完整的 item 对象:', item);
+    console.log('item.id 原始值:', item.id);
+    console.log('item.id 类型:', typeof item.id);
+    console.log('item.id 是否为对象:', typeof item.id === 'object');
+    console.log('item.id JSON:', JSON.stringify(item.id));
+    console.log('item 的所有键:', Object.keys(item));
+
+    // 尝试不同的 ID 字段
+    const possibleIds = {
+      id: item.id,
+      itemId: item.itemId,
+      itemTemplateId: item.itemTemplateId,
+      templateId: item.templateId
+    };
+    console.log('可能的 ID 字段:', possibleIds);
+
+    // 确保 id 存在且有效
+    if (!item.id) {
+      console.error('子项缺少 id 字段:', item);
+      ElMessage.error(`子项 "${item.itemName || '未知'}" 缺少 ID，无法添加`);
+      return;
+    }
+
+    const newItem = {
       itemTemplateId: item.id,
       itemName: item.itemName,
       itemType: item.itemType,
@@ -229,8 +285,18 @@ const handleItemsConfirm = (items: any[]) => {
       sequenceNumber: form.items.length + index + 1,
       isRequired: item.isRequired || false,
       remarks: ''
-    });
+    };
+
+    console.log('准备添加到 form.items 的数据:', newItem);
+    console.log('newItem.itemTemplateId 类型:', typeof newItem.itemTemplateId);
+    console.log('newItem.itemTemplateId 转为数字:', Number(newItem.itemTemplateId));
+    console.log('转换后是否为 NaN:', isNaN(Number(newItem.itemTemplateId)));
+
+    form.items.push(newItem);
+    console.log(`第 ${index + 1} 个子项添加完成`);
   });
+
+  console.log('添加后的 form.items:', JSON.parse(JSON.stringify(form.items)));
 
   // 触发表单验证
   formRef.value?.validateField('items');
