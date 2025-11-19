@@ -256,7 +256,7 @@ import MaterialSelectorDialog from './MaterialSelectorDialog.vue';
 interface Props {
   modelValue: boolean;
   templateId: number | string;
-  existingItemIds?: number[]; // 已添加的子项ID列表
+  existingItemIds?: (number | string)[]; // 已添加的子项ID列表或itemCode列表（支持字符串）
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -364,7 +364,13 @@ watch(dialogVisible, (newVal) => {
 const loadItemList = async () => {
   loading.value = true;
   try {
+    console.log('========== 加载子项列表 ==========');
+    console.log('queryParams:', queryParams);
+    console.log('queryParams.templateId:', queryParams.templateId);
+
     const response: any = await listItemTemplate(queryParams);
+
+    console.log('后端响应:', response);
 
     // 处理响应数据
     if (response.rows) {
@@ -378,6 +384,13 @@ const loadItemList = async () => {
       total.value = 0;
     }
 
+    console.log('处理后的 itemList:', itemList.value);
+    console.log('itemList 中的 isAdded 字段:', itemList.value.map(item => ({
+      itemCode: item.itemCode,
+      itemName: item.itemName,
+      isAdded: item.isAdded
+    })));
+
     // 自动勾选已添加的子项
     autoSelectAddedItems();
   } catch (error) {
@@ -390,23 +403,40 @@ const loadItemList = async () => {
   }
 };
 
-// 检查子项是否已添加（使用后端返回的 isAdded 字段）
+// 检查子项是否已添加（优先使用前端 itemCode 匹配）
 const isAdded = (row: SubsystemItemTemplateVO): boolean => {
-  // 优先使用后端返回的 isAdded 字段
-  if (row.isAdded !== undefined && row.isAdded !== null) {
-    return row.isAdded;
+  // 优先使用前端的 itemCode 匹配（因为后端的 isAdded 字段可能不准确）
+  // 支持两种匹配方式：
+  // 1. 通过 itemCode 匹配（字符串）
+  // 2. 通过 id 匹配（数字）
+  const hasItemCode = row.itemCode && props.existingItemIds.includes(row.itemCode);
+  const hasId = props.existingItemIds.includes(Number(row.id));
+
+  // 如果前端匹配成功，直接返回 true
+  if (hasItemCode || hasId) {
+    console.log(`[isAdded] ${row.itemName} - 前端匹配成功:`, {
+      itemCode: row.itemCode,
+      hasItemCode,
+      id: row.id,
+      hasId
+    });
+    return true;
   }
-  // 向后兼容：使用 existingItemIds prop
-  return props.existingItemIds.includes(Number(row.id));
+
+  // 如果前端匹配失败，再检查后端的 isAdded 字段
+  if (row.isAdded === true) {
+    console.log(`[isAdded] ${row.itemName} - 后端 isAdded 为 true`);
+    return true;
+  }
+
+  // 都不匹配，返回 false
+  console.log(`[isAdded] ${row.itemName} - 未添加`);
+  return false;
 };
 
-// 检查行是否可选择
-// 根据文档：所有行都可以勾选，用户可以取消已添加的或新增未添加的
+// 检查行是否可选择（已添加的不能再选）
 const checkSelectable = (row: SubsystemItemTemplateVO): boolean => {
-  return true;
-
-  // 如果只允许勾选未添加的子项，可以使用：
-  // return !isAdded(row);
+  return !isAdded(row);
 };
 
 // 自动勾选已添加的子项（基于 isAdded 字段或 existingItemIds）
@@ -416,7 +446,12 @@ const autoSelectAddedItems = async () => {
 
   console.log('========== 开始自动勾选子项 ==========');
   console.log('existingItemIds:', props.existingItemIds);
-  console.log('existingItemIds 类型检查:', props.existingItemIds.map(id => ({ id, type: typeof id, isNaN: isNaN(id) })));
+  console.log('existingItemIds 类型检查:', props.existingItemIds.map(id => ({
+    id,
+    type: typeof id,
+    isString: typeof id === 'string',
+    isNumber: typeof id === 'number'
+  })));
   console.log('itemList:', itemList.value);
 
   if (!tableRef.value) {
@@ -427,21 +462,23 @@ const autoSelectAddedItems = async () => {
   // 清空之前的选择
   tableRef.value.clearSelection();
 
-  // 过滤掉 NaN 值
-  const validExistingIds = props.existingItemIds.filter(id => !isNaN(id) && id !== null && id !== undefined);
-  console.log('有效的 existingItemIds:', validExistingIds);
+  // 分离字符串类型（itemCode）和数字类型（id）的 existingItemIds
+  const existingItemCodes = props.existingItemIds.filter(id => typeof id === 'string') as string[];
+  const existingItemNumIds = props.existingItemIds.filter(id => typeof id === 'number') as number[];
 
-  if (validExistingIds.length === 0 && props.existingItemIds.length > 0) {
-    console.error('所有的 existingItemIds 都是无效值（NaN/null/undefined）！');
-  }
+  console.log('existingItemCodes (字符串):', existingItemCodes);
+  console.log('existingItemNumIds (数字):', existingItemNumIds);
 
   // 勾选已添加的子项
   let selectedCount = 0;
   itemList.value.forEach((item) => {
     const itemId = Number(item.id);
-    console.log(`检查子项 ${item.itemName} (id: ${item.id}, 转换后: ${itemId}):`, {
+    const itemCode = item.itemCode;
+
+    console.log(`检查子项 ${item.itemName} (id: ${item.id}, itemCode: ${itemCode}):`, {
       isAdded: item.isAdded,
-      inExistingIds: validExistingIds.includes(itemId)
+      inExistingItemCodes: itemCode && existingItemCodes.includes(itemCode),
+      inExistingItemNumIds: !isNaN(itemId) && existingItemNumIds.includes(itemId)
     });
 
     // 优先使用后端返回的 isAdded 字段
@@ -450,9 +487,15 @@ const autoSelectAddedItems = async () => {
       tableRef.value.toggleRowSelection(item, true);
       selectedCount++;
     }
-    // 如果没有 isAdded 字段，使用 existingItemIds 判断
-    else if (!isNaN(itemId) && validExistingIds.includes(itemId)) {
-      console.log('✓ 根据 existingItemIds 勾选子项:', item.id, item.itemName);
+    // 通过 itemCode 匹配（字符串匹配）
+    else if (itemCode && existingItemCodes.includes(itemCode)) {
+      console.log('✓ 根据 itemCode 勾选子项:', itemCode, item.itemName);
+      tableRef.value.toggleRowSelection(item, true);
+      selectedCount++;
+    }
+    // 通过 id 匹配（数字匹配）
+    else if (!isNaN(itemId) && existingItemNumIds.includes(itemId)) {
+      console.log('✓ 根据 id 勾选子项:', item.id, item.itemName);
       tableRef.value.toggleRowSelection(item, true);
       selectedCount++;
     } else {

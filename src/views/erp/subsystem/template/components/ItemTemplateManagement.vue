@@ -404,9 +404,15 @@ const existingMaterialCodes = computed<string[]>(() => {
   return codes;
 });
 
-// 计算已存在的子项ID列表
+// 计算已存在的子项编码列表（用于子项选择器中的自动勾选）
+// 注意：这里改为传递 itemCode 数组，因为接口返回的数据中使用 itemCode 字段
 const existingItemIds = computed(() => {
-  return itemList.value.map(item => Number(item.id));
+  const codes = itemList.value
+    .map(item => item.itemCode)
+    .filter((code): code is string => Boolean(code)); // 类型守卫，过滤掉空值
+  console.log('计算 existingItemIds (itemCode):', codes);
+  console.log('itemList.value:', itemList.value);
+  return codes;
 });
 
 // 计算新增子项表单中已选择的物料ID列表
