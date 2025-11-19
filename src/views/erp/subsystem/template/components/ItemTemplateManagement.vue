@@ -227,7 +227,7 @@ export default defineComponent({
     <!-- 物料选择对话框（用于子项详情中添加物料） -->
     <material-selector-dialog
       v-model="materialSelectorVisible"
-      :existing-material-ids="existingMaterialIds"
+      :existing-material-codes="existingMaterialCodes"
       @confirm="handleMaterialsSelected"
     />
 
@@ -392,9 +392,16 @@ const materialRules = {
   defaultQuantity: [{ required: true, message: '请输入默认数量', trigger: 'blur' }]
 };
 
-// 计算已存在的物料ID列表
-const existingMaterialIds = computed(() => {
-  return materialList.value.map(item => Number(item.materialId));
+// 计算已存在的物料编码列表（用于物料选择器中的自动勾选）
+// 注意：设备系统模板的物料是从基础物料库复制的，复制后失去了与基础物料的关联
+// 但是 materialCode 字段会被保留，所以我们可以通过 materialCode 来匹配
+const existingMaterialCodes = computed<string[]>(() => {
+  const codes = materialList.value
+    .map(item => item.materialCode)
+    .filter((code): code is string => Boolean(code)); // 类型守卫，过滤掉空值并确保类型为 string
+  console.log('计算 existingMaterialCodes:', codes);
+  console.log('materialList.value:', materialList.value);
+  return codes;
 });
 
 // 计算已存在的子项ID列表
@@ -607,6 +614,12 @@ const handleAddItem = () => {
 
 // 处理选中的子项模板
 const handleItemsSelected = async (items: SubsystemItemTemplateVO[]) => {
+  console.log('=== handleItemsSelected 被调用 ===');
+  console.log('接收到的子项数量:', items?.length);
+  console.log('接收到的子项数据:', items);
+  console.log('useEquipmentSystemApi:', props.useEquipmentSystemApi);
+  console.log('templateId:', props.templateId);
+
   try {
     console.log('开始批量添加子项，选中的子项:', items);
 
@@ -865,6 +878,11 @@ const handleAddItemMaterial = () => {
 
 // ✅ 新增：处理新增子项时选择的物料
 const handleItemMaterialsSelected = (materials: MaterialVO[]) => {
+  console.log('=== handleItemMaterialsSelected 被调用 ===');
+  console.log('接收到的物料数量:', materials?.length);
+  console.log('接收到的物料数据:', materials);
+  console.log('当前 itemForm.materials:', itemForm.materials);
+
   if (!itemForm.materials) {
     itemForm.materials = [];
   }
@@ -902,6 +920,13 @@ const handleAddMaterialInDialog = () => {
 
 // 处理选择的物料
 const handleMaterialsSelected = async (materials: MaterialVO[]) => {
+  console.log('=== handleMaterialsSelected 被调用 ===');
+  console.log('接收到的物料数量:', materials?.length);
+  console.log('接收到的物料数据:', materials);
+  console.log('useEquipmentSystemApi:', props.useEquipmentSystemApi);
+  console.log('selectedItemId:', selectedItemId.value);
+  console.log('templateId:', props.templateId);
+
   try {
     // 根据模式选择不同的API
     if (props.useEquipmentSystemApi) {

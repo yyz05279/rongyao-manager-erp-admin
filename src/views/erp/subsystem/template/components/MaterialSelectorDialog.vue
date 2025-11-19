@@ -46,6 +46,7 @@ export default defineComponent({
 
     <!-- 物料列表 -->
     <el-table
+      ref="tableRef"
       v-loading="loading"
       :data="materialList"
       @selection-change="handleSelectionChange"
@@ -96,7 +97,7 @@ export default defineComponent({
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, watch } from 'vue';
+import { ref, reactive, computed, watch, nextTick } from 'vue';
 import { ElMessage } from 'element-plus';
 import { listMaterial } from '@/api/erp/material/material';
 import type { MaterialVO } from '@/api/erp/material/material/types';
@@ -104,11 +105,13 @@ import type { MaterialVO } from '@/api/erp/material/material/types';
 // Props
 interface Props {
   modelValue: boolean;
-  existingMaterialIds?: number[]; // 已添加的物料ID列表
+  existingMaterialIds?: number[]; // 已添加的物料ID列表（用于ID匹配）
+  existingMaterialCodes?: string[]; // 已添加的物料编码列表（用于编码匹配）
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  existingMaterialIds: () => []
+  existingMaterialIds: () => [],
+  existingMaterialCodes: () => []
 });
 
 // Emits
@@ -122,6 +125,7 @@ const loading = ref(false);
 const materialList = ref<MaterialVO[]>([]);
 const selectedMaterials = ref<MaterialVO[]>([]);
 const total = ref(0);
+const tableRef = ref();
 
 const queryParams = reactive({
   pageNum: 1,
@@ -138,6 +142,11 @@ const dialogVisible = computed({
 
 // 监听对话框打开
 watch(dialogVisible, (newVal) => {
+  console.log('=== MaterialSelectorDialog 对话框状态变化 ===');
+  console.log('对话框是否打开:', newVal);
+  console.log('传入的 existingMaterialIds:', props.existingMaterialIds);
+  console.log('传入的 existingMaterialCodes:', props.existingMaterialCodes);
+
   if (newVal) {
     loadMaterialList();
   } else {
@@ -147,9 +156,13 @@ watch(dialogVisible, (newVal) => {
 
 // 加载物料列表
 const loadMaterialList = async () => {
+  console.log('=== 开始加载物料列表 ===');
+  console.log('查询参数:', queryParams);
+
   loading.value = true;
   try {
     const response: any = await listMaterial(queryParams);
+    console.log('API 响应:', response);
 
     // 处理响应数据
     if (response.rows) {
@@ -162,6 +175,12 @@ const loadMaterialList = async () => {
       materialList.value = [];
       total.value = 0;
     }
+
+    console.log('加载的物料列表数量:', materialList.value.length);
+    console.log('物料列表数据:', materialList.value);
+
+    // 自动勾选已添加的物料
+    autoSelectAddedMaterials();
   } catch (error) {
     console.error('加载物料列表失败:', error);
     ElMessage.error('加载物料列表失败');
@@ -174,12 +193,57 @@ const loadMaterialList = async () => {
 
 // 检查物料是否已添加
 const isAdded = (row: MaterialVO): boolean => {
-  return props.existingMaterialIds.includes(row.id as number);
+  // 优先使用 materialCode 匹配（用于设备系统模板）
+  if (props.existingMaterialCodes.length > 0 && row.materialCode) {
+    const resultByCode = props.existingMaterialCodes.includes(row.materialCode);
+    console.log(`检查物料 ${row.materialName}(编码: ${row.materialCode}) 是否已添加(通过编码):`, resultByCode);
+    return resultByCode;
+  }
+
+  // 否则使用 ID 匹配（用于子系统模板）
+  const resultById = props.existingMaterialIds.includes(row.id as number);
+  console.log(`检查物料 ${row.materialName}(ID: ${row.id}) 是否已添加(通过ID):`, resultById);
+  return resultById;
 };
 
 // 检查行是否可选择（已添加的不能再选）
 const checkSelectable = (row: MaterialVO): boolean => {
   return !isAdded(row);
+};
+
+// 自动勾选已添加的物料
+const autoSelectAddedMaterials = async () => {
+  console.log('=== 开始自动勾选已添加的物料 ===');
+  console.log('existingMaterialIds:', props.existingMaterialIds);
+  console.log('existingMaterialCodes:', props.existingMaterialCodes);
+  console.log('materialList 数量:', materialList.value.length);
+
+  // 使用 nextTick 确保表格渲染完成
+  await nextTick();
+
+  if (!tableRef.value) {
+    console.warn('表格组件未找到，无法自动勾选');
+    return;
+  }
+
+  // 清空之前的选择
+  tableRef.value.clearSelection();
+
+  // 勾选已添加的物料
+  let selectedCount = 0;
+  materialList.value.forEach((material) => {
+    const shouldSelect = isAdded(material);
+    if (shouldSelect) {
+      console.log(`勾选物料: ${material.materialName}(ID: ${material.id}, 编码: ${material.materialCode})`);
+      tableRef.value.toggleRowSelection(material, true);
+      selectedCount++;
+    }
+  });
+
+  const expectedCount = props.existingMaterialCodes.length > 0
+    ? props.existingMaterialCodes.length
+    : props.existingMaterialIds.length;
+  console.log(`已自动勾选 ${selectedCount} 个已添加的物料（预期: ${expectedCount}）`);
 };
 
 // 选择变化
@@ -225,13 +289,20 @@ const handlePageSizeChange = (size: number) => {
 
 // 确认选择
 const handleConfirm = () => {
+  console.log('=== MaterialSelectorDialog handleConfirm 被调用 ===');
+  console.log('选中的物料数量:', selectedMaterials.value.length);
+  console.log('选中的物料:', selectedMaterials.value);
+
   if (selectedMaterials.value.length === 0) {
     ElMessage.warning('请选择要添加的物料');
     return;
   }
 
+  console.log('准备 emit confirm 事件，传递的数据:', selectedMaterials.value);
   emit('confirm', selectedMaterials.value);
+  console.log('emit confirm 事件完成');
   dialogVisible.value = false;
+  console.log('对话框已关闭');
 };
 
 // 关闭对话框
