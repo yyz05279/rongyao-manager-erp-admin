@@ -238,14 +238,14 @@ export const updateItemMaterials = (
 /**
  * 删除子项模板的物料
  *
- * 接口路径: DELETE /erp/subsystem/item-template/{itemTemplateId}/materials/{ids}
+ * 接口路径: DELETE /erp/subsystem/item-template/{itemTemplateId}/materials
  *
  * 说明：
  * - 删除子项模板的一个或多个物料配置
- * - 支持批量删除，多个ID用逗号分隔
+ * - 支持单个或批量删除，物料ID通过请求体传递
  *
  * @param itemTemplateId 子项模板ID
- * @param ids 物料ID数组
+ * @param ids 物料ID数组（支持单个或多个）
  * @returns Promise
  *
  * @example
@@ -259,10 +259,10 @@ export const deleteItemMaterials = (
   itemTemplateId: number,
   ids: number[]
 ): AxiosPromise<void> => {
-  const idStr = ids.join(',');
   return request({
-    url: `/erp/subsystem/item-template/${itemTemplateId}/materials/${idStr}`,
-    method: 'delete'
+    url: `/erp/subsystem/item-template/${itemTemplateId}/materials`,
+    method: 'delete',
+    data: { ids }
   });
 };
 
