@@ -314,12 +314,12 @@ import {
 import {
   listMaterialTemplateByItemId,
   addMaterialTemplate,
-  delMaterialTemplate,
   addMaterialTemplateBatch
 } from '@/api/erp/subsystem/material-template';
 import {
   addItemMaterials,
-  updateItemMaterials
+  updateItemMaterials,
+  deleteItemMaterials
 } from '@/api/erp/subsystem/item-template';
 import { listMaterial } from '@/api/erp/material/material';
 import type { MaterialVO } from '@/api/erp/material/material/types';
@@ -572,7 +572,8 @@ const syncItemMaterialChanges = async (itemTemplateId: string | number, currentM
       if (props.useEquipmentSystemApi) {
         await deleteEquipmentSystemItemMaterials(itemTemplateId, deleteIds);
       } else {
-        await delMaterialTemplate(deleteIds);
+        // ✅ 使用新的批量删除接口
+        await deleteItemMaterials(Number(itemTemplateId), deleteIds.map(id => Number(id)));
       }
     }
 
@@ -1099,8 +1100,8 @@ const handleDeleteMaterial = async (row: SubsystemMaterialTemplateVO) => {
       // 使用设备系统模版API
       await deleteEquipmentSystemItemMaterials(selectedItemId.value!, row.id);
     } else {
-      // 使用子系统模版API
-      await delMaterialTemplate(row.id);
+      // ✅ 使用新的批量删除接口
+      await deleteItemMaterials(Number(selectedItemId.value), [Number(row.id)]);
     }
 
     ElMessage.success('删除成功');
