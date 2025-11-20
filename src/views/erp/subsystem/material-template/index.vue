@@ -175,7 +175,7 @@ import {
   listMaterialTemplate,
   getMaterialTemplate,
   addMaterialTemplate,
-  updateMaterialTemplate,
+  updateMaterialTemplateBatch,
   delMaterialTemplate
 } from '@/api/erp/subsystem/material-template';
 import { listItemTemplateByTemplateId } from '@/api/erp/subsystem/item-template';
@@ -442,7 +442,8 @@ const submitForm = async () => {
 
     dialog.loading = true;
     if (form.id) {
-      await updateMaterialTemplate(form);
+      // 使用批量修改接口
+      await updateMaterialTemplateBatch([form]);
       ElMessage.success('修改成功');
     } else {
       await addMaterialTemplate(form);

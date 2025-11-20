@@ -137,6 +137,19 @@ export const updateMaterialTemplate = (data: SubsystemMaterialTemplateForm): Axi
 };
 
 /**
+ * 批量修改物料模板
+ * 说明：批量修改多个物料模板的配置（如默认数量等）
+ * @param data 物料表单数据数组（每个必须包含id）
+ */
+export const updateMaterialTemplateBatch = (data: SubsystemMaterialTemplateForm[]): AxiosPromise<void> => {
+  return request({
+    url: '/erp/subsystem/material-template/batch',
+    method: 'put',
+    data
+  });
+};
+
+/**
  * 删除物料模板
  * @param ids 物料模板ID（单个）或ID数组（多个用逗号分隔）
  */
