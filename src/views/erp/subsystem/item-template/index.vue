@@ -111,8 +111,9 @@
           <el-input v-model="form.remarks" type="textarea" :rows="2" placeholder="请输入备注" />
         </el-form-item>
 
-        <!-- ✅ 物料配置（新增和编辑模式都可以增删改） -->
-        <el-form-item label="物料配置" :prop="!form.id ? 'materials' : ''">
+        <!-- 物料配置 -->
+        <el-divider content-position="left">物料数据配置</el-divider>
+        <el-form-item label="物料配置" prop="materials">
           <div style="width: 100%">
             <el-button 
               type="primary" 
@@ -314,13 +315,15 @@ const form = reactive<SubsystemItemTemplateForm>({
   materials: [] // 物料列表
 });
 
-const rules = {
+// ✅ 改为计算属性，实现动态验证规则
+const rules = computed(() => ({
   itemName: [{ required: true, message: '请输入子项名称', trigger: 'blur' }],
   materials: [
     {
-      required: true,
+      // 仅在新增模式下，物料为必填项
+      required: !form.id,
       validator: (rule: any, value: any, callback: any) => {
-        if (!value || value.length === 0) {
+        if (!form.id && (!value || value.length === 0)) {
           callback(new Error('请至少添加一个物料'));
         } else {
           callback();
@@ -329,7 +332,7 @@ const rules = {
       trigger: 'change'
     }
   ]
-};
+}));
 
 // 物料相关
 const materialDialog = reactive({
@@ -447,7 +450,9 @@ const handleUpdate = async (row?: SubsystemItemTemplateVO) => {
     if (form.id) {
       await loadEditMaterialList(form.id);
     }
+
     
+
     dialog.title = '修改子项';
     dialog.visible = true;
   } catch (error) {
@@ -492,29 +497,72 @@ const handleExport = () => {
   );
 };
 
+// ✅ 新增：比对物料列表是否有变更
+const haveMaterialsChanged = (original: any[], current: any[]) => {
+  if (original.length !== current.length) {
+    return true; // 数量不同，肯定有变更
+  }
+
+  // 创建一个 map 用于快速查找原始物料
+  const originalMap = new Map(original.map(m => [m.id || m.materialId, m]));
+
+  for (const material of current) {
+    const key = material.id || material.materialId;
+    const originalMaterial = originalMap.get(key);
+
+    if (!originalMaterial) {
+      // 在原始列表中找不到当前物料（可能是一个被删除后又新增了另一个）
+      return true;
+    }
+
+    // 比较关键字段是否有变化
+    // 1. 统一转换为数字进行比较，避免 "1.00" !== 1 的问题
+    const originalQty = Number(originalMaterial.defaultQuantity);
+    const currentQty = Number(material.defaultQuantity);
+
+    // 2. 将 null 或 undefined 的 remarks 视为空字符串进行比较
+    const originalRemarks = originalMaterial.remarks || '';
+    const currentRemarks = material.remarks || '';
+
+    if (
+      originalQty !== currentQty ||
+      originalMaterial.isRequired !== material.isRequired ||
+      originalRemarks !== currentRemarks
+    ) {
+      return true;
+    }
+  }
+
+  return false; // 如果所有物料都匹配，则没有变更
+};
+
 // 提交表单
 const submitForm = async () => {
   try {
     await formRef.value?.validate();
 
-    // 检查物料是否已添加（新增和编辑都需要）
-    if (!form.materials || form.materials.length === 0) {
-      ElMessage.warning('请至少添加一个物料');
-      return;
-    }
-
     dialog.loading = true;
+
     if (form.id) {
-      // 编辑模式：先更新子项基本信息，再处理物料变更
+      // 编辑模式
       const { materials, ...updateData } = form;
-      await updateItemTemplate(updateData);
-      
-      // ✅ 处理物料变更
-      await syncMaterialChanges(form.id, form.materials, originalMaterials.value);
-      
-      ElMessage.success('修改成功');
+      await updateItemTemplate(updateData); // 1. 首先更新基础信息
+
+      // 2. 检查物料是否有变更
+      const materialsChanged = haveMaterialsChanged(originalMaterials.value, form.materials || []);
+      if (materialsChanged) {
+        await syncMaterialChanges(form.id, form.materials || [], originalMaterials.value);
+        ElMessage.success('子项和物料已更新');
+      } else {
+        ElMessage.success('子项信息已更新');
+      }
     } else {
-      // 新增模式：传递完整数据（包含 materials）
+      // 新增模式
+      if (!form.materials || form.materials.length === 0) {
+        ElMessage.warning('请至少添加一个物料');
+        dialog.loading = false;
+        return;
+      }
       await addItemTemplate(form);
       ElMessage.success('新增成功');
     }
@@ -599,6 +647,7 @@ const resetForm = () => {
   form.remarks = '';
   form.materials = []; // ✅ 重置物料列表
   originalMaterials.value = []; // ✅ 重置原始物料列表
+  
   formRef.value?.clearValidate();
 };
 
@@ -639,6 +688,8 @@ const handleRemoveItemMaterial = (index: number) => {
     formRef.value?.validateField('materials');
   }
 };
+
+
 
 // 查看物料
 const handleViewMaterials = (row: SubsystemItemTemplateVO) => {
