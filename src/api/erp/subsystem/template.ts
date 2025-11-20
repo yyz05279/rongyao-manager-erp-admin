@@ -3,8 +3,13 @@
  * 模板与项目子系统的区别：不包含项目信息和负责人信息
  *
  * @author haitang
- * @version v1.0
- * @date 2025-11-05
+ * @version v1.1
+ * @date 2025-01-20
+ *
+ * 更新说明 v1.1：
+ * - 修复编辑接口逻辑问题，拆分基础信息更新和子项更新接口
+ * - updateSubsystemTemplate: 仅更新基础信息，不处理子项列表
+ * - updateSubsystemTemplateItems: 新增接口，专门用于更新子项列表
  */
 import request from '@/utils/request';
 import { AxiosPromise } from 'axios';
@@ -57,15 +62,60 @@ export const addSubsystemTemplate = (data: SubsystemTemplateForm): AxiosPromise<
 };
 
 /**
- * 修改子系统模板
- * 说明：后台会自动校验编号唯一性
- * @param data 模板表单数据（必须包含id）
+ * 修改子系统模板基础信息 ⭐️ v1.1 修复后
+ * 功能说明：
+ * - ✅ 仅更新模板的基础信息字段（名称、描述、备注、状态等）
+ * - ❌ 不处理子项列表（即使传入items字段也会被忽略）
+ * - 🎯 适用场景：更新模板名称、添加备注、修改描述等基础信息维护操作
+ *
+ * 注意事项：
+ * 1. 必须传入 id 字段
+ * 2. 只会更新传入的字段，未传入的字段保持不变
+ * 3. 不会影响已有的子项列表
+ *
+ * @param data 模板基础信息（必须包含id，items字段会被忽略）
+ * @version v1.1
+ * @date 2025-01-20
  */
 export const updateSubsystemTemplate = (data: SubsystemTemplateForm): AxiosPromise<void> => {
   return request({
     url: '/erp/subsystem/template',
     method: 'put',
     data
+  });
+};
+
+/**
+ * 更新子系统模板子项列表 ⭐️ v1.1 新增接口
+ * 功能说明：
+ * - ✅ 专门用于更新模板的子项配置
+ * - ❌ 不影响模板的基础信息
+ * - 🎯 适用场景：添加/修改子项、调整子项顺序、设置子项数量等
+ *
+ * 注意事项：
+ * 1. 此操作会替换模板的所有子项（全量更新）
+ * 2. 如果需要增量更新，请先查询现有子项，然后合并后再提交
+ * 3. 传入空数组会清空所有子项
+ *
+ * @param templateId 模板ID
+ * @param items 子项配置列表
+ * @version v1.1
+ * @date 2025-01-20
+ */
+export const updateSubsystemTemplateItems = (
+  templateId: string | number,
+  items: Array<{
+    itemTemplateId: number;
+    quantity?: number;
+    sequenceNumber?: number;
+    isRequired?: boolean;
+    remarks?: string;
+  }>
+): AxiosPromise<void> => {
+  return request({
+    url: `/erp/subsystem/template/${templateId}/items`,
+    method: 'put',
+    data: items
   });
 };
 

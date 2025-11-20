@@ -69,6 +69,27 @@ export default defineComponent({
 </script>
 
 <script setup lang="ts">
+/**
+ * 子系统模板基础信息表单组件
+ *
+ * 功能说明：
+ * - ✅ 负责子系统模板基础信息的新增和编辑
+ * - ✅ 包含字段：模板编号、名称、分类、版本、状态、描述、备注等
+ * - ❌ 不包含子项列表的管理（子项管理由独立的子项管理组件负责）
+ *
+ * API 接口说明（基于 v1.1 规范）：
+ * - 新增：POST /erp/subsystem/template
+ * - 编辑：PUT /erp/subsystem/template（仅更新基础信息，不影响子项）
+ *
+ * 使用场景：
+ * 1. 创建新的子系统模板
+ * 2. 修改模板的基础信息（名称、描述、备注等）
+ * 3. 更新模板状态（草稿、启用、停用、归档）
+ *
+ * @author haitang
+ * @version v1.1
+ * @date 2025-01-20
+ */
 import { ref, reactive, onMounted, watch } from 'vue';
 import { ElMessage } from 'element-plus';
 import type { FormInstance, FormRules } from 'element-plus';
@@ -182,7 +203,18 @@ const cancel = () => {
   emit('cancel');
 };
 
-// 提交表单
+/**
+ * 提交表单
+ *
+ * 根据 API v1.1 规范：
+ * - 新增模式：调用 POST /erp/subsystem/template 接口，可以同时传入子项列表
+ * - 编辑模式：调用 PUT /erp/subsystem/template 接口，仅更新基础信息，不影响子项列表
+ *
+ * 注意事项：
+ * 1. 编辑模式下，即使form中包含items字段，后端也会忽略，不会重复添加子项
+ * 2. 如需更新子项列表，应使用专门的子项管理功能，调用 PUT /erp/subsystem/template/{id}/items 接口
+ * 3. 此表单组件仅负责基础信息的维护
+ */
 const submitForm = async () => {
   if (!formRef.value) return;
 
@@ -191,16 +223,36 @@ const submitForm = async () => {
       buttonLoading.value = true;
       try {
         if (form.id) {
-          await updateSubsystemTemplate(form);
+          // 编辑模式：仅更新基础信息
+          // 构建基础信息对象，确保不包含子项列表
+          const baseInfo: SubsystemTemplateForm = {
+            id: form.id,
+            templateCode: form.templateCode,
+            templateName: form.templateName,
+            category: form.category,
+            description: form.description,
+            isStandard: form.isStandard,
+            version: form.version,
+            status: form.status,
+            sourceProjectId: form.sourceProjectId,
+            relatedProductId: form.relatedProductId,
+            remarks: form.remarks
+            // 注意：不传入 items 字段
+          };
+
+          await updateSubsystemTemplate(baseInfo);
           ElMessage.success('修改成功');
         } else {
+          // 新增模式：可以包含子项列表（如果有的话）
           await addSubsystemTemplate(form);
           ElMessage.success('新增成功');
         }
         emit('success');
-      } catch (error) {
+      } catch (error: any) {
         console.error('提交失败:', error);
-        ElMessage.error('操作失败');
+        // 提供更详细的错误信息
+        const errorMessage = error?.response?.data?.msg || error?.message || '操作失败';
+        ElMessage.error(errorMessage);
       } finally {
         buttonLoading.value = false;
       }
