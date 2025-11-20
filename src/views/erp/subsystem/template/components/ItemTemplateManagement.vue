@@ -146,8 +146,35 @@ export default defineComponent({
           <el-input v-model="itemForm.remarks" type="textarea" :rows="2" placeholder="请输入备注" />
         </el-form-item>
 
-        <!-- 物料配置（新增和编辑都显示） -->
-        <el-form-item label="物料配置" prop="materials">
+        <!-- ✅ 调试信息 -->
+        <div style="background: #f0f0f0; padding: 10px; margin: 10px 0;">
+          <p>调试信息：</p>
+          <p>itemForm.id: {{ itemForm.id }}</p>
+          <p>itemDialog.title: {{ itemDialog.title }}</p>
+          <p>updateMaterialData: {{ updateMaterialData }}</p>
+        </div>
+
+        <!-- ✅ 编辑模式下显示物料数据更新开关 -->
+        <el-divider v-if="itemForm.id" content-position="left">物料数据配置</el-divider>
+        <el-form-item v-if="itemForm.id" label="更新物料数据">
+          <el-switch
+            v-model="updateMaterialData"
+            active-text="开启"
+            inactive-text="关闭"
+            @change="handleUpdateMaterialDataChange"
+          />
+          <div style="color: #909399; font-size: 12px; margin-top: 8px;">
+            <el-icon style="vertical-align: middle;"><InfoFilled /></el-icon>
+            {{ updateMaterialData ? '开启后可以修改该子项的物料配置' : '关闭时将保留原有物料数据，仅更新基础信息' }}
+          </div>
+        </el-form-item>
+
+        <!-- 物料配置（新增模式始终显示，编辑模式根据开关显示） -->
+        <el-form-item
+          v-if="!itemForm.id || updateMaterialData"
+          label="物料配置"
+          prop="materials"
+        >
           <div style="width: 100%">
             <el-button type="primary" icon="Plus" @click="handleAddItemMaterial" size="small">
               添加物料
@@ -328,6 +355,7 @@ const selectedItemId = ref<string | number | null>(null);
 const selectedItemName = ref<string>('');
 const materialSelectorVisible = ref(false);
 const itemSelectorVisible = ref(false);
+const updateMaterialData = ref(false); // ✅ 新增：控制是否更新物料数据（仅编辑模式使用）
 
 // 子项表单
 const itemFormRef = ref();
@@ -338,6 +366,7 @@ const itemDialog = reactive({
 });
 
 const itemForm = reactive<SubsystemItemTemplateForm>({
+  id: undefined, // ✅ 明确初始化 id 字段
   templateId: 0,
   itemName: '',
   itemType: '',
@@ -349,22 +378,30 @@ const itemForm = reactive<SubsystemItemTemplateForm>({
   materials: [] // 物料列表
 });
 
-const itemRules = {
+// ✅ 改为计算属性，实现动态验证规则
+const itemRules = computed(() => ({
   itemName: [{ required: true, message: '请输入子项名称', trigger: 'blur' }],
   materials: [
     {
-      required: true,
       validator: (rule: any, value: any, callback: any) => {
-        if (!value || value.length === 0) {
-          callback(new Error('请至少添加一个物料'));
+        // 新增模式：物料必填
+        // 编辑模式且开启更新物料：物料必填
+        // 编辑模式且不更新物料：跳过验证
+        if (!itemForm.id || updateMaterialData.value) {
+          if (!value || value.length === 0) {
+            callback(new Error('请至少添加一个物料'));
+          } else {
+            callback();
+          }
         } else {
+          // 编辑模式且不更新物料，跳过验证
           callback();
         }
       },
       trigger: 'change'
     }
   ]
-};
+}));
 
 // 物料详情弹窗
 const materialDetailDialog = reactive({
@@ -678,8 +715,17 @@ const handleEditItem = async (row: any) => {
     id: row.itemTemplateId || row.id
   });
 
-  // 加载该子项的物料列表
+  // ✅ 调试日志
+  console.log('=== handleEditItem ===');
+  console.log('row:', row);
+  console.log('itemForm.id:', itemForm.id);
+  console.log('updateMaterialData.value:', updateMaterialData.value);
+
+  // 加载该子项的物料列表（用于显示）
   await loadEditItemMaterials(row.itemTemplateId || row.id);
+
+  // ✅ 默认不更新物料数据，用户需要手动开启
+  updateMaterialData.value = false;
 
   itemDialog.title = '编辑子项';
   itemDialog.visible = true;
@@ -802,7 +848,37 @@ const submitItemForm = async () => {
   try {
     await itemFormRef.value?.validate();
 
-    // 检查物料是否已添加（新增和编辑都需要）
+    // ✅ 编辑模式且不更新物料数据时，只更新基础信息
+    if (itemForm.id && !updateMaterialData.value) {
+      itemDialog.loading = true;
+
+      if (props.useEquipmentSystemApi) {
+        // 设备系统模板模式：只更新基础信息
+        const apiData = {
+          id: itemForm.id,
+          templateCode: itemForm.itemCode || `ITEM_${Date.now()}`,
+          itemName: itemForm.itemName,
+          itemType: itemForm.itemType,
+          description: itemForm.description,
+          defaultQuantity: itemForm.defaultQuantity,
+          defaultUnit: itemForm.unit,
+          status: 'ACTIVE',
+          remarks: itemForm.remarks
+        };
+        await updateSubsystemItem(props.templateId, itemForm.id, apiData as any);
+      } else {
+        // 原有子系统模板模式：只更新基础信息
+        const { materials, ...updateData } = itemForm;
+        await updateItemTemplate(updateData);
+      }
+
+      ElMessage.success('修改成功');
+      itemDialog.visible = false;
+      loadItemList();
+      return;
+    }
+
+    // ✅ 新增模式或编辑且更新物料时，检查物料是否已添加
     if (!itemForm.materials || itemForm.materials.length === 0) {
       ElMessage.warning('请至少添加一个物料');
       return;
@@ -824,8 +900,10 @@ const submitItemForm = async () => {
       };
 
       if (itemForm.id) {
-        // 编辑
+        // 编辑：更新基础信息和物料数据
         await updateSubsystemItem(props.templateId, itemForm.id, apiData as any);
+        // ✅ 同步物料变更
+        await syncItemMaterialChanges(itemForm.id, itemForm.materials);
         ElMessage.success('修改成功');
       } else {
         // 新增
@@ -839,7 +917,7 @@ const submitItemForm = async () => {
         const { materials, ...updateData } = itemForm;
         await updateItemTemplate(updateData);
 
-        // 同步物料变更
+        // ✅ 同步物料变更
         await syncItemMaterialChanges(itemForm.id, itemForm.materials);
 
         ElMessage.success('修改成功');
@@ -876,6 +954,7 @@ const resetItemForm = () => {
   itemForm.isRequired = true;
   itemForm.remarks = '';
   itemForm.materials = []; // ✅ 重置物料列表
+  updateMaterialData.value = false; // ✅ 重置物料更新开关
   itemFormRef.value?.clearValidate();
 };
 
@@ -918,6 +997,17 @@ const handleRemoveItemMaterial = (index: number) => {
     itemForm.materials.splice(index, 1);
     // 手动触发表单验证
     itemFormRef.value?.validateField('materials');
+  }
+};
+
+// ✅ 新增：处理物料数据更新开关变化
+const handleUpdateMaterialDataChange = (value: boolean) => {
+  if (value) {
+    // 开启更新物料数据时，触发表单验证
+    itemFormRef.value?.validateField('materials');
+  } else {
+    // 关闭更新物料数据时，清除物料字段的验证错误
+    itemFormRef.value?.clearValidate('materials');
   }
 };
 
