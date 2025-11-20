@@ -339,10 +339,20 @@ const handleConfirm = () => {
     return;
   }
 
-  console.log('确认选择 - 选中物料数:', selectedMaterials.value.length);
-  console.log('确认选择 - 选中物料:', selectedMaterials.value);
+  // 过滤掉已添加的物料，只返回新选择的物料
+  const newMaterials = selectedMaterials.value.filter(material => {
+    return !props.existingMaterialCodes.includes(material.materialCode!);
+  });
 
-  emit('confirm', selectedMaterials.value);
+  console.log('过滤前总选择数:', selectedMaterials.value.length);
+  console.log('过滤后新增物料数:', newMaterials.length);
+
+  if (newMaterials.length === 0) {
+    ElMessage.warning('所选物料均已添加，请选择其他物料');
+    return;
+  }
+
+  emit('confirm', newMaterials);
 
   // 清空本地选中状态
   selectedMaterialCodes.value.clear();
