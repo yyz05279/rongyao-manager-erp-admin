@@ -170,3 +170,99 @@ export const getItemTemplateMaterials = (itemTemplateId: string | number): Axios
  */
 export const getItemMaterials = getItemTemplateMaterials;
 
+// ==================== 子项模板物料管理接口（RESTful风格） ====================
+
+/**
+ * 批量新增子项模板的物料
+ *
+ * 接口路径: POST /erp/subsystem/item-template/{itemTemplateId}/materials
+ *
+ * 说明：
+ * - 为指定的子项模板批量添加物料配置
+ * - itemTemplateId 通过路径参数传递，不需要在请求体中包含
+ * - 支持一次添加多个物料
+ *
+ * @param itemTemplateId 子项模板ID
+ * @param data 物料数据数组
+ * @returns Promise
+ *
+ * @example
+ * await addItemMaterials(10, [
+ *   { materialId: 100, defaultQuantity: 500, isRequired: true, remarks: "主要材料" },
+ *   { materialId: 101, defaultQuantity: 4, isRequired: false, remarks: "辅助材料" }
+ * ]);
+ */
+export const addItemMaterials = (
+  itemTemplateId: number,
+  data: Omit<SubsystemMaterialTemplateForm, 'itemTemplateId'>[]
+): AxiosPromise<void> => {
+  return request({
+    url: `/erp/subsystem/item-template/${itemTemplateId}/materials`,
+    method: 'post',
+    data: data
+  });
+};
+
+/**
+ * 批量修改子项模板的物料
+ *
+ * 接口路径: PUT /erp/subsystem/item-template/{itemTemplateId}/materials
+ *
+ * 说明：
+ * - 批量更新子项模板的物料配置
+ * - 每个物料必须包含 id 字段用于定位
+ * - 只要有一个物料更新失败，整个接口就返回失败
+ * - 支持事务回滚，确保数据一致性
+ *
+ * @param itemTemplateId 子项模板ID
+ * @param data 物料数据数组（每个物料必须包含id）
+ * @returns Promise
+ *
+ * @example
+ * await updateItemMaterials(10, [
+ *   { id: 1, materialId: 100, defaultQuantity: 600, isRequired: true, remarks: "更新后的备注" },
+ *   { id: 2, materialId: 101, defaultQuantity: 8, isRequired: false, remarks: "调整数量" }
+ * ]);
+ */
+export const updateItemMaterials = (
+  itemTemplateId: number,
+  data: SubsystemMaterialTemplateForm[]
+): AxiosPromise<void> => {
+  return request({
+    url: `/erp/subsystem/item-template/${itemTemplateId}/materials`,
+    method: 'put',
+    data: data
+  });
+};
+
+/**
+ * 删除子项模板的物料
+ *
+ * 接口路径: DELETE /erp/subsystem/item-template/{itemTemplateId}/materials/{ids}
+ *
+ * 说明：
+ * - 删除子项模板的一个或多个物料配置
+ * - 支持批量删除，多个ID用逗号分隔
+ *
+ * @param itemTemplateId 子项模板ID
+ * @param ids 物料ID数组
+ * @returns Promise
+ *
+ * @example
+ * // 删除单个物料
+ * await deleteItemMaterials(10, [1]);
+ *
+ * // 删除多个物料
+ * await deleteItemMaterials(10, [1, 2, 3]);
+ */
+export const deleteItemMaterials = (
+  itemTemplateId: number,
+  ids: number[]
+): AxiosPromise<void> => {
+  const idStr = ids.join(',');
+  return request({
+    url: `/erp/subsystem/item-template/${itemTemplateId}/materials/${idStr}`,
+    method: 'delete'
+  });
+};
+

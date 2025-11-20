@@ -257,11 +257,12 @@ import {
   addItemTemplate,
   updateItemTemplate,
   delItemTemplate,
-  getItemMaterials
+  getItemMaterials,
+  addItemMaterials,
+  updateItemMaterials
 } from '@/api/erp/subsystem/item-template';
 import {
   addMaterialTemplate,
-  updateMaterialTemplate,
   delMaterialTemplate,
   addMaterialTemplateBatch
 } from '@/api/erp/subsystem/material-template';
@@ -589,14 +590,15 @@ const syncMaterialChanges = async (
     // 1. 找出新增的物料（没有id的记录）
     const addedMaterials = currentMaterials.filter(m => !m.id);
     if (addedMaterials.length > 0) {
-      const addData: SubsystemMaterialTemplateForm[] = addedMaterials.map(m => ({
-        itemTemplateId: itemTemplateId,
+      // ✅ 使用新的RESTful风格API批量添加物料
+      // 注意：这里是独立的子项模板管理，不需要templateId
+      const addData = addedMaterials.map(m => ({
         materialId: m.materialId,
         defaultQuantity: m.defaultQuantity,
         isRequired: m.isRequired,
         remarks: m.remarks
       }));
-      await addMaterialTemplateBatch(addData);
+      await addItemMaterials(itemTemplateId as number, addData);
     }
 
     // 2. 找出需要更新的物料（有id且数据有变化）
@@ -612,15 +614,16 @@ const syncMaterialChanges = async (
       );
     });
     
-    for (const material of updatedMaterials) {
-      await updateMaterialTemplate({
-        id: material.id,
-        itemTemplateId: itemTemplateId,
-        materialId: material.materialId,
-        defaultQuantity: material.defaultQuantity,
-        isRequired: material.isRequired,
-        remarks: material.remarks
-      });
+    if (updatedMaterials.length > 0) {
+      // ✅ 使用新的RESTful批量更新接口
+      const updateData = updatedMaterials.map(m => ({
+        id: m.id,
+        materialId: m.materialId,
+        defaultQuantity: m.defaultQuantity,
+        isRequired: m.isRequired,
+        remarks: m.remarks
+      }));
+      await updateItemMaterials(itemTemplateId as number, updateData);
     }
 
     // 3. 找出需要删除的物料（在原始列表中但不在当前列表中）
@@ -762,15 +765,16 @@ const handleAddMaterial = () => {
 // 处理选择的物料
 const handleMaterialsSelected = async (materials: MaterialVO[]) => {
   try {
-    const materialTemplates: SubsystemMaterialTemplateForm[] = materials.map(material => ({
-      itemTemplateId: materialDialog.itemId,
+    // ✅ 使用新的RESTful风格API批量添加物料
+    // 注意：这里是独立的子项模板管理，不需要templateId
+    const materialTemplates = materials.map(material => ({
       materialId: material.id as number,
       defaultQuantity: 1,
       isRequired: true,
       remarks: ''
     }));
 
-    await addMaterialTemplateBatch(materialTemplates);
+    await addItemMaterials(materialDialog.itemId as number, materialTemplates);
     ElMessage.success(`成功添加 ${materials.length} 个物料`);
     loadMaterialList();
   } catch (error) {
@@ -812,7 +816,14 @@ const submitMaterialEditForm = async () => {
     await materialFormRef.value?.validate();
 
     materialEditDialog.loading = true;
-    await updateMaterialTemplate(materialForm);
+    // ✅ 使用新的RESTful风格批量更新接口（单条也用数组）
+    const updateData = [{
+      id: materialForm.id,
+      materialId: materialForm.materialId,
+      defaultQuantity: materialForm.defaultQuantity,
+      remarks: materialForm.remarks
+    }];
+    await updateItemMaterials(materialDialog.itemId as number, updateData);
     ElMessage.success('修改成功');
 
     materialEditDialog.visible = false;
