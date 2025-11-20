@@ -627,13 +627,13 @@ const syncMaterialChanges = async (
     }
 
     // 3. 找出需要删除的物料（在原始列表中但不在当前列表中）
+    // 按需求：在子项编辑弹窗保存时，不再调用删除接口，仅上传当前物料数据
     const currentMaterialIds = currentMaterials.filter(m => m.id).map(m => m.id);
     const deletedMaterials = originalMaterialsList.filter(m => !currentMaterialIds.includes(m.id));
-    if (deletedMaterials.length > 0) {
-      const deleteIds = deletedMaterials.map(m => Number(m.id));
-      // ✅ 使用新的批量删除接口
-      await deleteItemMaterials(Number(itemTemplateId), deleteIds);
-    }
+    // if (deletedMaterials.length > 0) {
+    //   const deleteIds = deletedMaterials.map(m => Number(m.id));
+    //   await deleteItemMaterials(Number(itemTemplateId), deleteIds);
+    // }
   } catch (error) {
     console.error('同步物料变更失败:', error);
     throw error;

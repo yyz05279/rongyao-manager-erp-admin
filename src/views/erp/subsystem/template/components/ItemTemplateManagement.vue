@@ -566,16 +566,15 @@ const syncItemMaterialChanges = async (itemTemplateId: string | number, currentM
     // 3. 找出需要新增的物料（没有id的）
     const materialsToAdd = currentMaterials.filter(current => !current.id);
 
-    // 执行删除操作
-    if (materialsToDelete.length > 0) {
-      const deleteIds = materialsToDelete.map((m: any) => m.id);
-      if (props.useEquipmentSystemApi) {
-        await deleteEquipmentSystemItemMaterials(itemTemplateId, deleteIds);
-      } else {
-        // ✅ 使用新的批量删除接口
-        await deleteItemMaterials(Number(itemTemplateId), deleteIds.map(id => Number(id)));
-      }
-    }
+    // 执行删除操作（按需求：在编辑弹窗保存时不再调用删除接口，交由后端按提交的数据同步处理或保留）
+    // if (materialsToDelete.length > 0) {
+    //   const deleteIds = materialsToDelete.map((m: any) => m.id);
+    //   if (props.useEquipmentSystemApi) {
+    //     await deleteEquipmentSystemItemMaterials(itemTemplateId, deleteIds);
+    //   } else {
+    //     await deleteItemMaterials(Number(itemTemplateId), deleteIds.map(id => Number(id)));
+    //   }
+    // }
 
     // 执行更新操作
     if (materialsToUpdate.length > 0) {
