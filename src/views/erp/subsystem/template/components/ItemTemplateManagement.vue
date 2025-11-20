@@ -314,10 +314,13 @@ import {
 import {
   listMaterialTemplateByItemId,
   addMaterialTemplate,
-  updateMaterialTemplate,
   delMaterialTemplate,
   addMaterialTemplateBatch
 } from '@/api/erp/subsystem/material-template';
+import {
+  addItemMaterials,
+  updateItemMaterials
+} from '@/api/erp/subsystem/item-template';
 import { listMaterial } from '@/api/erp/material/material';
 import type { MaterialVO } from '@/api/erp/material/material/types';
 import type {
@@ -419,8 +422,11 @@ const materialEditDialog = reactive({
 });
 
 // 简化后的物料表单，只包含可编辑字段
+// ✅ 添加 materialId 和 itemTemplateId，用于批量更新API
 const materialForm = reactive({
   id: undefined as string | number | undefined,
+  materialId: undefined as string | number | undefined,
+  itemTemplateId: undefined as string | number | undefined,
   materialName: '',
   defaultQuantity: 1,
   remarks: ''
@@ -571,20 +577,27 @@ const syncItemMaterialChanges = async (itemTemplateId: string | number, currentM
     }
 
     // 执行更新操作
-    for (const material of materialsToUpdate) {
+    if (materialsToUpdate.length > 0) {
       if (props.useEquipmentSystemApi) {
-        await updateEquipmentSystemItemMaterial(itemTemplateId, material.id, {
-          defaultQuantity: material.defaultQuantity,
-          isRequired: material.isRequired,
-          remarks: material.remarks
-        });
+        // 设备系统API：逐个更新
+        for (const material of materialsToUpdate) {
+          await updateEquipmentSystemItemMaterial(itemTemplateId, material.id, {
+            defaultQuantity: material.defaultQuantity,
+            isRequired: material.isRequired,
+            remarks: material.remarks
+          });
+        }
       } else {
-        await updateMaterialTemplate({
+        // ✅ 使用新的RESTful风格API批量更新物料
+        const updateData = materialsToUpdate.map(material => ({
           id: material.id,
+          materialId: material.materialId, // 需要包含materialId
+          templateId: props.templateId, // 保留templateId，表示关联到子系统
           defaultQuantity: material.defaultQuantity,
           isRequired: material.isRequired,
           remarks: material.remarks
-        } as any);
+        }));
+        await updateItemMaterials(itemTemplateId as number, updateData);
       }
     }
 
@@ -598,16 +611,17 @@ const syncItemMaterialChanges = async (itemTemplateId: string | number, currentM
           // 注意：这里需要获取新添加的物料ID，可能需要重新查询
         }
       } else {
-        // 使用子系统API批量添加物料
+        // ✅ 使用新的RESTful风格API批量添加物料
+        // 注意：这里有templateId，说明是在子系统模板中添加物料
+        // 新API不需要在请求体中传递itemTemplateId，而是通过路径参数传递
         const addData = materialsToAdd.map(material => ({
-          templateId: props.templateId,
-          itemTemplateId: itemTemplateId,
+          templateId: props.templateId, // 保留templateId，表示关联到子系统
           materialId: material.materialId,
           defaultQuantity: material.defaultQuantity,
           isRequired: material.isRequired,
           remarks: material.remarks
         }));
-        await addMaterialTemplateBatch(addData);
+        await addItemMaterials(itemTemplateId as number, addData);
       }
     }
   } catch (error) {
@@ -1039,18 +1053,15 @@ const handleMaterialsSelected = async (materials: MaterialVO[]) => {
       console.log('准备批量添加物料，物料ID列表:', materialIds);
       await addEquipmentSystemItemMaterialsFromBaseBatch(selectedItemId.value!, materialIds);
     } else {
-      // 使用子系统模版API - 批量添加
-      const materialTemplates: SubsystemMaterialTemplateForm[] = materials.map(material => ({
-        // 修正：这里的 templateId 应该是子系统模板的 ID，itemTemplateId 才是子项的 ID
-        // 根据 addMaterialTemplateBatch 的定义，需要 templateId 和 itemTemplateId
-        templateId: props.templateId,
-        itemTemplateId: selectedItemId.value!, // selectedItemId 就是当前操作的子项 ID
+      // ✅ 使用新的RESTful风格API批量添加物料
+      const materialTemplates = materials.map(material => ({
+        templateId: props.templateId, // 保留templateId，表示关联到子系统
         materialId: material.id as number,
         defaultQuantity: 1,
         isRequired: true,
         remarks: ''
       }));
-      await addMaterialTemplateBatch(materialTemplates);
+      await addItemMaterials(selectedItemId.value! as number, materialTemplates);
     }
 
     ElMessage.success(`成功添加 ${materials.length} 个物料`);
@@ -1064,8 +1075,10 @@ const handleMaterialsSelected = async (materials: MaterialVO[]) => {
 // 编辑物料
 const handleEditMaterial = (row: SubsystemMaterialTemplateVO) => {
   resetMaterialForm();
-  // 只复制需要的字段到简化的表单
+  // ✅ 保存完整的物料信息，用于批量更新API
   materialForm.id = row.id;
+  materialForm.materialId = row.materialId;
+  materialForm.itemTemplateId = row.itemTemplateId;
   materialForm.materialName = row.materialName || '';
   materialForm.defaultQuantity = row.defaultQuantity;
   materialForm.remarks = row.remarks || '';
@@ -1107,13 +1120,6 @@ const submitMaterialEditForm = async () => {
 
     materialEditDialog.loading = true;
 
-    // 准备提交的数据，只包含可编辑的字段
-    const updateData = {
-      id: materialForm.id,
-      defaultQuantity: materialForm.defaultQuantity,
-      remarks: materialForm.remarks
-    };
-
     // 根据模式选择不同的API
     if (props.useEquipmentSystemApi) {
       // 使用设备系统模版API
@@ -1121,8 +1127,16 @@ const submitMaterialEditForm = async () => {
       // 因此，我们提交完整的 materialForm，但前端UI只允许修改数量和备注
       await updateEquipmentSystemItemMaterial(selectedItemId.value!, materialForm.id!, materialForm);
     } else {
-      // 使用子系统模版API
-      await updateMaterialTemplate(updateData as any);
+      // ✅ 使用新的RESTful风格API批量更新物料
+      // 注意：虽然只更新一个物料，但新API要求使用数组格式
+      const updateData = [{
+        id: materialForm.id,
+        materialId: materialForm.materialId,
+        templateId: props.templateId, // 保留templateId，表示关联到子系统
+        defaultQuantity: materialForm.defaultQuantity,
+        remarks: materialForm.remarks
+      }];
+      await updateItemMaterials(selectedItemId.value! as number, updateData);
     }
 
     ElMessage.success('修改成功');
