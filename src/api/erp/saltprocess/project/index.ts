@@ -315,26 +315,18 @@ export const exportProjectReport = (id: string): AxiosPromise<Blob> => {
 
 /**
  * 获取项目简化列表（用于下拉选择）
+ * 返回格式：{ id: string, projectCode: string, projectName: string, status: number }[]
  */
-export const getProjectSimpleList = async (): Promise<{ data: { id: string; name: string }[] }> => {
-  const response: any = await request({
+export const getProjectSimpleList = (): AxiosPromise<Array<{
+  id: string;
+  projectCode: string;
+  projectName: string;
+  status: number;
+}>> => {
+  return request({
     url: '/erp/saltprocess/project/simple-list',
     method: 'get'
   });
-
-  // 确保返回的数据格式正确
-  const projects = response.data || [];
-  const simplifiedList = projects.map((project: any) => ({
-    id: String(project.id || project.projectId || ''),
-    name: project.name || project.projectName || `项目${project.id}`
-  }));
-
-  console.log('📋 项目简化列表数据:', {
-    原始数据数量: projects.length,
-    转换后数据: simplifiedList
-  });
-
-  return { data: simplifiedList };
 };
 
 /**

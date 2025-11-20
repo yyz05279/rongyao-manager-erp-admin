@@ -43,7 +43,12 @@
         <el-row :gutter="10" class="mb8">
           <el-col :span="1.5">
             <el-button type="primary" plain icon="Plus" @click="handleAdd" v-hasPermi="['erp:saltprocess:projectEquipmentSystem:add']">
-              新增设备系统
+              新增
+            </el-button>
+          </el-col>
+          <el-col :span="1.5">
+            <el-button type="success" plain icon="Link" @click="handleAssociate" v-hasPermi="['erp:saltprocess:projectEquipmentSystem:add']">
+              从模板关联
             </el-button>
           </el-col>
           <el-col :span="1.5">
@@ -184,13 +189,20 @@
     <el-dialog title="设备系统详情" v-model="detailDialog.visible" width="1400px" append-to-body>
       <project-equipment-system-detail v-if="detailDialog.visible" :system-id="detailDialog.systemId" @close="detailDialog.visible = false" />
     </el-dialog>
+
+    <!-- 关联设备系统对话框 -->
+    <project-equipment-system-associate-form
+      v-if="associateDialog.visible"
+      v-model:visible="associateDialog.visible"
+      @success="handleAssociateSuccess"
+    />
   </div>
 </template>
 
 <script setup name="ProjectEquipmentSystemManagement" lang="ts">
 import { ref, reactive, onMounted, getCurrentInstance, ComponentInternalInstance } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import { Check, CircleCheck, FolderOpened } from '@element-plus/icons-vue';
+
 import {
   listProjectEquipmentSystem,
   delProjectEquipmentSystem,
@@ -200,6 +212,7 @@ import {
 import type { ProjectEquipmentSystemQuery, ProjectEquipmentSystemVO } from '@/api/erp/saltprocess/equipment-system/types';
 import { parseTime } from '@/utils/ruoyi';
 import ProjectEquipmentSystemForm from './components/ProjectEquipmentSystemForm.vue';
+import ProjectEquipmentSystemAssociateForm from './components/ProjectEquipmentSystemAssociateForm.vue';
 import ProjectEquipmentSystemDetail from './components/ProjectEquipmentSystemDetail.vue';
 
 const { proxy } = getCurrentInstance() as ComponentInternalInstance;
@@ -233,6 +246,10 @@ const dialog = reactive<{
   visible: false,
   title: '',
   systemId: ''
+});
+
+const associateDialog = reactive({
+  visible: false
 });
 
 const detailDialog = reactive<{
@@ -311,6 +328,17 @@ const handleUpdate = (row?: ProjectEquipmentSystemVO) => {
 const handleView = (row: ProjectEquipmentSystemVO) => {
   detailDialog.systemId = row.id;
   detailDialog.visible = true;
+};
+
+// 关联
+const handleAssociate = () => {
+  associateDialog.visible = true;
+};
+
+// 关联成功
+const handleAssociateSuccess = () => {
+  associateDialog.visible = false;
+  getList();
 };
 
 // 删除
