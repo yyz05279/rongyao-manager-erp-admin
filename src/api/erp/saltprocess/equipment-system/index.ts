@@ -132,3 +132,15 @@ export const createFromTemplate = (projectId: number, templateId: number): Axios
   });
 };
 
+/**
+ * 批量从模板创建项目设备系统
+ * @param data 创建参数 { projectId: number, templateIds: number[] }
+ */
+export const createFromTemplates = (data: { projectId: number; templateIds: number[] }): AxiosPromise<string[]> => {
+  return request({
+    url: '/erp/saltprocess/projectEquipmentSystem/create-from-templates',
+    method: 'post',
+    data
+  });
+};
+

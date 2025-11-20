@@ -38,6 +38,16 @@ export const listProject = (query?: ProjectQuery): AxiosPromise<PageResult<Proje
 };
 
 /**
+ * 查询项目简化列表（用于下拉选择）
+ */
+export const listProjectSimple = (): AxiosPromise<Array<{ id: number; projectName: string; projectCode: string }>> => {
+  return request({
+    url: '/erp/project/simple',
+    method: 'get'
+  });
+};
+
+/**
  * 获取项目详情
  */
 export const getProject = (id: string): AxiosPromise<ProjectVO> => {

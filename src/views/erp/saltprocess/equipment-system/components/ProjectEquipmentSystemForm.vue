@@ -100,14 +100,7 @@
   </div>
 </template>
 
-<script lang="ts">
-import { defineComponent } from 'vue';
-export default defineComponent({
-  name: 'ProjectEquipmentSystemForm'
-});
-</script>
-
-<script setup lang="ts">
+<script setup name="ProjectEquipmentSystemForm" lang="ts">
 import { ref, reactive, onMounted, watch } from 'vue';
 import { ElMessage } from 'element-plus';
 import type { FormInstance, FormRules } from 'element-plus';
