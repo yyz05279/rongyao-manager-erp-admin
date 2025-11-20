@@ -298,8 +298,26 @@ const handleConfirm = () => {
     return;
   }
 
-  console.log('准备 emit confirm 事件，传递的数据:', selectedMaterials.value);
-  emit('confirm', selectedMaterials.value);
+  // 过滤掉已添加的物料，只保留新选择的物料
+  const newMaterials = selectedMaterials.value.filter(material => {
+    // 优先使用 materialCode 匹配（用于设备系统模板）
+    if (props.existingMaterialCodes.length > 0 && material.materialCode) {
+      return !props.existingMaterialCodes.includes(material.materialCode);
+    }
+    // 否则使用 ID 匹配（用于子系统模板）
+    return !props.existingMaterialIds.includes(material.id as number);
+  });
+
+  console.log('过滤后的新物料数量:', newMaterials.length);
+  console.log('过滤后的新物料:', newMaterials);
+
+  if (newMaterials.length === 0) {
+    ElMessage.warning('所选物料均已添加，请选择其他物料');
+    return;
+  }
+
+  console.log('准备 emit confirm 事件，传递的数据:', newMaterials);
+  emit('confirm', newMaterials);
   console.log('emit confirm 事件完成');
   dialogVisible.value = false;
   console.log('对话框已关闭');
