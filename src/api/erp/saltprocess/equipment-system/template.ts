@@ -243,9 +243,10 @@ export const deleteEquipmentSystemItemMaterials = (
 };
 
 /**
- * 从基础物料库复制新增物料模板
+ * 从基础物料库复制新增物料模板（单个）
  * @param itemTemplateId 子项模版ID
  * @param materialId 基础物料ID
+ * @deprecated 建议使用批量添加接口 addEquipmentSystemItemMaterialsFromBaseBatch
  */
 export const addEquipmentSystemItemMaterialFromBase = (
   itemTemplateId: string | number,
@@ -254,6 +255,22 @@ export const addEquipmentSystemItemMaterialFromBase = (
   return request({
     url: `/erp/saltprocess/equipmentSystemTemplate/item/${itemTemplateId}/materials/from-base/${materialId}`,
     method: 'post'
+  });
+};
+
+/**
+ * 从基础物料库批量复制新增物料模板
+ * @param itemTemplateId 子项模版ID
+ * @param materialIds 基础物料ID列表
+ */
+export const addEquipmentSystemItemMaterialsFromBaseBatch = (
+  itemTemplateId: string | number,
+  materialIds: number[]
+): AxiosPromise<void> => {
+  return request({
+    url: `/erp/saltprocess/equipmentSystemTemplate/item/${itemTemplateId}/materials/from-base`,
+    method: 'post',
+    data: materialIds
   });
 };
 
