@@ -259,11 +259,11 @@ import {
   delItemTemplate,
   getItemMaterials,
   addItemMaterials,
-  updateItemMaterials
+  updateItemMaterials,
+  deleteItemMaterials
 } from '@/api/erp/subsystem/item-template';
 import {
   addMaterialTemplate,
-  delMaterialTemplate,
   addMaterialTemplateBatch
 } from '@/api/erp/subsystem/material-template';
 import { listMaterial } from '@/api/erp/material/material';
@@ -630,8 +630,9 @@ const syncMaterialChanges = async (
     const currentMaterialIds = currentMaterials.filter(m => m.id).map(m => m.id);
     const deletedMaterials = originalMaterialsList.filter(m => !currentMaterialIds.includes(m.id));
     if (deletedMaterials.length > 0) {
-      const deleteIds = deletedMaterials.map(m => m.id);
-      await delMaterialTemplate(deleteIds);
+      const deleteIds = deletedMaterials.map(m => Number(m.id));
+      // ✅ 使用新的批量删除接口
+      await deleteItemMaterials(Number(itemTemplateId), deleteIds);
     }
   } catch (error) {
     console.error('同步物料变更失败:', error);
@@ -799,7 +800,8 @@ const handleDeleteMaterial = async (row: any) => {
       type: 'warning'
     });
 
-    await delMaterialTemplate(row.id);
+    // ✅ 使用新的批量删除接口
+    await deleteItemMaterials(Number(materialDialog.itemId), [Number(row.id)]);
     ElMessage.success('删除成功');
     loadMaterialList();
   } catch (error) {
