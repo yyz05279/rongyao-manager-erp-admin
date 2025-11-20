@@ -49,6 +49,7 @@ export default defineComponent({
       ref="tableRef"
       v-loading="loading"
       :data="materialList"
+      row-key="materialCode"
       @selection-change="handleSelectionChange"
       style="width: 100%"
       height="450"
@@ -127,6 +128,12 @@ const selectedMaterials = ref<MaterialVO[]>([]);
 const total = ref(0);
 const tableRef = ref();
 
+// 本地维护的已选中物料编码集合（用于跨分页保持选中状态）
+const selectedMaterialCodes = ref<Set<string>>(new Set());
+
+// 标志位：是否正在恢复选中状态（防止 clearSelection 触发 handleSelectionChange 清空本地状态）
+const isRestoringSelection = ref(false);
+
 const queryParams = reactive({
   pageNum: 1,
   pageSize: 10,
@@ -148,6 +155,9 @@ watch(dialogVisible, (newVal) => {
   console.log('传入的 existingMaterialCodes:', props.existingMaterialCodes);
 
   if (newVal) {
+    // 初始化已选中物料编码集合（包含已添加的物料）
+    selectedMaterialCodes.value = new Set(props.existingMaterialCodes);
+    console.log('初始化 selectedMaterialCodes:', Array.from(selectedMaterialCodes.value));
     loadMaterialList();
   } else {
     resetSearch();
@@ -163,6 +173,10 @@ const loadMaterialList = async () => {
   try {
     const response: any = await listMaterial(queryParams);
     console.log('API 响应:', response);
+
+    // 🔒 在数据赋值之前设置标志位，防止数据变化触发 handleSelectionChange 清空本地状态
+    isRestoringSelection.value = true;
+    console.log('🔒 设置 isRestoringSelection = true（数据赋值前）');
 
     // 处理响应数据
     if (response.rows) {
@@ -184,6 +198,9 @@ const loadMaterialList = async () => {
   } catch (error) {
     console.error('加载物料列表失败:', error);
     ElMessage.error('加载物料列表失败');
+
+    // 出错时也要重置标志位
+    isRestoringSelection.value = false;
     materialList.value = [];
     total.value = 0;
   } finally {
@@ -211,11 +228,12 @@ const checkSelectable = (row: MaterialVO): boolean => {
   return !isAdded(row);
 };
 
-// 自动勾选已添加的物料
+// 自动勾选已添加的物料（基于本地维护的选中列表）
 const autoSelectAddedMaterials = async () => {
   console.log('=== 开始自动勾选已添加的物料 ===');
   console.log('existingMaterialIds:', props.existingMaterialIds);
   console.log('existingMaterialCodes:', props.existingMaterialCodes);
+  console.log('selectedMaterialCodes:', Array.from(selectedMaterialCodes.value));
   console.log('materialList 数量:', materialList.value.length);
 
   // 使用 nextTick 确保表格渲染完成
@@ -223,32 +241,58 @@ const autoSelectAddedMaterials = async () => {
 
   if (!tableRef.value) {
     console.warn('表格组件未找到，无法自动勾选');
+    // 重置标志位
+    isRestoringSelection.value = false;
     return;
   }
 
-  // 清空之前的选择
-  tableRef.value.clearSelection();
+  // 注意：isRestoringSelection 已经在 loadMaterialList 中设置为 true
 
-  // 勾选已添加的物料
+  // 清空表格的选择状态（但不清空 selectedMaterialCodes）
+  tableRef.value.clearSelection();
+  console.log('✓ 已清空表格选择状态');
+
+  // 根据本地维护的选中列表恢复勾选状态
   let selectedCount = 0;
   materialList.value.forEach((material) => {
-    const shouldSelect = isAdded(material);
-    if (shouldSelect) {
-      console.log(`勾选物料: ${material.materialName}(ID: ${material.id}, 编码: ${material.materialCode})`);
+    // 检查物料编码是否在本地选中列表中
+    const materialCode = material.materialCode;
+    if (materialCode && selectedMaterialCodes.value.has(materialCode)) {
+      console.log(`恢复勾选物料: ${material.materialName}(编码: ${materialCode})`);
       tableRef.value.toggleRowSelection(material, true);
       selectedCount++;
     }
   });
 
-  const expectedCount = props.existingMaterialCodes.length > 0
-    ? props.existingMaterialCodes.length
-    : props.existingMaterialIds.length;
-  console.log(`已自动勾选 ${selectedCount} 个已添加的物料（预期: ${expectedCount}）`);
+  console.log(`已恢复勾选 ${selectedCount} 个物料（本地选中总数: ${selectedMaterialCodes.value.size}）`);
+
+  // 恢复完成后，重置标志位
+  isRestoringSelection.value = false;
+  console.log('🔓 设置 isRestoringSelection = false，恢复正常事件处理');
 };
 
-// 选择变化
+// 选择变化（同步更新本地选中列表）
 const handleSelectionChange = (selection: MaterialVO[]) => {
   selectedMaterials.value = selection;
+
+  // 🔒 如果正在恢复选中状态，不要更新 selectedMaterialCodes（防止被 clearSelection 清空）
+  if (isRestoringSelection.value) {
+    console.log('⚠️ 正在恢复选中状态，跳过 selectedMaterialCodes 更新');
+    console.log('选择变化 - 当前选中物料数:', selection.length);
+    console.log('选择变化 - 保持 selectedMaterialCodes 不变:', Array.from(selectedMaterialCodes.value));
+    return;
+  }
+
+  // 正常情况下，更新本地选中物料编码集合
+  selectedMaterialCodes.value.clear();
+  selection.forEach((material) => {
+    if (material.materialCode) {
+      selectedMaterialCodes.value.add(material.materialCode);
+    }
+  });
+
+  console.log('选择变化 - 当前选中物料数:', selection.length);
+  console.log('选择变化 - 更新后的 selectedMaterialCodes:', Array.from(selectedMaterialCodes.value));
 };
 
 // 搜索
@@ -272,6 +316,7 @@ const resetSearch = () => {
   queryParams.pageNum = 1;
   queryParams.pageSize = 10;
   selectedMaterials.value = [];
+  selectedMaterialCodes.value.clear();
 };
 
 // 页码变化
@@ -319,6 +364,9 @@ const handleConfirm = () => {
   console.log('准备 emit confirm 事件，传递的数据:', newMaterials);
   emit('confirm', newMaterials);
   console.log('emit confirm 事件完成');
+
+  // 清空本地选中状态
+  selectedMaterialCodes.value.clear();
   dialogVisible.value = false;
   console.log('对话框已关闭');
 };
