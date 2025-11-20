@@ -66,6 +66,7 @@ export default defineComponent({
       ref="tableRef"
       v-loading="loading"
       :data="itemList"
+      row-key="id"
       @selection-change="handleSelectionChange"
       style="width: 100%"
       height="450"
@@ -276,6 +277,12 @@ const itemList = ref<SubsystemItemTemplateVO[]>([]);
 const selectedItems = ref<SubsystemItemTemplateVO[]>([]);
 const total = ref(0);
 
+// 本地维护的已选中子项ID集合（用于跨分页保持选中状态）
+const selectedItemIds = ref<Set<number | string>>(new Set());
+
+// 标志位：是否正在恢复选中状态
+const isRestoringSelection = ref(false);
+
 const queryParams = reactive<SubsystemItemTemplateQuery>({
   pageNum: 1,
   pageSize: 10,
@@ -341,16 +348,10 @@ watch(dialogVisible, (newVal) => {
     console.log('========== ItemTemplateSelectorDialog 对话框打开 ==========');
     console.log('接收到的 props.templateId:', props.templateId);
     console.log('接收到的 props.existingItemIds (原始):', props.existingItemIds);
-    console.log('props.existingItemIds 类型:', typeof props.existingItemIds);
-    console.log('props.existingItemIds 是否为数组:', Array.isArray(props.existingItemIds));
-    console.log('props.existingItemIds 详细信息:', props.existingItemIds.map((id, index) => ({
-      index,
-      value: id,
-      type: typeof id,
-      isNaN: isNaN(id),
-      stringValue: String(id),
-      numberValue: Number(id)
-    })));
+
+    // 初始化本地选中ID集合
+    selectedItemIds.value = new Set(props.existingItemIds.map(id => typeof id === 'string' ? id : Number(id)));
+    console.log('初始化 selectedItemIds:', Array.from(selectedItemIds.value));
 
     // 设置 templateId 参数用于标记已添加的子项
     queryParams.templateId = props.templateId;
@@ -366,48 +367,33 @@ const loadItemList = async () => {
   try {
     console.log('========== 加载子项列表 ==========');
     console.log('queryParams:', queryParams);
-    console.log('queryParams.templateId:', queryParams.templateId);
 
     const response: any = await listItemTemplate(queryParams);
-
     console.log('后端响应:', response);
 
-    // 处理响应数据并转换字段
+    // 🔒 在数据赋值之前设置标志位
+    isRestoringSelection.value = true;
+    console.log('🔒 设置 isRestoringSelection = true（数据赋值前）');
+
+    // 处理响应数据
     let rawData: any[] = [];
     if (response.rows) {
       rawData = response.rows;
       total.value = response.total || 0;
-    } else if (Array.isArray(response.data)) {
-      rawData = response.data;
-      total.value = response.data.length;
     } else {
       rawData = [];
       total.value = 0;
     }
 
-    // 转换数据：如果后端返回的是 templateCode，转换为 itemCode
-    itemList.value = rawData.map((item: any) => {
-      if (item.templateCode && !item.itemCode) {
-        return {
-          ...item,
-          itemCode: item.templateCode
-        };
-      }
-      return item;
-    });
-
+    itemList.value = rawData;
     console.log('处理后的 itemList:', itemList.value);
-    console.log('itemList 中的 isAdded 字段:', itemList.value.map(item => ({
-      itemCode: item.itemCode,
-      itemName: item.itemName,
-      isAdded: item.isAdded
-    })));
 
     // 自动勾选已添加的子项
     autoSelectAddedItems();
   } catch (error) {
     console.error('加载子项列表失败:', error);
     ElMessage.error('加载子项列表失败');
+    isRestoringSelection.value = false; // 确保出错时重置标志位
     itemList.value = [];
     total.value = 0;
   } finally {
@@ -453,75 +439,47 @@ const checkSelectable = (row: SubsystemItemTemplateVO): boolean => {
 
 // 自动勾选已添加的子项（基于 isAdded 字段或 existingItemIds）
 const autoSelectAddedItems = async () => {
-  // 使用 nextTick 确保表格渲染完成
   await nextTick();
-
-  console.log('========== 开始自动勾选子项 ==========');
-  console.log('existingItemIds:', props.existingItemIds);
-  console.log('existingItemIds 类型检查:', props.existingItemIds.map(id => ({
-    id,
-    type: typeof id,
-    isString: typeof id === 'string',
-    isNumber: typeof id === 'number'
-  })));
-  console.log('itemList:', itemList.value);
-
   if (!tableRef.value) {
     console.warn('表格组件未找到，无法自动勾选');
+    isRestoringSelection.value = false; // 确保重置标志位
     return;
   }
 
-  // 清空之前的选择
-  tableRef.value.clearSelection();
-
-  // 分离字符串类型（itemCode）和数字类型（id）的 existingItemIds
-  const existingItemCodes = props.existingItemIds.filter(id => typeof id === 'string') as string[];
-  const existingItemNumIds = props.existingItemIds.filter(id => typeof id === 'number') as number[];
-
-  console.log('existingItemCodes (字符串):', existingItemCodes);
-  console.log('existingItemNumIds (数字):', existingItemNumIds);
-
-  // 勾选已添加的子项
+  // 恢复勾选
   let selectedCount = 0;
   itemList.value.forEach((item) => {
-    const itemId = Number(item.id);
-    const itemCode = item.itemCode;
-
-    console.log(`检查子项 ${item.itemName} (id: ${item.id}, itemCode: ${itemCode}):`, {
-      isAdded: item.isAdded,
-      inExistingItemCodes: itemCode && existingItemCodes.includes(itemCode),
-      inExistingItemNumIds: !isNaN(itemId) && existingItemNumIds.includes(itemId)
-    });
-
-    // 优先使用后端返回的 isAdded 字段
-    if (item.isAdded === true) {
-      console.log('✓ 根据 isAdded 勾选子项:', item.id, item.itemName);
+    if (selectedItemIds.value.has(item.id) || (item.itemCode && selectedItemIds.value.has(item.itemCode))) {
       tableRef.value.toggleRowSelection(item, true);
       selectedCount++;
-    }
-    // 通过 itemCode 匹配（字符串匹配）
-    else if (itemCode && existingItemCodes.includes(itemCode)) {
-      console.log('✓ 根据 itemCode 勾选子项:', itemCode, item.itemName);
-      tableRef.value.toggleRowSelection(item, true);
-      selectedCount++;
-    }
-    // 通过 id 匹配（数字匹配）
-    else if (!isNaN(itemId) && existingItemNumIds.includes(itemId)) {
-      console.log('✓ 根据 id 勾选子项:', item.id, item.itemName);
-      tableRef.value.toggleRowSelection(item, true);
-      selectedCount++;
-    } else {
-      console.log('✗ 不勾选子项:', item.id, item.itemName);
     }
   });
 
-  console.log(`已自动勾选 ${selectedCount} 个已添加的子项`);
-  console.log('========== 自动勾选完成 ==========');
+  console.log(`已恢复勾选 ${selectedCount} 个子项（本地选中总数: ${selectedItemIds.value.size}）`);
+
+  // 恢复完成后，重置标志位
+  isRestoringSelection.value = false;
+  console.log('🔓 设置 isRestoringSelection = false，恢复正常事件处理');
 };
 
 // 选择变化
 const handleSelectionChange = (selection: SubsystemItemTemplateVO[]) => {
   selectedItems.value = selection;
+
+  if (isRestoringSelection.value) {
+    console.log('⚠️ 正在恢复选中状态，跳过 selectedItemIds 更新');
+    return;
+  }
+
+  // 更新本地选中ID集合
+  selectedItemIds.value.clear();
+  selection.forEach(item => {
+    selectedItemIds.value.add(item.id);
+    if (item.itemCode) {
+      selectedItemIds.value.add(item.itemCode);
+    }
+  });
+  console.log('选择变化 - 更新后的 selectedItemIds:', Array.from(selectedItemIds.value));
 };
 
 // 搜索
@@ -548,6 +506,7 @@ const resetSearch = () => {
   queryParams.pageSize = 10;
   queryParams.templateId = undefined;
   selectedItems.value = [];
+  selectedItemIds.value.clear(); // 清空本地状态
 };
 
 // 引用表格组件
