@@ -85,9 +85,9 @@ export const exportProjectEquipmentSystem = (query?: ProjectEquipmentSystemQuery
 
 /**
  * 生成设备系统编号
- * @param projectId 项目ID
+ * @param projectId 项目ID（使用 string 类型避免 Long 精度丢失）
  */
-export const generateSystemCode = (projectId: number): AxiosPromise<string> => {
+export const generateSystemCode = (projectId: string): AxiosPromise<string> => {
   return request({
     url: '/erp/saltprocess/projectEquipmentSystem/generate-code',
     method: 'get',
@@ -112,7 +112,7 @@ export const updateSystemStatus = (id: string | number, status: string): AxiosPr
  * 复制设备系统
  * @param id 源设备系统ID
  */
-export const copyProjectEquipmentSystem = (id: string | number): AxiosPromise<number> => {
+export const copyProjectEquipmentSystem = (id: string | number): AxiosPromise<string> => {
   return request({
     url: `/erp/saltprocess/projectEquipmentSystem/${id}/copy`,
     method: 'post'
@@ -121,10 +121,10 @@ export const copyProjectEquipmentSystem = (id: string | number): AxiosPromise<nu
 
 /**
  * 从模板创建设备系统
- * @param projectId 项目ID
- * @param templateId 模板ID
+ * @param projectId 项目ID（使用 string 类型避免 Long 精度丢失）
+ * @param templateId 模板ID（使用 string 类型避免 Long 精度丢失）
  */
-export const createFromTemplate = (projectId: number, templateId: number): AxiosPromise<number> => {
+export const createFromTemplate = (projectId: string, templateId: string): AxiosPromise<string> => {
   return request({
     url: '/erp/saltprocess/projectEquipmentSystem/create-from-template',
     method: 'post',
@@ -134,9 +134,10 @@ export const createFromTemplate = (projectId: number, templateId: number): Axios
 
 /**
  * 批量从模板创建项目设备系统
- * @param data 创建参数 { projectId: number, templateIds: number[] }
+ * @param data 创建参数 { projectId: string, templateIds: string[] }
+ * @description 使用 string 类型避免后端 Long 类型 ID 精度丢失
  */
-export const createFromTemplates = (data: { projectId: number; templateIds: number[] }): AxiosPromise<string[]> => {
+export const createFromTemplates = (data: { projectId: string; templateIds: string[] }): AxiosPromise<string[]> => {
   return request({
     url: '/erp/saltprocess/projectEquipmentSystem/create-from-templates',
     method: 'post',

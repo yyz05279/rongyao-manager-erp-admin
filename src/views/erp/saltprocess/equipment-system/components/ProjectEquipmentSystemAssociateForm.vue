@@ -145,7 +145,7 @@ import type { EquipmentSystemTemplateVO } from '@/api/erp/saltprocess/equipment-
  */
 interface FormData {
   projectId: string | null;
-  equipmentSystemIds: number[];
+  equipmentSystemIds: string[];  // 使用 string 类型避免 Long 类型精度丢失
 }
 
 /**
@@ -351,7 +351,8 @@ const handleSizeChange = (size: number) => {
  */
 const handleSelectionChange = (selection: EquipmentSystemTemplateVO[]) => {
   selectedTemplates.value = selection;
-  formData.equipmentSystemIds = selection.map(item => Number(item.id));
+  // 保持 string 类型，避免精度丢失
+  formData.equipmentSystemIds = selection.map(item => String(item.id));
 };
 
 /**
@@ -428,7 +429,7 @@ const handleSubmit = async () => {
     // 提交数据
     submitLoading.value = true;
     const submitData = {
-      projectId: Number(formData.projectId),  // 转换为数字
+      projectId: formData.projectId as string,  // 保持 string 类型，避免精度丢失
       templateIds: formData.equipmentSystemIds
     };
 
