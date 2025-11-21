@@ -41,11 +41,11 @@
     <el-card shadow="never">
       <template #header>
         <el-row :gutter="10" class="mb8">
-          <el-col :span="1.5">
+          <!-- <el-col :span="1.5">
             <el-button type="primary" plain icon="Plus" @click="handleAdd" v-hasPermi="['erp:saltprocess:projectEquipmentSystem:add']">
               新增
             </el-button>
-          </el-col>
+          </el-col> -->
           <el-col :span="1.5">
             <el-button type="success" plain icon="Link" @click="handleAssociate" v-hasPermi="['erp:saltprocess:projectEquipmentSystem:add']">
               从模板关联
@@ -225,7 +225,6 @@ const single = ref(true);
 const multiple = ref(true);
 const total = ref(0);
 const systemList = ref<ProjectEquipmentSystemVO[]>([]);
-
 // 查询参数
 const queryParams = reactive<ProjectEquipmentSystemQuery>({
   pageNum: 1,
