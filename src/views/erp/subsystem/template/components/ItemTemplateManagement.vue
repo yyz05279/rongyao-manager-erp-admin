@@ -147,15 +147,15 @@ export default defineComponent({
         </el-form-item>
 
         <!-- ✅ 调试信息 -->
-        <div style="background: #f0f0f0; padding: 10px; margin: 10px 0;">
+        <!-- <div style="background: #f0f0f0; padding: 10px; margin: 10px 0;">
           <p>调试信息：</p>
           <p>itemForm.id: {{ itemForm.id }}</p>
           <p>itemDialog.title: {{ itemDialog.title }}</p>
           <p>updateMaterialData: {{ updateMaterialData }}</p>
-        </div>
+        </div> -->
 
         <!-- ✅ 编辑模式下显示物料数据更新开关 -->
-        <el-divider v-if="itemForm.id" content-position="left">物料数据配置</el-divider>
+        <!-- <el-divider v-if="itemForm.id" content-position="left">物料数据配置</el-divider>
         <el-form-item v-if="itemForm.id" label="更新物料数据">
           <el-switch
             v-model="updateMaterialData"
@@ -167,11 +167,11 @@ export default defineComponent({
             <el-icon style="vertical-align: middle;"><InfoFilled /></el-icon>
             {{ updateMaterialData ? '开启后可以修改该子项的物料配置' : '关闭时将保留原有物料数据，仅更新基础信息' }}
           </div>
-        </el-form-item>
+        </el-form-item> -->
 
         <!-- 物料配置（新增模式始终显示，编辑模式根据开关显示） -->
+         <!-- v-if="!itemForm.id || updateMaterialData" -->
         <el-form-item
-          v-if="!itemForm.id || updateMaterialData"
           label="物料配置"
           prop="materials"
         >
@@ -319,7 +319,8 @@ import {
 import {
   addItemMaterials,
   updateItemMaterials,
-  deleteItemMaterials
+  deleteItemMaterials,
+  batchSaveMaterials
 } from '@/api/erp/subsystem/item-template';
 import { listMaterial } from '@/api/erp/material/material';
 import type { MaterialVO } from '@/api/erp/material/material/types';
@@ -546,40 +547,23 @@ const loadEditItemMaterials = async (itemTemplateId: string | number) => {
 };
 
 // 同步子项物料变更（编辑模式）
+// ✅ 使用批量保存接口同步物料变更
 const syncItemMaterialChanges = async (itemTemplateId: string | number, currentMaterials: any[]) => {
   try {
-    // 重新加载原始物料列表
-    const response = props.useEquipmentSystemApi
-      ? await getEquipmentSystemItemMaterials(itemTemplateId)
-      : await listMaterialTemplateByItemId(itemTemplateId, props.templateId);
+    // 设备系统API模式：保持原有逻辑（因为设备系统API不支持批量保存）
+    if (props.useEquipmentSystemApi) {
+      // 重新加载原始物料列表
+      const response = await getEquipmentSystemItemMaterials(itemTemplateId);
+      const originalMaterials = response.data || [];
 
-    const originalMaterials = response.data || [];
+      // 找出需要更新的物料
+      const materialsToUpdate = currentMaterials.filter(current => current.id);
 
-    // 1. 找出需要删除的物料（原有但现在没有的）
-    const materialsToDelete = originalMaterials.filter((original: any) =>
-      !currentMaterials.some(current => current.id === original.id)
-    );
+      // 找出需要新增的物料
+      const materialsToAdd = currentMaterials.filter(current => !current.id);
 
-    // 2. 找出需要更新的物料（已存在且有变化的）
-    const materialsToUpdate = currentMaterials.filter(current => current.id);
-
-    // 3. 找出需要新增的物料（没有id的）
-    const materialsToAdd = currentMaterials.filter(current => !current.id);
-
-    // 执行删除操作（按需求：在编辑弹窗保存时不再调用删除接口，交由后端按提交的数据同步处理或保留）
-    // if (materialsToDelete.length > 0) {
-    //   const deleteIds = materialsToDelete.map((m: any) => m.id);
-    //   if (props.useEquipmentSystemApi) {
-    //     await deleteEquipmentSystemItemMaterials(itemTemplateId, deleteIds);
-    //   } else {
-    //     await deleteItemMaterials(Number(itemTemplateId), deleteIds.map(id => Number(id)));
-    //   }
-    // }
-
-    // 执行更新操作
-    if (materialsToUpdate.length > 0) {
-      if (props.useEquipmentSystemApi) {
-        // 设备系统API：逐个更新
+      // 执行更新操作
+      if (materialsToUpdate.length > 0) {
         for (const material of materialsToUpdate) {
           await updateEquipmentSystemItemMaterial(itemTemplateId, material.id, {
             defaultQuantity: material.defaultQuantity,
@@ -587,42 +571,81 @@ const syncItemMaterialChanges = async (itemTemplateId: string | number, currentM
             remarks: material.remarks
           });
         }
-      } else {
-        // ✅ 使用新的RESTful风格API批量更新物料
-        const updateData = materialsToUpdate.map(material => ({
-          id: material.id,
-          materialId: material.materialId, // 需要包含materialId
-          templateId: props.templateId, // 保留templateId，表示关联到子系统
-          defaultQuantity: material.defaultQuantity,
-          isRequired: material.isRequired,
-          remarks: material.remarks
-        }));
-        await updateItemMaterials(itemTemplateId as number, updateData);
       }
-    }
 
-    // 执行新增操作
-    if (materialsToAdd.length > 0) {
-      if (props.useEquipmentSystemApi) {
-        // 使用设备系统API批量添加物料
+      // 执行新增操作
+      if (materialsToAdd.length > 0) {
         for (const material of materialsToAdd) {
           await addEquipmentSystemItemMaterialFromBase(itemTemplateId, material.materialId);
-          // 添加后需要更新数量和备注
-          // 注意：这里需要获取新添加的物料ID，可能需要重新查询
         }
-      } else {
-        // ✅ 使用新的RESTful风格API批量添加物料
-        // 注意：这里有templateId，说明是在子系统模板中添加物料
-        // 新API不需要在请求体中传递itemTemplateId，而是通过路径参数传递
-        const addData = materialsToAdd.map(material => ({
-          templateId: props.templateId, // 保留templateId，表示关联到子系统
-          materialId: material.materialId,
-          defaultQuantity: material.defaultQuantity,
-          isRequired: material.isRequired,
-          remarks: material.remarks
-        }));
-        await addItemMaterials(itemTemplateId as number, addData);
       }
+      return;
+    }
+
+    // ✅ 子系统模板模式：使用批量保存接口
+    // 1. 重新加载原始物料列表
+    const response = await listMaterialTemplateByItemId(itemTemplateId, props.templateId);
+    const originalMaterials = response.data || [];
+
+    // 2. 构建待删除的物料ID列表（在原始列表中但不在当前列表中）
+    const currentMaterialIds = currentMaterials.filter(m => m.id).map(m => m.id);
+    const toDelete = originalMaterials
+      .filter((original: any) => !currentMaterialIds.includes(original.id))
+      .map((m: any) => m.id);
+
+    // 3. 构建待更新的物料列表（有id且数据有变化）
+    const toUpdate = currentMaterials
+      .filter(current => {
+        if (!current.id) return false;
+        const original = originalMaterials.find((o: any) => o.id === current.id);
+        if (!original) return false;
+        // 检查是否有变化
+        return (
+          Number(current.defaultQuantity) !== Number(original.defaultQuantity) ||
+          current.isRequired !== original.isRequired ||
+          (current.remarks || '') !== (original.remarks || '')
+        );
+      })
+      .map(material => ({
+        id: material.id,
+        itemTemplateId: itemTemplateId,
+        materialId: material.materialId,
+        templateId: props.templateId, // 关联到子系统模板
+        defaultQuantity: material.defaultQuantity,
+        isRequired: material.isRequired,
+        remarks: material.remarks
+      }));
+
+    // 4. 构建待新增的物料列表（没有id的记录）
+    const toInsert = currentMaterials
+      .filter(current => !current.id)
+      .map(material => ({
+        itemTemplateId: itemTemplateId,
+        materialId: material.materialId,
+        templateId: props.templateId, // 关联到子系统模板
+        defaultQuantity: material.defaultQuantity,
+        isRequired: material.isRequired,
+        remarks: material.remarks
+      }));
+
+    // 5. 调用批量保存接口（统一处理增删改）
+    const batchResponse = await batchSaveMaterials(itemTemplateId, {
+      toDelete,
+      toUpdate,
+      toInsert
+    });
+
+    // 6. 处理响应结果
+    const { deleteCount, updateCount, insertCount, errors } = batchResponse.data;
+
+    if (errors && errors.length > 0) {
+      console.warn('批量保存物料部分失败:', errors);
+      ElMessage.warning({
+        message: `保存完成：删除${deleteCount}个，更新${updateCount}个，新增${insertCount}个，错误${errors.length}个`,
+        duration: 5000
+      });
+    } else {
+      console.log(`批量保存物料成功：删除${deleteCount}个，更新${updateCount}个，新增${insertCount}个`);
     }
   } catch (error) {
     console.error('同步物料变更失败:', error);
