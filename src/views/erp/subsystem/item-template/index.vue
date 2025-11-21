@@ -800,8 +800,8 @@ const handleDeleteMaterial = async (row: any) => {
       type: 'warning'
     });
 
-    // ✅ 使用新的批量删除接口
-    await deleteItemMaterials(Number(materialDialog.itemId), [Number(row.id)]);
+    // ✅ 使用新的批量删除接口（移除 Number() 转换，避免精度丢失）
+    await deleteItemMaterials(materialDialog.itemId, [row.id]);
     ElMessage.success('删除成功');
     loadMaterialList();
   } catch (error) {
