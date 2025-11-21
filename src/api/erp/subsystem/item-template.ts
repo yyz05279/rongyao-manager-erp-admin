@@ -16,7 +16,9 @@ import {
   SubsystemItemTemplateQuery,
   SubsystemItemTemplateVO,
   SubsystemItemTemplateForm,
-  PageResult
+  PageResult,
+  BatchSaveMaterialsRequest,
+  BatchSaveMaterialsResponse
 } from './types';
 
 // ==================== 子项模板接口（独立管理） ====================
@@ -264,6 +266,43 @@ export const deleteItemMaterials = (
     url: `/erp/subsystem/item-template/${itemTemplateId}/materials`,
     method: 'delete',
     data: { ids }
+  });
+};
+
+/**
+ * 批量保存子项模板物料（统一处理增删改）
+ *
+ * 接口路径: POST /erp/subsystem/item-template/{itemTemplateId}/materials/batch-save
+ *
+ * 说明：
+ * - 在一个事务中完成删除、更新、新增操作，确保数据一致性
+ * - 适用于编辑页面的保存场景
+ * - 执行顺序：删除 -> 更新 -> 新增
+ * - 单个操作失败不会中断整个流程，会收集错误信息
+ *
+ * @param itemTemplateId 子项模板ID
+ * @param data 批量保存请求数据
+ * @returns 批量保存结果（包含成功数量和错误信息）
+ *
+ * @example
+ * await batchSaveMaterials(10, {
+ *   toDelete: [1, 2],
+ *   toUpdate: [
+ *     { id: 3, materialId: 100, defaultQuantity: 5, isRequired: true }
+ *   ],
+ *   toInsert: [
+ *     { materialId: 101, defaultQuantity: 3, isRequired: false }
+ *   ]
+ * });
+ */
+export const batchSaveMaterials = (
+  itemTemplateId: string | number,
+  data: BatchSaveMaterialsRequest
+): AxiosPromise<BatchSaveMaterialsResponse> => {
+  return request({
+    url: `/erp/subsystem/item-template/${itemTemplateId}/materials/batch-save`,
+    method: 'post',
+    data
   });
 };
 
