@@ -489,3 +489,25 @@ export interface SubsystemMaterialTemplateForm {
   remarks?: string;                    // 备注
 }
 
+// ==================== 批量保存物料相关类型 ====================
+
+/**
+ * 批量保存物料请求参数
+ * 用于子项模板物料的批量增删改操作
+ */
+export interface BatchSaveMaterialsRequest {
+  toDelete: Array<string | number>;                           // 待删除的物料ID列表
+  toUpdate: SubsystemMaterialTemplateForm[];                  // 待更新的物料列表
+  toInsert: Omit<SubsystemMaterialTemplateForm, 'id'>[];      // 待新增的物料列表（不包含id）
+}
+
+/**
+ * 批量保存物料响应结果
+ */
+export interface BatchSaveMaterialsResponse {
+  deleteCount: number;      // 成功删除的数量
+  updateCount: number;      // 成功更新的数量
+  insertCount: number;      // 成功新增的数量
+  errors: string[];         // 错误信息列表
+}
+

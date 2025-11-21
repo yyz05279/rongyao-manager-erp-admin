@@ -260,7 +260,8 @@ import {
   getItemMaterials,
   addItemMaterials,
   updateItemMaterials,
-  deleteItemMaterials
+  deleteItemMaterials,
+  batchSaveMaterials
 } from '@/api/erp/subsystem/item-template';
 import {
   addMaterialTemplate,
@@ -273,7 +274,8 @@ import type {
   SubsystemItemTemplateQuery,
   SubsystemItemTemplateVO,
   SubsystemItemTemplateForm,
-  SubsystemMaterialTemplateForm
+  SubsystemMaterialTemplateForm,
+  BatchSaveMaterialsRequest
 } from '@/api/erp/subsystem/types';
 import { parseTime } from '@/utils/ruoyi';
 
@@ -580,60 +582,67 @@ const submitForm = async () => {
   }
 };
 
-// ✅ 新增：同步物料变更
+// ✅ 使用批量保存接口同步物料变更
 const syncMaterialChanges = async (
   itemTemplateId: string | number,
   currentMaterials: any[],
   originalMaterialsList: any[]
 ) => {
   try {
-    // 1. 找出新增的物料（没有id的记录）
-    const addedMaterials = currentMaterials.filter(m => !m.id);
-    if (addedMaterials.length > 0) {
-      // ✅ 使用新的RESTful风格API批量添加物料
-      // 注意：这里是独立的子项模板管理，不需要templateId
-      const addData = addedMaterials.map(m => ({
-        materialId: m.materialId,
-        defaultQuantity: m.defaultQuantity,
-        isRequired: m.isRequired,
-        remarks: m.remarks
-      }));
-      await addItemMaterials(itemTemplateId as number, addData);
-    }
+    // 1. 找出待删除的物料ID（在原始列表中但不在当前列表中）
+    const currentMaterialIds = currentMaterials.filter(m => m.id).map(m => m.id);
+    const toDelete = originalMaterialsList
+      .filter(m => !currentMaterialIds.includes(m.id))
+      .map(m => m.id);
 
-    // 2. 找出需要更新的物料（有id且数据有变化）
-    const updatedMaterials = currentMaterials.filter(m => {
+    // 2. 找出待更新的物料（有id且数据有变化）
+    const toUpdate = currentMaterials.filter(m => {
       if (!m.id) return false;
       const original = originalMaterialsList.find(o => o.id === m.id);
       if (!original) return false;
       // 比较关键字段是否有变化
       return (
-        m.defaultQuantity !== original.defaultQuantity ||
+        Number(m.defaultQuantity) !== Number(original.defaultQuantity) ||
         m.isRequired !== original.isRequired ||
-        m.remarks !== original.remarks
+        (m.remarks || '') !== (original.remarks || '')
       );
-    });
-    
-    if (updatedMaterials.length > 0) {
-      // ✅ 使用新的RESTful批量更新接口
-      const updateData = updatedMaterials.map(m => ({
-        id: m.id,
-        materialId: m.materialId,
-        defaultQuantity: m.defaultQuantity,
-        isRequired: m.isRequired,
-        remarks: m.remarks
-      }));
-      await updateItemMaterials(itemTemplateId as number, updateData);
-    }
+    }).map(m => ({
+      id: m.id,
+      itemTemplateId: itemTemplateId,
+      materialId: m.materialId,
+      defaultQuantity: m.defaultQuantity,
+      isRequired: m.isRequired,
+      remarks: m.remarks
+    }));
 
-    // 3. 找出需要删除的物料（在原始列表中但不在当前列表中）
-    // 按需求：在子项编辑弹窗保存时，不再调用删除接口，仅上传当前物料数据
-    const currentMaterialIds = currentMaterials.filter(m => m.id).map(m => m.id);
-    const deletedMaterials = originalMaterialsList.filter(m => !currentMaterialIds.includes(m.id));
-    // if (deletedMaterials.length > 0) {
-    //   const deleteIds = deletedMaterials.map(m => Number(m.id));
-    //   await deleteItemMaterials(Number(itemTemplateId), deleteIds);
-    // }
+    // 3. 找出待新增的物料（没有id的记录）
+    const toInsert = currentMaterials.filter(m => !m.id).map(m => ({
+      itemTemplateId: itemTemplateId,
+      materialId: m.materialId,
+      defaultQuantity: m.defaultQuantity,
+      isRequired: m.isRequired,
+      remarks: m.remarks
+    }));
+
+    // 4. 调用批量保存接口（统一处理增删改）
+    const response = await batchSaveMaterials(itemTemplateId, {
+      toDelete,
+      toUpdate,
+      toInsert
+    });
+
+    // 5. 处理响应结果
+    const { deleteCount, updateCount, insertCount, errors } = response.data;
+
+    if (errors && errors.length > 0) {
+      console.warn('批量保存物料部分失败:', errors);
+      ElMessage.warning({
+        message: `保存完成：删除${deleteCount}个，更新${updateCount}个，新增${insertCount}个，错误${errors.length}个`,
+        duration: 5000
+      });
+    } else {
+      console.log(`批量保存物料成功：删除${deleteCount}个，更新${updateCount}个，新增${insertCount}个`);
+    }
   } catch (error) {
     console.error('同步物料变更失败:', error);
     throw error;
