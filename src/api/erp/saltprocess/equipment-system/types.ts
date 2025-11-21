@@ -169,13 +169,13 @@ export interface SubsystemTemplateSimpleVO {
  * 项目设备系统查询参数
  */
 export interface ProjectEquipmentSystemQuery extends PageQuery {
-  projectId?: number | string;        // 项目ID
-  templateId?: number | string;       // 模板ID
+  projectId?: string;                 // 项目ID（使用 string 类型避免 Long 精度丢失）
+  templateId?: string;                // 模板ID（使用 string 类型避免 Long 精度丢失）
   systemCode?: string;                // 系统编码
   systemName?: string;                // 系统名称
   systemType?: string;                // 系统类型
   status?: string;                    // 状态
-  responsiblePersonId?: number;       // 负责人ID
+  responsiblePersonId?: string;       // 负责人ID（使用 string 类型避免 Long 精度丢失）
 }
 
 /**
@@ -192,10 +192,10 @@ export enum ProjectStatus {
  * 项目设备系统VO（返回对象）
  */
 export interface ProjectEquipmentSystemVO {
-  id: string | number;                // 主键ID
-  projectId: number;                  // 项目ID
+  id: string | number;                // 主键ID（支持 string 避免精度丢失）
+  projectId: string;                  // 项目ID（使用 string 类型避免 Long 精度丢失）
   projectName?: string;               // 项目名称（冗余）
-  templateId?: number;                // 模板ID
+  templateId?: string;                // 模板ID（使用 string 类型避免 Long 精度丢失）
   systemCode: string;                 // 系统编码（唯一）
   systemName: string;                 // 系统名称
   systemType: string;                 // 系统类型
@@ -205,7 +205,7 @@ export interface ProjectEquipmentSystemVO {
   totalItems?: number;                // 总子项数
   totalMaterials?: number;            // 总物料数
   totalWeight?: number;               // 总重量(kg)
-  responsiblePersonId?: number;       // 负责人ID
+  responsiblePersonId?: string;       // 负责人ID（使用 string 类型避免 Long 精度丢失）
   responsiblePerson?: string;         // 负责人姓名
   status: string;                     // 状态
   priority?: number;                  // 优先级
@@ -220,16 +220,16 @@ export interface ProjectEquipmentSystemVO {
  * 项目设备系统表单数据
  */
 export interface ProjectEquipmentSystemForm {
-  id?: string | number;               // 主键ID
-  projectId: number;                  // 项目ID（必填）
+  id?: string | number;               // 主键ID（支持 string 避免精度丢失）
+  projectId: string;                  // 项目ID（必填，使用 string 类型避免 Long 精度丢失）
   projectName?: string;               // 项目名称
-  templateId?: number;                // 模板ID
+  templateId?: string;                // 模板ID（使用 string 类型避免 Long 精度丢失）
   systemCode?: string;                // 系统编码（可选，不传则自动生成）
   systemName: string;                 // 系统名称（必填）
   systemType: string;                 // 系统类型（必填）
   category?: string;                  // 分类
   description?: string;               // 描述
-  responsiblePersonId?: number;       // 负责人ID
+  responsiblePersonId?: string;       // 负责人ID（使用 string 类型避免 Long 精度丢失）
   responsiblePerson?: string;         // 负责人姓名
   status?: string;                    // 状态
   priority?: number;                  // 优先级
