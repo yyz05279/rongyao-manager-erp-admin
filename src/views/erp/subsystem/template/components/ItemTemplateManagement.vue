@@ -261,7 +261,7 @@ export default defineComponent({
     <!-- 物料选择对话框（用于新增子项时添加物料） -->
     <material-selector-dialog
       v-model="itemMaterialSelectorVisible"
-      :existing-material-ids="itemFormMaterialIds"
+      :existing-material-codes="itemFormMaterialCodes"
       @confirm="handleItemMaterialsSelected"
     />
 
@@ -465,6 +465,29 @@ const itemFormMaterialIds = computed(() => {
   return itemForm.materials?.map(item => Number(item.materialId)) || [];
 });
 
+// 计算新增子项表单中已选择的物料编码列表（用于物料选择器的自动勾选）
+const itemFormMaterialCodes = computed<string[]>(() => {
+  // 从 itemForm.materials 中提取物料编码
+  // 注意：新增的物料可能没有 materialCode，需要从物料列表中查找
+  const codes: string[] = [];
+
+  if (!itemForm.materials || itemForm.materials.length === 0) {
+    return codes;
+  }
+
+  // 遍历表单中的物料，提取编码
+  itemForm.materials.forEach(material => {
+    // 如果物料对象中有 materialCode，直接使用
+    if ((material as any).materialCode) {
+      codes.push((material as any).materialCode);
+    }
+  });
+
+  console.log('计算 itemFormMaterialCodes:', codes);
+  console.log('itemForm.materials:', itemForm.materials);
+  return codes;
+});
+
 // 加载子项列表
 const loadItemList = async () => {
   if (!props.templateId) return;
@@ -534,10 +557,14 @@ const loadEditItemMaterials = async (itemTemplateId: string | number) => {
       id: material.id,
       materialId: material.materialId,
       materialName: material.materialName,
+      materialCode: material.materialCode || '', // ✅ 保存物料编码，用于后续识别已添加的物料
       defaultQuantity: material.defaultQuantity || 1,
       isRequired: material.isRequired ?? true,
       remarks: material.remarks || ''
     }));
+
+    console.log('加载编辑子项物料完成，物料数量:', itemForm.materials.length);
+    console.log('物料数据:', itemForm.materials);
   } catch (error) {
     console.error('加载物料列表失败:', error);
     ElMessage.error('加载物料列表失败');
@@ -630,12 +657,12 @@ const syncItemMaterialChanges = async (itemTemplateId: string | number, currentM
 
     // 5. 调用批量保存接口（统一处理增删改）
     // 调试：确认批量保存参数
-    console.log('calling batchSaveMaterials', {
-      itemTemplateId,
-      toDelete,
-      toUpdate,
-      toInsert
-    });
+    // console.log('calling batchSaveMaterials', {
+    //   itemTemplateId,
+    //   toDelete,
+    //   toUpdate,
+    //   toInsert
+    // });
     const batchResponse = await batchSaveMaterials(itemTemplateId, {
       toDelete,
       toUpdate,
@@ -996,12 +1023,15 @@ const handleItemMaterialsSelected = (materials: MaterialVO[]) => {
       itemForm.materials!.push({
         materialId: material.id as number,
         materialName: material.materialName || '', // 保存物料名称
+        materialCode: material.materialCode || '', // ✅ 保存物料编码，用于后续识别已添加的物料
         defaultQuantity: 1,
         isRequired: true,
         remarks: ''
-      });
+      } as any); // 使用 as any 避免类型检查错误
     }
   });
+
+  console.log('添加物料后的 itemForm.materials:', itemForm.materials);
 
   // 手动触发表单验证
   itemFormRef.value?.validateField('materials');
