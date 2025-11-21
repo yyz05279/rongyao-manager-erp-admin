@@ -161,22 +161,16 @@
                 v-hasPermi="['erp:saltprocess:projectEquipmentSystem:add']"
               />
             </el-tooltip>
-            <el-dropdown @command="createDropdownHandler(scope.row)" v-hasPermi="['erp:saltprocess:projectEquipmentSystem:edit']">
-              <el-button link type="info" icon="More" />
-              <template #dropdown>
-                <el-dropdown-menu>
-                  <el-dropdown-item command="active" :disabled="scope.row.status === 'ACTIVE'">
-                    <el-icon><Check /></el-icon> 激活
-                  </el-dropdown-item>
-                  <el-dropdown-item command="completed" :disabled="scope.row.status === 'COMPLETED'">
-                    <el-icon><CircleCheck /></el-icon> 完成
-                  </el-dropdown-item>
-                  <el-dropdown-item command="archived" :disabled="scope.row.status === 'ARCHIVED'">
-                    <el-icon><FolderOpened /></el-icon> 归档
-                  </el-dropdown-item>
-                </el-dropdown-menu>
-              </template>
-            </el-dropdown>
+            <el-tooltip content="激活" placement="top">
+              <el-button
+                link
+                type="success"
+                icon="Check"
+                :disabled="scope.row.status === 'ACTIVE'"
+                @click.stop="handleActivate(scope.row)"
+                v-hasPermi="['erp:saltprocess:projectEquipmentSystem:edit']"
+              />
+            </el-tooltip>
             <el-tooltip content="删除" placement="top">
               <el-button link type="danger" icon="Delete" @click.stop="handleDelete(scope.row)" v-hasPermi="['erp:saltprocess:projectEquipmentSystem:remove']" />
             </el-tooltip>
@@ -338,13 +332,6 @@ const handleRowClick = (row: ProjectEquipmentSystemVO) => {
   handleView(row);
 };
 
-// 新增
-const handleAdd = () => {
-  dialog.title = '新增设备系统';
-  dialog.systemId = '';
-  dialog.visible = true;
-};
-
 // 修改
 const handleUpdate = (row?: ProjectEquipmentSystemVO) => {
   const systemId = row?.id || ids.value[0];
@@ -426,31 +413,15 @@ const handleCopy = async (row: ProjectEquipmentSystemVO) => {
   }
 };
 
-// 下拉菜单命令包装函数工厂
-const createDropdownHandler = (row: ProjectEquipmentSystemVO) => {
-  return (command: string) => {
-    handleCommand(command, row);
-  };
-};
-
-// 下拉菜单命令处理
-const handleCommand = async (command: string, row: ProjectEquipmentSystemVO): Promise<void> => {
-  const statusMap: Record<string, { status: string; text: string }> = {
-    active: { status: 'ACTIVE', text: '激活' },
-    completed: { status: 'COMPLETED', text: '完成' },
-    archived: { status: 'ARCHIVED', text: '归档' }
-  };
-
-  const config = statusMap[command];
-  if (!config) return;
-
+// 激活设备系统
+const handleActivate = async (row: ProjectEquipmentSystemVO) => {
   try {
-    await updateSystemStatus(row.id, config.status);
-    ElMessage.success(`已设置为${config.text}状态`);
+    await updateSystemStatus(row.id, 'ACTIVE');
+    ElMessage.success('已设置为激活状态');
     getList();
   } catch (error) {
-    console.error('更新状态失败:', error);
-    ElMessage.error('更新状态失败');
+    console.error('激活失败:', error);
+    ElMessage.error('激活失败');
   }
 };
 

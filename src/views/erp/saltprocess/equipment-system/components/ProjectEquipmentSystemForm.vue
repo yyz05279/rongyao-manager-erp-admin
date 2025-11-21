@@ -17,12 +17,12 @@
       <el-row :gutter="20">
         <el-col :span="12">
           <el-form-item label="项目ID" prop="projectId">
-            <el-input-number v-model="form.projectId" :min="1" placeholder="请输入项目ID" style="width: 100%" />
+            <el-input v-model="form.projectId" placeholder="系统自动生成" :disabled="true" />
           </el-form-item>
         </el-col>
         <el-col :span="12">
           <el-form-item label="项目名称" prop="projectName">
-            <el-input v-model="form.projectName" placeholder="请输入项目名称" />
+            <el-input v-model="form.projectName" placeholder="请输入项目名称" :disabled="true" />
           </el-form-item>
         </el-col>
       </el-row>
@@ -48,7 +48,7 @@
       <el-row :gutter="20">
         <el-col :span="12">
           <el-form-item label="模板ID" prop="templateId">
-            <el-input-number v-model="form.templateId" :min="0" placeholder="可选，从模板创建时填写" style="width: 100%" />
+            <el-input v-model="form.templateId" :min="0" placeholder="系统自动生成" :disabled="true" />
           </el-form-item>
         </el-col>
         <el-col :span="12">
