@@ -81,7 +81,7 @@
                   </template>
                 </el-table-column>
                 <el-table-column prop="category" label="分类" width="100" align="center" />
-                <el-table-column prop="subsystemCount" label="模板型号" width="100" align="center" />
+                <el-table-column prop="subsystemCount" label="子系统数量" width="100" align="center" />
                 <el-table-column prop="status" label="状态" width="100" align="center">
                   <template #default="{ row }">
                     <el-tag :type="getStatusTag(row.status)" size="small">
