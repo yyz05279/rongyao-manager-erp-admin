@@ -243,9 +243,10 @@ export const updateItemMaterials = (
  * 说明：
  * - 删除子项模板的一个或多个物料配置
  * - 支持单个或批量删除，物料ID通过请求体传递
+ * - ID 支持 string | number 类型，避免雪花算法长整数精度丢失
  *
- * @param itemTemplateId 子项模板ID
- * @param ids 物料ID数组（支持单个或多个）
+ * @param itemTemplateId 子项模板ID（支持 string | number）
+ * @param ids 物料ID数组（支持 string | number）
  * @returns Promise
  *
  * @example
@@ -256,8 +257,8 @@ export const updateItemMaterials = (
  * await deleteItemMaterials(10, [1, 2, 3]);
  */
 export const deleteItemMaterials = (
-  itemTemplateId: number,
-  ids: number[]
+  itemTemplateId: string | number,
+  ids: Array<string | number>
 ): AxiosPromise<void> => {
   return request({
     url: `/erp/subsystem/item-template/${itemTemplateId}/materials`,

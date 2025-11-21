@@ -1099,8 +1099,8 @@ const handleDeleteMaterial = async (row: SubsystemMaterialTemplateVO) => {
       // 使用设备系统模版API
       await deleteEquipmentSystemItemMaterials(selectedItemId.value!, row.id);
     } else {
-      // ✅ 使用新的批量删除接口
-      await deleteItemMaterials(Number(selectedItemId.value), [Number(row.id)]);
+      // ✅ 使用新的批量删除接口（移除 Number() 转换，避免精度丢失）
+      await deleteItemMaterials(selectedItemId.value!, [row.id]);
     }
 
     ElMessage.success('删除成功');
