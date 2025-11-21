@@ -10,8 +10,21 @@
           <el-form-item label="系统编码" prop="systemCode">
             <el-input v-model="queryParams.systemCode" placeholder="请输入系统编码" clearable style="width: 240px" @keyup.enter="handleQuery" />
           </el-form-item>
-          <el-form-item label="项目ID" prop="projectId">
-            <el-input v-model="queryParams.projectId" placeholder="请输入项目ID" clearable style="width: 180px" @keyup.enter="handleQuery" />
+          <el-form-item label="项目名称" prop="projectId">
+            <el-select
+              v-model="queryParams.projectId"
+              placeholder="请选择项目名称"
+              clearable
+              filterable
+              style="width: 240px"
+            >
+              <el-option
+                v-for="project in projectList"
+                :key="project.id"
+                :label="project.projectName"
+                :value="project.id"
+              />
+            </el-select>
           </el-form-item>
           <el-form-item label="系统类型" prop="systemType">
             <el-select v-model="queryParams.systemType" placeholder="请选择系统类型" clearable style="width: 180px">
@@ -121,11 +134,11 @@
             <el-tag type="warning" size="small">{{ scope.row.totalMaterials || 0 }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="总重量(kg)" prop="totalWeight" width="120" align="center">
+        <!-- <el-table-column label="总重量(kg)" prop="totalWeight" width="120" align="center">
           <template #default="scope">
             <span>{{ scope.row.totalWeight?.toFixed(2) || '-' }}</span>
           </template>
-        </el-table-column>
+        </el-table-column> -->
         <el-table-column label="创建时间" prop="createTime" width="160" align="center">
           <template #default="scope">
             <span>{{ parseTime(scope.row.createTime) }}</span>
@@ -210,6 +223,7 @@ import {
   copyProjectEquipmentSystem
 } from '@/api/erp/saltprocess/equipment-system';
 import type { ProjectEquipmentSystemQuery, ProjectEquipmentSystemVO } from '@/api/erp/saltprocess/equipment-system/types';
+import { getProjectSimpleList } from '@/api/erp/saltprocess/project';
 import { parseTime } from '@/utils/ruoyi';
 import ProjectEquipmentSystemForm from './components/ProjectEquipmentSystemForm.vue';
 import ProjectEquipmentSystemAssociateForm from './components/ProjectEquipmentSystemAssociateForm.vue';
@@ -225,6 +239,8 @@ const single = ref(true);
 const multiple = ref(true);
 const total = ref(0);
 const systemList = ref<ProjectEquipmentSystemVO[]>([]);
+const projectList = ref<Array<{ id: string; projectCode: string; projectName: string; status: number }>>([]);
+
 // 查询参数
 const queryParams = reactive<ProjectEquipmentSystemQuery>({
   pageNum: 1,
@@ -265,8 +281,22 @@ const systemFormRef = ref();
 
 // 生命周期
 onMounted(() => {
+  loadProjectList();
   getList();
 });
+
+// 加载项目列表
+const loadProjectList = async () => {
+  try {
+    const response = await getProjectSimpleList();
+    const actualResponse = response as any;
+    projectList.value = actualResponse.data || [];
+    console.log('📋 项目列表加载成功:', projectList.value.length);
+  } catch (error) {
+    console.error('获取项目列表失败:', error);
+    ElMessage.error('获取项目列表失败');
+  }
+};
 
 // 查询列表
 const getList = async () => {
