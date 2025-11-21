@@ -629,6 +629,13 @@ const syncItemMaterialChanges = async (itemTemplateId: string | number, currentM
       }));
 
     // 5. 调用批量保存接口（统一处理增删改）
+    // 调试：确认批量保存参数
+    console.log('calling batchSaveMaterials', {
+      itemTemplateId,
+      toDelete,
+      toUpdate,
+      toInsert
+    });
     const batchResponse = await batchSaveMaterials(itemTemplateId, {
       toDelete,
       toUpdate,
@@ -885,35 +892,7 @@ const submitItemForm = async () => {
   try {
     await itemFormRef.value?.validate();
 
-    // ✅ 编辑模式且不更新物料数据时，只更新基础信息
-    if (itemForm.id && !updateMaterialData.value) {
-      itemDialog.loading = true;
-
-      if (props.useEquipmentSystemApi) {
-        // 设备系统模板模式：只更新基础信息
-        const apiData = {
-          id: itemForm.id,
-          templateCode: itemForm.itemCode || `ITEM_${Date.now()}`,
-          itemName: itemForm.itemName,
-          itemType: itemForm.itemType,
-          description: itemForm.description,
-          defaultQuantity: itemForm.defaultQuantity,
-          defaultUnit: itemForm.unit,
-          status: 'ACTIVE',
-          remarks: itemForm.remarks
-        };
-        await updateSubsystemItem(props.templateId, itemForm.id, apiData as any);
-      } else {
-        // 原有子系统模板模式：只更新基础信息
-        const { materials, ...updateData } = itemForm;
-        await updateItemTemplate(updateData);
-      }
-
-      ElMessage.success('修改成功');
-      itemDialog.visible = false;
-      loadItemList();
-      return;
-    }
+    // ✅ 编辑模式统一进行物料批量保存，不再跳过物料同步
 
     // ✅ 新增模式或编辑且更新物料时，检查物料是否已添加
     if (!itemForm.materials || itemForm.materials.length === 0) {
