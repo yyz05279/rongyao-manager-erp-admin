@@ -244,11 +244,11 @@ const viewDialog = ref({
 // 子系统选择器
 const subsystemSelectorVisible = ref(false);
 
-// 计算已添加的子系统模板ID列表
+// 计算已添加的子系统模板ID列表（全部转为字符串，避免精度和类型不一致问题）
 const existingTemplateIds = computed(() => {
   return subsystemList.value
-    .filter((item: ProjectSubsystemVO) => item.templateId)
-    .map((item: ProjectSubsystemVO) => item.templateId as number);
+    .map((item: ProjectSubsystemVO) => (item.templateId != null ? String(item.templateId) : null))
+    .filter((id): id is string => !!id);
 });
 
 // 编辑对话框
