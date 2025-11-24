@@ -264,24 +264,30 @@ export interface ProjectSubsystemVO {
   id: string | number;
   projectSystemId: string | number;
   projectId: string | number;
-  templateId?: string | number;
+  templateId?: string | number | null;
   subsystemCode: string;
   subsystemName: string;
   subsystemType: string;
-  category?: string;
-  specification?: string;
-  model?: string;
-  manufacturer?: string;
-  description?: string;
+  category?: string | null;
+  specification?: string | null;
+  model?: string | null;
+  manufacturer?: string | null;
+  description?: string | null;
   itemCount?: number;
   materialCount?: number;
-  totalWeight?: number;
+  totalWeight?: number | string;  // 支持字符串类型（如 "0.00"）
   status: string;
   sequenceNumber?: number;
-  remarks?: string;
+  remarks?: string | null;
   version?: number;
   createTime?: string;
   updateTime?: string;
+  // 后端返回的额外字段
+  createDept?: string | number | null;
+  createBy?: string | number | null;
+  updateBy?: string | number | null;
+  tenantId?: string | null;
+  delFlag?: number;
 }
 
 /**
