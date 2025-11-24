@@ -148,7 +148,7 @@ import { ElMessage, ElMessageBox } from 'element-plus';
 import {
   listSubsystemTemplate,
   delSubsystemTemplate,
-  publishSubsystemTemplate,
+  updateSubsystemTemplate,
   copySubsystemTemplate
 } from '@/api/erp/subsystem/template';
 import type { SubsystemTemplateQuery, SubsystemTemplateVO } from '@/api/erp/subsystem/types';
@@ -328,8 +328,11 @@ const handleCopy = async (row: SubsystemTemplateVO) => {
 
 // 发布模板
 const handlePublish = async (row?: SubsystemTemplateVO): Promise<void> => {
+  // 获取模板ID和模板对象
   const templateId = row?.id || ids.value[0];
-  if (!templateId) {
+  const template = row || templateList.value.find(item => item.id === templateId);
+
+  if (!templateId || !template) {
     ElMessage.warning('请选择要发布的模板');
     return;
   }
@@ -341,7 +344,12 @@ const handlePublish = async (row?: SubsystemTemplateVO): Promise<void> => {
       type: 'warning'
     });
 
-    await publishSubsystemTemplate(templateId);
+    // 通过编辑接口将模板状态更新为 ACTIVE（启用）
+    await updateSubsystemTemplate({
+      id: templateId,
+      templateName: template.templateName, // 必填字段，保持原值
+      status: 'ACTIVE' // 将状态更新为启用
+    });
     ElMessage.success('发布成功');
     getList();
   } catch (error: any) {
