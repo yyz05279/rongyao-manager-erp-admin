@@ -581,6 +581,185 @@
 
 **权限标识**: `erp:saltprocess:projectEquipmentSystem:query`
 
+**路径参数**:
+
+| 参数名 | 类型 | 必填 | 说明                |
+| ------ | ---- | ---- | ------------------- |
+| id     | Long | 是   | 项目设备系统主键 ID |
+
+**响应示例**:
+
+```json
+{
+    "code": 200,
+    "msg": "操作成功",
+    "data": {
+        "id": 1,
+        "projectId": 1,
+        "projectName": "化盐项目A",
+        "templateId": 1,
+        "systemCode": "PROJ_SYS_20250101_001",
+        "systemName": "固态处理厂",
+        "systemType": "SOLID",
+        "category": "处理厂",
+        "description": "固态处理厂设备系统",
+        "subsystemCount": 3,
+        "totalItems": 15,
+        "totalMaterials": 45,
+        "totalWeight": 1250.5,
+        "responsiblePersonId": 1,
+        "responsiblePerson": "张三",
+        "status": "ACTIVE",
+        "priority": 1,
+        "sequenceNumber": 1,
+        "remarks": "备注信息",
+        "version": 1,
+        "createTime": "2025-01-01 10:00:00",
+        "updateTime": "2025-01-15 15:30:00",
+        "projectSubsystems": [
+            {
+                "id": 1,
+                "projectSystemId": 1,
+                "projectId": 1,
+                "templateId": 10,
+                "subsystemCode": "SUB_001",
+                "subsystemName": "平面输送机",
+                "subsystemType": "MECHANICAL",
+                "category": "输送设备",
+                "specification": "型号A",
+                "model": "TX-100",
+                "manufacturer": "制造商A",
+                "description": "平面输送机描述",
+                "itemCount": 5,
+                "materialCount": 15,
+                "totalWeight": 450.2,
+                "status": "ACTIVE",
+                "sequenceNumber": 1,
+                "remarks": "子系统备注",
+                "version": 1,
+                "createTime": "2025-01-01 10:05:00",
+                "updateTime": "2025-01-10 14:20:00"
+            },
+            {
+                "id": 2,
+                "projectSystemId": 1,
+                "projectId": 1,
+                "templateId": 11,
+                "subsystemCode": "SUB_002",
+                "subsystemName": "粉碎机",
+                "subsystemType": "MECHANICAL",
+                "category": "粉碎设备",
+                "specification": "型号B",
+                "model": "FS-200",
+                "manufacturer": "制造商B",
+                "description": "粉碎机描述",
+                "itemCount": 8,
+                "materialCount": 20,
+                "totalWeight": 600.3,
+                "status": "ACTIVE",
+                "sequenceNumber": 2,
+                "remarks": "",
+                "version": 1,
+                "createTime": "2025-01-01 10:10:00",
+                "updateTime": "2025-01-12 16:45:00"
+            },
+            {
+                "id": 3,
+                "projectSystemId": 1,
+                "projectId": 1,
+                "templateId": 12,
+                "subsystemCode": "SUB_003",
+                "subsystemName": "电控系统",
+                "subsystemType": "ELECTRICAL",
+                "category": "控制设备",
+                "specification": "标准配置",
+                "model": "DK-300",
+                "manufacturer": "制造商C",
+                "description": "电控系统描述",
+                "itemCount": 2,
+                "materialCount": 10,
+                "totalWeight": 200.0,
+                "status": "ACTIVE",
+                "sequenceNumber": 3,
+                "remarks": "",
+                "version": 1,
+                "createTime": "2025-01-01 10:15:00",
+                "updateTime": "2025-01-15 09:30:00"
+            }
+        ]
+    }
+}
+```
+
+**字段说明**:
+
+| 字段名              | 类型                            | 说明                                                               |
+| ------------------- | ------------------------------- | ------------------------------------------------------------------ |
+| id                  | Long                            | 项目设备系统主键 ID                                                |
+| projectId           | Long                            | 化盐项目 ID                                                        |
+| projectName         | String                          | 项目名称（冗余字段）                                               |
+| templateId          | Long                            | 设备系统模板 ID（可为空）                                          |
+| systemCode          | String                          | 系统编码                                                           |
+| systemName          | String                          | 系统名称                                                           |
+| systemType          | String                          | 系统类型（SOLID-固态，LIQUID-液态，POWDER-粉盐等）                 |
+| category            | String                          | 分类                                                               |
+| description         | String                          | 描述                                                               |
+| subsystemCount      | Integer                         | 子系统数量（实际统计）                                             |
+| totalItems          | Integer                         | 总子项数（实际统计）                                               |
+| totalMaterials      | Integer                         | 总物料数（实际统计）                                               |
+| totalWeight         | BigDecimal                      | 总重量(kg)（实际值）                                               |
+| responsiblePersonId | Long                            | 负责人 ID                                                          |
+| responsiblePerson   | String                          | 负责人姓名                                                         |
+| status              | String                          | 状态（DRAFT-草稿，ACTIVE-活跃，COMPLETED-已完成，ARCHIVED-已归档） |
+| priority            | Integer                         | 优先级                                                             |
+| sequenceNumber      | Integer                         | 排序号                                                             |
+| remarks             | String                          | 备注                                                               |
+| version             | Integer                         | 版本号（乐观锁）                                                   |
+| createTime          | LocalDateTime                   | 创建时间                                                           |
+| updateTime          | LocalDateTime                   | 更新时间                                                           |
+| projectSubsystems   | List<ErpSaltProjectSubsystemVo> | **项目子系统列表**（包含该设备系统下的所有子系统信息）             |
+
+**项目子系统对象字段说明**:
+
+| 字段名          | 类型          | 说明                                                          |
+| --------------- | ------------- | ------------------------------------------------------------- |
+| id              | Long          | 项目子系统主键 ID                                             |
+| projectSystemId | Long          | 项目设备系统 ID                                               |
+| projectId       | Long          | 项目 ID（冗余）                                               |
+| templateId      | Long          | 子系统模板 ID（可为空）                                       |
+| subsystemCode   | String        | 子系统编码                                                    |
+| subsystemName   | String        | 子系统名称                                                    |
+| subsystemType   | String        | 子系统类型（MECHANICAL-机械，ELECTRICAL-电控，PIPELINE-管路） |
+| category        | String        | 子系统分类                                                    |
+| specification   | String        | 规格型号（实际值，可能与模板不同）                            |
+| model           | String        | 型号                                                          |
+| manufacturer    | String        | 制造商                                                        |
+| description     | String        | 描述                                                          |
+| itemCount       | Integer       | 子项数量（实际数据）                                          |
+| materialCount   | Integer       | 物料数量（实际数据）                                          |
+| totalWeight     | BigDecimal    | 总重量(kg)（实际数据）                                        |
+| status          | String        | 状态                                                          |
+| sequenceNumber  | Integer       | 排序号                                                        |
+| remarks         | String        | 备注                                                          |
+| version         | Integer       | 版本号（乐观锁）                                              |
+| createTime      | LocalDateTime | 创建时间                                                      |
+| updateTime      | LocalDateTime | 更新时间                                                      |
+
+**特性说明**:
+
+1. **完整数据结构**: 返回项目设备系统的完整信息，包括关联的所有子系统数据
+2. **数据关联**: 通过 `projectSystemId` 字段关联项目设备系统和项目子系统
+3. **排序规则**: 子系统列表按 `sequenceNumber` 升序、`createTime` 降序排列
+4. **数据隔离**: 自动过滤已删除的数据（`del_flag = 0`）和租户隔离
+5. **性能优化**: 使用批量查询，避免 N+1 查询问题
+
+**使用场景**:
+
+-   查看项目设备系统的完整配置信息
+-   获取设备系统下所有子系统的详细数据
+-   用于前端展示设备系统的层级结构
+-   支持设备系统的编辑和管理功能
+
 ### 5.3 新增项目设备系统
 
 **接口地址**: `POST /erp/saltprocess/projectEquipmentSystem`
