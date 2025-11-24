@@ -94,6 +94,14 @@
       </el-row>
     </el-card>
 
+    <!-- 项目子系统管理 -->
+    <el-card shadow="never" class="mt-4" v-if="!loading">
+      <project-subsystem-management
+        :system-id="systemId"
+        :project-subsystems="detail.projectSubsystems || []"
+      />
+    </el-card>
+
     <div class="dialog-footer mt-4">
       <el-button @click="handleClose">关 闭</el-button>
     </div>
@@ -113,6 +121,7 @@ import { ElMessage } from 'element-plus';
 import { getProjectEquipmentSystem } from '@/api/erp/saltprocess/equipment-system';
 import type { ProjectEquipmentSystemDetailVO } from '@/api/erp/saltprocess/equipment-system/types';
 import { parseTime } from '@/utils/ruoyi';
+import ProjectSubsystemManagement from './ProjectSubsystemManagement.vue';
 
 // Props
 interface Props {

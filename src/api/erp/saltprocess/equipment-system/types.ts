@@ -258,10 +258,38 @@ export interface EquipmentSystemTemplateDetailVO extends EquipmentSystemTemplate
 }
 
 /**
- * 项目设备系统详情（包含统计信息）
+ * 项目子系统VO
+ */
+export interface ProjectSubsystemVO {
+  id: string | number;
+  projectSystemId: string | number;
+  projectId: string | number;
+  templateId?: string | number;
+  subsystemCode: string;
+  subsystemName: string;
+  subsystemType: string;
+  category?: string;
+  specification?: string;
+  model?: string;
+  manufacturer?: string;
+  description?: string;
+  itemCount?: number;
+  materialCount?: number;
+  totalWeight?: number;
+  status: string;
+  sequenceNumber?: number;
+  remarks?: string;
+  version?: number;
+  createTime?: string;
+  updateTime?: string;
+}
+
+/**
+ * 项目设备系统详情（包含统计信息和项目子系统列表）
  */
 export interface ProjectEquipmentSystemDetailVO extends ProjectEquipmentSystemVO {
   statistics?: EquipmentSystemStatistics;
+  projectSubsystems?: ProjectSubsystemVO[];  // 项目子系统列表
 }
 
 // ==================== 子项模板相关类型 ====================
