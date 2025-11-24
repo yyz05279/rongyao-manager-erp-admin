@@ -48,7 +48,7 @@ export default defineComponent({
       >
         <el-table-column type="selection" width="55" align="center" />
         <el-table-column type="index" label="序号" width="60" align="center" />
-        <el-table-column label="子系统名称" min-width="200" show-overflow-tooltip>
+        <el-table-column label="子系统名称" min-width="100" show-overflow-tooltip>
           <template #default="scope">
             {{ getSubsystemDisplayName(scope.row) }}
           </template>
@@ -61,6 +61,16 @@ export default defineComponent({
         <el-table-column label="类型" width="180" align="center">
           <template #default="scope">
             {{ getSubsystemTypeText(scope.row.subsystemType) }}
+          </template>
+        </el-table-column>
+         <el-table-column label="子项数" width="100" align="center">
+          <template #default="scope">
+            <el-tag type="success" size="small">{{ scope.row.itemCount || 0 }}</el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="物料数" width="100" align="center">
+          <template #default="scope">
+            <el-tag type="warning" size="small">{{ scope.row.materialCount || 0 }}</el-tag>
           </template>
         </el-table-column>
         <el-table-column prop="remarks" label="备注" min-width="150" show-overflow-tooltip />

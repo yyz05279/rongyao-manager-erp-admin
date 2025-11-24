@@ -36,7 +36,7 @@
         <el-tag type="warning" size="small">{{ detail.materialCount || 0 }}</el-tag>
       </el-descriptions-item>
       <el-descriptions-item label="总重量">
-        {{ detail.totalWeight ? `${detail.totalWeight.toFixed(2)} kg` : '-' }}
+        {{ formatWeight(detail.totalWeight) }}
       </el-descriptions-item>
       <el-descriptions-item label="排序号">
         {{ detail.sequenceNumber || '-' }}
@@ -69,31 +69,10 @@ import { ref, onMounted } from 'vue';
 import { ElMessage } from 'element-plus';
 import { getProjectSubsystem } from '@/api/erp/saltprocess/subsystem';
 import { parseTime } from '@/utils/ruoyi';
+import type { ProjectSubsystemVO } from '@/api/erp/saltprocess/equipment-system/types';
 
-// 项目子系统详情接口
-interface ProjectSubsystemDetailVO {
-  id: string | number;
-  projectSystemId: string | number;
-  projectId: string | number;
-  templateId?: string | number;
-  subsystemCode: string;
-  subsystemName: string;
-  subsystemType: string;
-  category?: string;
-  specification?: string;
-  model?: string;
-  manufacturer?: string;
-  description?: string;
-  itemCount?: number;
-  materialCount?: number;
-  totalWeight?: number;
-  status: string;
-  sequenceNumber?: number;
-  remarks?: string;
-  version?: number;
-  createTime?: string;
-  updateTime?: string;
-}
+// 使用统一的类型定义
+type ProjectSubsystemDetailVO = ProjectSubsystemVO;
 
 // Props
 interface Props {
@@ -165,6 +144,22 @@ const getStatusText = (status?: string): string => {
     ARCHIVED: '归档'
   };
   return textMap[status || ''] || status || '-';
+};
+
+// 格式化重量显示
+const formatWeight = (weight?: number | string | null): string => {
+  if (weight === null || weight === undefined) {
+    return '-';
+  }
+
+  // 如果是字符串，直接返回并添加单位
+  if (typeof weight === 'string') {
+    const num = parseFloat(weight);
+    return isNaN(num) ? '-' : `${num.toFixed(2)} kg`;
+  }
+
+  // 如果是数字，格式化为两位小数并添加单位
+  return `${weight.toFixed(2)} kg`;
 };
 </script>
 

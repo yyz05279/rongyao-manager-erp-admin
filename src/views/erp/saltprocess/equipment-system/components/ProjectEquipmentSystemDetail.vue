@@ -45,7 +45,7 @@
         <el-tag type="warning" size="small">{{ detail.totalMaterials || 0 }}</el-tag>
       </el-descriptions-item>
       <el-descriptions-item label="总重量">
-        {{ detail.totalWeight ? `${detail.totalWeight.toFixed(2)} kg` : '-' }}
+        {{ formatWeight(detail.totalWeight) }}
       </el-descriptions-item>
       <el-descriptions-item label="创建时间">
         {{ parseTime(detail.createTime) }}
@@ -99,6 +99,7 @@
       <project-subsystem-management
         :system-id="systemId"
         :project-subsystems="detail.projectSubsystems || []"
+        @refresh="getDetail"
       />
     </el-card>
 
@@ -150,6 +151,9 @@ const getDetail = async () => {
   try {
     const res = await getProjectEquipmentSystem(props.systemId);
     detail.value = res.data;
+    console.log('📦 ProjectEquipmentSystemDetail - 获取到的详情数据:', res.data);
+    console.log('📋 项目子系统列表:', res.data.projectSubsystems);
+    console.log('📊 子系统数量:', res.data.projectSubsystems?.length || 0);
   } catch (error) {
     console.error('获取设备系统详情失败:', error);
     ElMessage.error('获取设备系统详情失败');
@@ -208,6 +212,22 @@ const getPriorityTagType = (priority?: number): string => {
   if (priority >= 8) return 'danger';
   if (priority >= 5) return 'warning';
   return 'success';
+};
+
+// 格式化重量显示
+const formatWeight = (weight?: number | string | null): string => {
+  if (weight === null || weight === undefined) {
+    return '-';
+  }
+
+  // 如果是字符串，解析后格式化
+  if (typeof weight === 'string') {
+    const num = parseFloat(weight);
+    return isNaN(num) ? '-' : `${num.toFixed(2)} kg`;
+  }
+
+  // 如果是数字，格式化为两位小数
+  return `${weight.toFixed(2)} kg`;
 };
 
 // 关闭

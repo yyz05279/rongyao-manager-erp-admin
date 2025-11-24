@@ -22,13 +22,26 @@ export interface ProjectSubsystemDetailVO {
   description?: string;
   itemCount?: number;
   materialCount?: number;
-  totalWeight?: number;
+  totalWeight?: number | string;
   status: string;
   sequenceNumber?: number;
   remarks?: string;
   version?: number;
   createTime?: string;
   updateTime?: string;
+}
+
+/**
+ * 更新项目子系统 - 表单
+ */
+export interface ProjectSubsystemUpdateForm {
+  id: string | number;
+  subsystemName: string;
+  category?: string | null;
+  subsystemType?: string | null;
+  description?: string | null;
+  status?: string | null;
+  remarks?: string | null;
 }
 
 /**
@@ -39,6 +52,27 @@ export const getProjectSubsystem = (id: string | number): AxiosPromise<ProjectSu
   return request({
     url: `/erp/saltprocess/projectSubsystem/${id}`,
     method: 'get'
+  });
+};
+
+/**
+ * 修改项目子系统
+ */
+export const updateProjectSubsystem = (data: ProjectSubsystemUpdateForm): AxiosPromise<void> => {
+  return request({
+    url: '/erp/saltprocess/projectSubsystem',
+    method: 'put',
+    data
+  });
+};
+
+/**
+ * 删除项目子系统
+ */
+export const deleteProjectSubsystem = (id: string | number): AxiosPromise<void> => {
+  return request({
+    url: `/erp/saltprocess/projectSubsystem/${id}`,
+    method: 'delete'
   });
 };
 
