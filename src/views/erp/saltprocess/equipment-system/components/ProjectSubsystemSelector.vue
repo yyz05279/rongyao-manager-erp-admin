@@ -102,7 +102,7 @@ export default defineComponent({
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, watch } from 'vue';
+import { ref, reactive, computed, watch, nextTick } from 'vue';
 import { ElMessage } from 'element-plus';
 import { listSubsystemTemplate } from '@/api/erp/subsystem/template';
 import type { SubsystemTemplateVO, SubsystemTemplateQuery } from '@/api/erp/subsystem/types';
@@ -144,11 +144,43 @@ const dialogVisible = computed({
 });
 
 // 监听对话框打开
-watch(dialogVisible, (newValue) => {
+watch(dialogVisible, async (newValue) => {
   if (newValue) {
-    loadTemplateList();
+    await loadTemplateList();
+    // 加载完成后自动勾选已添加的模板
+    await nextTick();
+    try {
+      // 先清空所有选择
+      tableRef.value?.clearSelection?.();
+      selectedTemplates.value = [];
+      templateList.value.forEach((row) => {
+        if (isAdded(row)) {
+          tableRef.value?.toggleRowSelection?.(row, true);
+        }
+      });
+    } catch (e) {
+      // 忽略选择联动异常，保证不影响主流程
+      console.warn('自动勾选已添加模板时出现异常:', e);
+    }
   }
 });
+
+// 同步选择状态：将已添加的模板行勾选并禁用复选框
+const syncSelection = async () => {
+  await nextTick();
+  try {
+    tableRef.value?.clearSelection?.();
+    selectedTemplates.value = [];
+    templateList.value.forEach((row) => {
+      if (isAdded(row)) {
+        tableRef.value?.toggleRowSelection?.(row, true);
+      }
+    });
+  } catch (e) {
+    console.warn('同步选择状态时出现异常:', e);
+  }
+};
+
 
 // 加载子系统模板列表
 const loadTemplateList = async () => {
@@ -168,6 +200,9 @@ const loadTemplateList = async () => {
       templateList.value = [];
       total.value = 0;
     }
+
+    // 加载完成后，同步勾选已添加的模板
+    await syncSelection();
   } catch (error) {
     console.error('加载子系统模板列表失败:', error);
     ElMessage.error('加载子系统模板列表失败');
@@ -177,6 +212,24 @@ const loadTemplateList = async () => {
     loading.value = false;
   }
 };
+
+// 监听已添加模板ID变化，动态同步勾选状态
+watch(
+  () => props.existingTemplateIds,
+  async () => {
+    await syncSelection();
+  },
+  { deep: true }
+);
+
+// 监听模板列表变化（分页/搜索时），也同步勾选状态
+watch(
+  () => templateList.value,
+  async () => {
+    await syncSelection();
+  }
+);
+
 
 // 检查模板是否已添加（统一转为字符串比较，避免类型不一致）
 const isAdded = (row: SubsystemTemplateVO): boolean => {
