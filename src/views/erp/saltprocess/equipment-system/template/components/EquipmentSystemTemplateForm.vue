@@ -161,7 +161,7 @@
         </el-row>
 
         <el-row :gutter="20">
-          <el-col :span="12">
+          <!-- <el-col :span="12">
             <el-form-item label="子系统类型" prop="subsystemType">
               <el-select v-model="editForm.subsystemType" placeholder="请选择子系统类型" style="width: 100%">
                 <el-option label="机械设备" value="MECHANICAL" />
@@ -169,7 +169,7 @@
                 <el-option label="管路设备" value="PIPELINE" />
               </el-select>
             </el-form-item>
-          </el-col>
+          </el-col> -->
           <el-col :span="12">
             <el-form-item label="排序号" prop="sequenceNumber">
               <el-input-number v-model="editForm.sequenceNumber" :min="0" style="width: 100%" />
@@ -271,9 +271,9 @@ const editRules = reactive<FormRules>({
   category: [
     { max: 50, message: '分类长度不能超过50个字符', trigger: 'blur' }
   ],
-  subsystemType: [
-    { max: 50, message: '子系统类型长度不能超过50个字符', trigger: 'blur' }
-  ],
+  // subsystemType: [
+  //   { max: 50, message: '子系统类型长度不能超过50个字符', trigger: 'blur' }
+  // ],
   description: [
     { max: 500, message: '描述长度不能超过500个字符', trigger: 'blur' }
   ],

@@ -128,9 +128,9 @@ export default defineComponent({
         <el-descriptions-item label="子系统名称">
           {{ viewDialog.subsystemData.subsystemName }}
         </el-descriptions-item>
-        <el-descriptions-item label="子系统类型">
+        <!-- <el-descriptions-item label="子系统类型">
           {{ getSubsystemTypeText(viewDialog.subsystemData.subsystemType) }}
-        </el-descriptions-item>
+        </el-descriptions-item> -->
         <el-descriptions-item label="分类">
           {{ viewDialog.subsystemData.category || '-' }}
         </el-descriptions-item>
@@ -200,11 +200,11 @@ export default defineComponent({
         </el-row>
 
         <el-row :gutter="20">
-          <el-col :span="12">
+          <!-- <el-col :span="12">
             <el-form-item label="子系统类型" prop="subsystemType">
               <el-input v-model="editForm.subsystemType" placeholder="请输入子系统类型" />
             </el-form-item>
-          </el-col>
+          </el-col> -->
           <el-col :span="12">
             <el-form-item label="状态" prop="status">
               <el-select v-model="editForm.status" placeholder="请选择状态" style="width: 100%">
