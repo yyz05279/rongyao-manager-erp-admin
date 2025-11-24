@@ -245,10 +245,15 @@ const viewDialog = ref({
 const subsystemSelectorVisible = ref(false);
 
 // 计算已添加的子系统模板ID列表（全部转为字符串，避免精度和类型不一致问题）
+// 同时兼容后端返回的 referenceTemplateId 字段
 const existingTemplateIds = computed(() => {
-  return subsystemList.value
-    .map((item: ProjectSubsystemVO) => (item.templateId != null ? String(item.templateId) : null))
-    .filter((id): id is string => !!id);
+  const ids: string[] = [];
+  subsystemList.value.forEach((item: ProjectSubsystemVO) => {
+    const tid = (item as any).templateId ?? (item as any).referenceTemplateId;
+    if (tid != null && tid !== '') ids.push(String(tid));
+  });
+  // 去重
+  return Array.from(new Set(ids));
 });
 
 // 编辑对话框
