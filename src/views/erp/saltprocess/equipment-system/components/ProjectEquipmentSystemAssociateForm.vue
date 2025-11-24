@@ -73,13 +73,13 @@
                 <el-table-column type="selection" width="55" align="center" />
                 <el-table-column prop="templateCode" label="模板编号" width="180" show-overflow-tooltip />
                 <el-table-column prop="templateName" label="模板名称" min-width="150" show-overflow-tooltip />
-                <el-table-column prop="systemType" label="子系统类型" width="120" align="center">
+                <!-- <el-table-column prop="systemType" label="子系统类型" width="120" align="center">
                   <template #default="{ row }">
                     <el-tag :type="getSystemTypeTag(row.systemType)" size="small">
                       {{ getSystemTypeLabel(row.systemType) }}
                     </el-tag>
                   </template>
-                </el-table-column>
+                </el-table-column> -->
                 <el-table-column prop="category" label="分类" width="100" align="center" />
                 <el-table-column prop="subsystemCount" label="子系统数量" width="100" align="center" />
                 <el-table-column prop="status" label="状态" width="100" align="center">

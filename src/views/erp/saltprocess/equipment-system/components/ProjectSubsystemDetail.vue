@@ -7,11 +7,11 @@
       <el-descriptions-item label="子系统名称">
         {{ detail.subsystemName }}
       </el-descriptions-item>
-      <el-descriptions-item label="子系统类型">
+      <!-- <el-descriptions-item label="子系统类型">
         <el-tag :type="getSubsystemTypeTagType(detail.subsystemType)" size="small">
           {{ getSubsystemTypeText(detail.subsystemType) }}
         </el-tag>
-      </el-descriptions-item>
+      </el-descriptions-item> -->
       <el-descriptions-item label="分类">
         {{ detail.category || '-' }}
       </el-descriptions-item>

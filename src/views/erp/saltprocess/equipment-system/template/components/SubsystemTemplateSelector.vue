@@ -37,7 +37,7 @@ export default defineComponent({
             style="width: 200px"
           />
         </el-form-item>
-        <el-form-item label="子系统类型">
+        <!-- <el-form-item label="子系统类型">
           <el-select
             v-model="queryParams.subsystemType"
             placeholder="请选择类型"
@@ -49,7 +49,7 @@ export default defineComponent({
             <el-option label="电控设备" value="ELECTRICAL" />
             <el-option label="管路设备" value="PIPELINE" />
           </el-select>
-        </el-form-item>
+        </el-form-item> -->
         <el-form-item>
           <el-button type="primary" icon="Search" @click="handleSearch">搜索</el-button>
           <el-button icon="Refresh" @click="handleReset">重置</el-button>
