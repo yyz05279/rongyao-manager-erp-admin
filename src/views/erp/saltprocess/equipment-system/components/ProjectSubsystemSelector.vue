@@ -110,11 +110,11 @@ import type { SubsystemTemplateVO, SubsystemTemplateQuery } from '@/api/erp/subs
 // Props
 interface Props {
   modelValue: boolean;
-  existingTemplateIds?: number[]; // 已添加的子系统模板ID列表
+  existingTemplateIds?: Array<string | number>; // 已添加的子系统模板ID列表（字符串或数字均可）
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  existingTemplateIds: () => []
+  existingTemplateIds: () => [] as Array<string | number>
 });
 
 // Emits
@@ -178,9 +178,10 @@ const loadTemplateList = async () => {
   }
 };
 
-// 检查模板是否已添加
+// 检查模板是否已添加（统一转为字符串比较，避免类型不一致）
 const isAdded = (row: SubsystemTemplateVO): boolean => {
-  return props.existingTemplateIds.includes(row.id as number);
+  const ids = (props.existingTemplateIds || []).map((v) => String(v));
+  return ids.includes(String(row.id));
 };
 
 // 检查行是否可选择（已添加的不能再选）
