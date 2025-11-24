@@ -42,13 +42,13 @@ export default defineComponent({
             {{ scope.row.subsystemCode || '-' }}
           </template>
         </el-table-column>
-        <el-table-column label="类型" width="120" align="center">
+        <!-- <el-table-column label="类型" width="120" align="center">
           <template #default="scope">
             <el-tag :type="getSubsystemTypeTagType(scope.row.subsystemType)" size="small">
               {{ getSubsystemTypeText(scope.row.subsystemType) }}
             </el-tag>
           </template>
-        </el-table-column>
+        </el-table-column> -->
         <el-table-column label="分类" width="120" align="center">
           <template #default="scope">
             {{ scope.row.category || '-' }}
