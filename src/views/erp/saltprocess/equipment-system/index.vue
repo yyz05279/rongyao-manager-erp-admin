@@ -161,14 +161,14 @@
                 v-hasPermi="['erp:saltprocess:projectEquipmentSystem:add']"
               />
             </el-tooltip>
-            <el-tooltip content="激活" placement="top">
+            <el-tooltip content="发布" placement="top">
               <el-button
                 link
                 type="success"
                 icon="Check"
-                :disabled="scope.row.status === 'ACTIVE'"
+                :disabled="scope.row.status !== 'DRAFT'"
                 @click.stop="handleActivate(scope.row)"
-                v-hasPermi="['erp:saltprocess:projectEquipmentSystem:edit']"
+                v-hasPermi="['erp:saltprocess:projectEquipmentSystem:publish']"
               />
             </el-tooltip>
             <el-tooltip content="删除" placement="top">
@@ -213,7 +213,7 @@ import { ElMessage, ElMessageBox } from 'element-plus';
 import {
   listProjectEquipmentSystem,
   delProjectEquipmentSystem,
-  updateSystemStatus,
+  publishProjectSystem,
   copyProjectEquipmentSystem
 } from '@/api/erp/saltprocess/equipment-system';
 import type { ProjectEquipmentSystemQuery, ProjectEquipmentSystemVO } from '@/api/erp/saltprocess/equipment-system/types';
@@ -413,15 +413,36 @@ const handleCopy = async (row: ProjectEquipmentSystemVO) => {
   }
 };
 
-// 激活设备系统
+/**
+ * 发布项目设备系统
+ * 将草稿状态的项目设备系统发布为活跃状态
+ * @param row 项目设备系统数据
+ */
 const handleActivate = async (row: ProjectEquipmentSystemVO) => {
   try {
-    await updateSystemStatus(row.id, 'ACTIVE');
-    ElMessage.success('已设置为激活状态');
+    // 确认发布操作
+    await ElMessageBox.confirm(
+      `确认要发布项目设备系统"${row.systemName}"吗？发布后状态将变为活跃。`,
+      '发布确认',
+      {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }
+    );
+
+    // 调用发布接口
+    await publishProjectSystem(row.id);
+    ElMessage.success('发布成功');
+
+    // 刷新列表
     getList();
   } catch (error) {
-    console.error('激活失败:', error);
-    ElMessage.error('激活失败');
+    // 用户取消操作不显示错误
+    if (error !== 'cancel') {
+      console.error('发布失败:', error);
+      ElMessage.error('发布失败');
+    }
   }
 };
 

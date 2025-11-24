@@ -145,3 +145,16 @@ export const createFromTemplates = (data: { projectId: string; templateIds: stri
   });
 };
 
+/**
+ * 发布项目设备系统
+ * @param id 项目设备系统ID
+ * @returns 发布结果
+ * @description 将草稿状态的项目设备系统发布为活跃状态
+ */
+export const publishProjectSystem = (id: string | number): AxiosPromise<void> => {
+  return request({
+    url: `/erp/saltprocess/projectEquipmentSystem/${id}/publish`,
+    method: 'post'
+  });
+};
+
