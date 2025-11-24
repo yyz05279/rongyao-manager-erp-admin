@@ -16,6 +16,16 @@ export default defineComponent({
             项目子系统列表
           </h3>
         </el-col>
+        <el-col :span="12" style="text-align: right;">
+          <el-button
+            type="primary"
+            icon="Plus"
+            @click="handleAddSubsystem"
+            v-has-permi="['erp:saltprocess:projectSubsystem:add']"
+          >
+            新增子系统
+          </el-button>
+        </el-col>
       </el-row>
     </div>
 
@@ -120,6 +130,66 @@ export default defineComponent({
       </template>
     </el-dialog>
 
+    <!-- 新增子系统对话框 -->
+    <el-dialog
+      title="新增子系统"
+      v-model="addDialog.visible"
+      width="800px"
+      append-to-body
+      destroy-on-close
+    >
+      <el-form
+        ref="addFormRef"
+        :model="addForm"
+        :rules="addRules"
+        label-width="120px"
+      >
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="子系统编码" prop="subsystemCode">
+              <el-input v-model="addForm.subsystemCode" placeholder="请输入子系统编码" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="子系统名称" prop="subsystemName">
+              <el-input v-model="addForm.subsystemName" placeholder="请输入子系统名称" />
+            </el-form-item>
+          </el-col>
+        </el-row>
+
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="分类" prop="category">
+              <el-input v-model="addForm.category" placeholder="请输入分类" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="状态" prop="status">
+              <el-select v-model="addForm.status" placeholder="请选择状态" style="width: 100%">
+                <el-option label="草稿" value="DRAFT" />
+                <el-option label="启用" value="ACTIVE" />
+                <el-option label="停用" value="INACTIVE" />
+                <el-option label="归档" value="ARCHIVED" />
+              </el-select>
+            </el-form-item>
+          </el-col>
+        </el-row>
+
+        <el-form-item label="描述" prop="description">
+          <el-input v-model="addForm.description" type="textarea" :rows="2" placeholder="请输入描述" />
+        </el-form-item>
+
+        <el-form-item label="备注" prop="remarks">
+          <el-input v-model="addForm.remarks" type="textarea" :rows="2" placeholder="请输入备注" />
+        </el-form-item>
+      </el-form>
+
+      <div class="dialog-footer" style="text-align: right; margin-top: 20px">
+        <el-button @click="addDialog.visible = false">取消</el-button>
+        <el-button type="primary" @click="submitAdd" :loading="addDialog.loading">确定</el-button>
+      </div>
+    </el-dialog>
+
     <!-- 编辑子系统对话框 -->
     <el-dialog
       title="编辑子系统"
@@ -132,27 +202,27 @@ export default defineComponent({
         ref="editFormRef"
         :model="editForm"
         :rules="editRules"
-        label-width="100px"
+        label-width="120px"
       >
         <el-row :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="子系统编码" prop="subsystemCode">
+              <el-input v-model="editForm.subsystemCode" placeholder="请输入子系统编码" />
+            </el-form-item>
+          </el-col>
           <el-col :span="12">
             <el-form-item label="子系统名称" prop="subsystemName">
               <el-input v-model="editForm.subsystemName" placeholder="请输入子系统名称" />
             </el-form-item>
           </el-col>
+        </el-row>
+
+        <el-row :gutter="20">
           <el-col :span="12">
             <el-form-item label="分类" prop="category">
               <el-input v-model="editForm.category" placeholder="请输入分类" />
             </el-form-item>
           </el-col>
-        </el-row>
-
-        <el-row :gutter="20">
-          <!-- <el-col :span="12">
-            <el-form-item label="子系统类型" prop="subsystemType">
-              <el-input v-model="editForm.subsystemType" placeholder="请输入子系统类型" />
-            </el-form-item>
-          </el-col> -->
           <el-col :span="12">
             <el-form-item label="状态" prop="status">
               <el-select v-model="editForm.status" placeholder="请选择状态" style="width: 100%">
@@ -190,7 +260,13 @@ import type { FormInstance } from 'element-plus';
 import { Menu } from '@element-plus/icons-vue';
 import ProjectSubsystemDetail from './ProjectSubsystemDetail.vue';
 import type { ProjectSubsystemVO } from '@/api/erp/saltprocess/equipment-system/types';
-import { updateProjectSubsystem, deleteProjectSubsystem, type ProjectSubsystemUpdateForm } from '@/api/erp/saltprocess/subsystem';
+import {
+  addProjectSubsystem,
+  updateProjectSubsystem,
+  deleteProjectSubsystem,
+  type ProjectSubsystemAddForm,
+  type ProjectSubsystemUpdateForm
+} from '@/api/erp/saltprocess/subsystem';
 
 // Emits
 const emit = defineEmits<{ refresh: [] }>();
@@ -198,6 +274,7 @@ const emit = defineEmits<{ refresh: [] }>();
 // Props
 interface Props {
   systemId: string | number;
+  projectId: string | number;
   /** 项目子系统列表数据(从父组件传递) */
   projectSubsystems?: ProjectSubsystemVO[];
 }
@@ -215,6 +292,38 @@ const viewDialog = ref({
   subsystemName: ''
 });
 
+// 新增对话框
+const addDialog = ref({
+  visible: false,
+  loading: false
+});
+const addFormRef = ref<FormInstance>();
+const addForm = ref<ProjectSubsystemAddForm>({
+  projectSystemId: '',
+  projectId: '',
+  subsystemCode: '',
+  subsystemName: '',
+  category: '',
+  subsystemType: '',
+  description: '',
+  status: 'DRAFT',
+  remarks: ''
+});
+const addRules = {
+  subsystemCode: [
+    { required: true, message: '请输入子系统编码', trigger: 'blur' },
+    { max: 50, message: '子系统编码长度不能超过50个字符', trigger: 'blur' }
+  ],
+  subsystemName: [
+    { required: true, message: '请输入子系统名称', trigger: 'blur' },
+    { max: 100, message: '子系统名称长度不能超过100个字符', trigger: 'blur' }
+  ],
+  category: [{ max: 50, message: '分类长度不能超过50个字符', trigger: 'blur' }],
+  subsystemType: [{ max: 50, message: '子系统类型长度不能超过50个字符', trigger: 'blur' }],
+  description: [{ max: 500, message: '描述长度不能超过500个字符', trigger: 'blur' }],
+  remarks: [{ max: 500, message: '备注长度不能超过500个字符', trigger: 'blur' }]
+};
+
 // 编辑对话框
 const editDialog = ref({
   visible: false,
@@ -223,6 +332,9 @@ const editDialog = ref({
 const editFormRef = ref<FormInstance>();
 const editForm = ref<ProjectSubsystemUpdateForm>({
   id: '',
+  projectSystemId: '',
+  projectId: '',
+  subsystemCode: '',
   subsystemName: '',
   category: '',
   subsystemType: '',
@@ -231,6 +343,10 @@ const editForm = ref<ProjectSubsystemUpdateForm>({
   remarks: ''
 });
 const editRules = {
+  subsystemCode: [
+    { required: true, message: '请输入子系统编码', trigger: 'blur' },
+    { max: 50, message: '子系统编码长度不能超过50个字符', trigger: 'blur' }
+  ],
   subsystemName: [
     { required: true, message: '请输入子系统名称', trigger: 'blur' },
     { max: 100, message: '子系统名称长度不能超过100个字符', trigger: 'blur' }
@@ -303,6 +419,42 @@ const handleViewSubsystem = (row: ProjectSubsystemVO) => {
   viewDialog.value.visible = true;
 };
 
+// 新增子系统
+const handleAddSubsystem = () => {
+  // 重置表单
+  addForm.value = {
+    projectSystemId: props.systemId,
+    projectId: props.projectId,
+    subsystemCode: '',
+    subsystemName: '',
+    category: '',
+    subsystemType: '',
+    description: '',
+    status: 'DRAFT',
+    remarks: ''
+  };
+  addDialog.value.visible = true;
+};
+
+// 提交新增
+const submitAdd = async () => {
+  try {
+    await addFormRef.value?.validate();
+    addDialog.value.loading = true;
+    await addProjectSubsystem(addForm.value);
+    ElMessage.success('新增成功');
+    addDialog.value.visible = false;
+    emit('refresh');
+  } catch (error: any) {
+    if (error !== false) {
+      console.error('新增子系统失败:', error);
+      ElMessage.error('新增失败');
+    }
+  } finally {
+    addDialog.value.loading = false;
+  }
+};
+
 // 编辑子系统
 const handleEditSubsystem = (row: ProjectSubsystemVO) => {
   if (!row.id) {
@@ -311,6 +463,9 @@ const handleEditSubsystem = (row: ProjectSubsystemVO) => {
   }
   editForm.value = {
     id: row.id,
+    projectSystemId: row.projectSystemId,
+    projectId: row.projectId,
+    subsystemCode: row.subsystemCode,
     subsystemName: row.subsystemName || '',
     category: row.category || '',
     subsystemType: row.subsystemType || '',

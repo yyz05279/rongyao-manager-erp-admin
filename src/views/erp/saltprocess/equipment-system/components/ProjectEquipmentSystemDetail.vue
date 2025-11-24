@@ -98,6 +98,7 @@
     <el-card shadow="never" class="mt-4" v-if="!loading">
       <project-subsystem-management
         :system-id="systemId"
+        :project-id="detail.projectId"
         :project-subsystems="detail.projectSubsystems || []"
         @refresh="getDetail"
       />

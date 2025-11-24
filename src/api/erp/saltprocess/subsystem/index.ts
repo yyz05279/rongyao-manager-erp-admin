@@ -32,16 +32,51 @@ export interface ProjectSubsystemDetailVO {
 }
 
 /**
+ * 新增项目子系统 - 表单
+ */
+export interface ProjectSubsystemAddForm {
+  projectSystemId: string | number;      // ✅ 必填：项目设备系统ID
+  projectId: string | number;            // ✅ 必填：项目ID
+  subsystemCode: string;                 // ✅ 必填：子系统编码
+  subsystemName: string;                 // ✅ 必填：子系统名称
+  templateId?: string | number | null;   // ⭕ 可选：子系统模板ID
+  subsystemType?: string | null;         // ⭕ 可选：子系统类型
+  category?: string | null;              // ⭕ 可选：子系统分类
+  specification?: string | null;         // ⭕ 可选：规格型号
+  model?: string | null;                 // ⭕ 可选：型号
+  manufacturer?: string | null;          // ⭕ 可选：制造商
+  description?: string | null;           // ⭕ 可选：描述
+  itemCount?: number | null;             // ⭕ 可选：子项数量
+  materialCount?: number | null;         // ⭕ 可选：物料数量
+  totalWeight?: number | null;           // ⭕ 可选：总重量(kg)
+  status?: string | null;                // ⭕ 可选：状态
+  sequenceNumber?: number | null;        // ⭕ 可选：排序号
+  remarks?: string | null;               // ⭕ 可选：备注
+}
+
+/**
  * 更新项目子系统 - 表单
  */
 export interface ProjectSubsystemUpdateForm {
-  id: string | number;
-  subsystemName: string;
-  category?: string | null;
-  subsystemType?: string | null;
-  description?: string | null;
-  status?: string | null;
-  remarks?: string | null;
+  id: string | number;                   // ✅ 必填：主键ID
+  projectSystemId: string | number;      // ✅ 必填：项目设备系统ID
+  projectId: string | number;            // ✅ 必填：项目ID
+  subsystemCode: string;                 // ✅ 必填：子系统编码
+  subsystemName: string;                 // ✅ 必填：子系统名称
+  templateId?: string | number | null;   // ⭕ 可选：子系统模板ID
+  subsystemType?: string | null;         // ⭕ 可选：子系统类型
+  category?: string | null;              // ⭕ 可选：子系统分类
+  specification?: string | null;         // ⭕ 可选：规格型号
+  model?: string | null;                 // ⭕ 可选：型号
+  manufacturer?: string | null;          // ⭕ 可选：制造商
+  description?: string | null;           // ⭕ 可选：描述
+  itemCount?: number | null;             // ⭕ 可选：子项数量
+  materialCount?: number | null;         // ⭕ 可选：物料数量
+  totalWeight?: number | null;           // ⭕ 可选：总重量(kg)
+  status?: string | null;                // ⭕ 可选：状态
+  sequenceNumber?: number | null;        // ⭕ 可选：排序号
+  remarks?: string | null;               // ⭕ 可选：备注
+  version?: number | null;               // ⭕ 可选：版本号（乐观锁）
 }
 
 /**
@@ -56,7 +91,20 @@ export const getProjectSubsystem = (id: string | number): AxiosPromise<ProjectSu
 };
 
 /**
+ * 新增项目子系统
+ * @param data 新增表单数据
+ */
+export const addProjectSubsystem = (data: ProjectSubsystemAddForm): AxiosPromise<void> => {
+  return request({
+    url: '/erp/saltprocess/projectSubsystem',
+    method: 'post',
+    data
+  });
+};
+
+/**
  * 修改项目子系统
+ * @param data 修改表单数据
  */
 export const updateProjectSubsystem = (data: ProjectSubsystemUpdateForm): AxiosPromise<void> => {
   return request({
@@ -68,6 +116,7 @@ export const updateProjectSubsystem = (data: ProjectSubsystemUpdateForm): AxiosP
 
 /**
  * 删除项目子系统
+ * @param id 子系统ID
  */
 export const deleteProjectSubsystem = (id: string | number): AxiosPromise<void> => {
   return request({
