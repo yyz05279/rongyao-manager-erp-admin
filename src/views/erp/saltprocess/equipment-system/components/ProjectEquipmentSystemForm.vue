@@ -65,15 +65,30 @@
 
       <el-row :gutter="20">
         <el-col :span="12">
-          <el-form-item label="负责人ID" prop="responsiblePersonId">
-            <el-input-number v-model="form.responsiblePersonId" :min="0" placeholder="请输入负责人ID" style="width: 100%" />
+          <el-form-item label="负责人" prop="responsiblePersonId">
+            <el-select
+              v-model="form.responsiblePersonId"
+              placeholder="请选择负责人"
+              filterable
+              clearable
+              style="width: 100%"
+              :loading="userListLoading"
+              @change="handleResponsiblePersonChange"
+            >
+              <el-option
+                v-for="user in userList"
+                :key="user.userId"
+                :label="user.nickName || user.userName"
+                :value="user.userId"
+              />
+            </el-select>
           </el-form-item>
         </el-col>
-        <el-col :span="12">
+        <!-- <el-col :span="12">
           <el-form-item label="负责人姓名" prop="responsiblePerson">
-            <el-input v-model="form.responsiblePerson" placeholder="请输入负责人姓名" />
+            <el-input v-model="form.responsiblePerson" placeholder="系统自动填充" :disabled="true" />
           </el-form-item>
-        </el-col>
+        </el-col> -->
       </el-row>
 
       <el-row :gutter="20">
@@ -106,6 +121,8 @@ import { ElMessage } from 'element-plus';
 import type { FormInstance, FormRules } from 'element-plus';
 import { getProjectEquipmentSystem, addProjectEquipmentSystem, updateProjectEquipmentSystem } from '@/api/erp/saltprocess/equipment-system';
 import type { ProjectEquipmentSystemForm } from '@/api/erp/saltprocess/equipment-system/types';
+import { getSimpleUserList } from '@/api/system/user';
+import type { UserVO } from '@/api/system/user/types';
 
 // Props
 interface Props {
@@ -123,13 +140,15 @@ const emit = defineEmits<{
 // 响应式数据
 const formRef = ref<FormInstance>();
 const buttonLoading = ref(false);
+const userListLoading = ref(false);
+const userList = ref<UserVO[]>([]);
 
 // 表单数据
 const initFormData: ProjectEquipmentSystemForm = {
   id: undefined,
   systemCode: '',
   systemName: '',
-  projectId: 0,
+  projectId: '',
   projectName: '',
   templateId: undefined,
   systemType: '',
@@ -154,6 +173,9 @@ const rules = reactive<FormRules>({
 
 // 生命周期
 onMounted(() => {
+  // 获取用户列表
+  getUserList();
+
   if (props.systemId) {
     getSystemDetail();
   } else {
@@ -173,6 +195,45 @@ watch(
     }
   }
 );
+
+/**
+ * 获取用户列表
+ * 从系统用户接口获取简化的用户列表，用于负责人下拉选择
+ */
+const getUserList = async () => {
+  userListLoading.value = true;
+  try {
+    const res = await getSimpleUserList();
+    userList.value = res.data || [];
+    console.log('获取用户列表成功:', userList.value.length, '个用户');
+  } catch (error) {
+    console.error('获取用户列表失败:', error);
+    ElMessage.error('获取用户列表失败');
+    userList.value = [];
+  } finally {
+    userListLoading.value = false;
+  }
+};
+
+/**
+ * 处理负责人选择变更
+ * 当用户选择负责人时，自动填充负责人姓名
+ */
+const handleResponsiblePersonChange = (userId: string | number | undefined) => {
+  if (!userId) {
+    // 清空选择
+    form.responsiblePerson = '';
+    return;
+  }
+
+  // 根据选中的userId查找对应的用户信息
+  const selectedUser = userList.value.find(user => user.userId === userId);
+  if (selectedUser) {
+    // 自动填充负责人姓名（优先使用昵称，其次使用用户名）
+    form.responsiblePerson = selectedUser.nickName || selectedUser.userName || '';
+    console.log('选择负责人:', selectedUser.nickName || selectedUser.userName, '(ID:', userId, ')');
+  }
+};
 
 // 获取设备系统详情
 const getSystemDetail = async () => {
