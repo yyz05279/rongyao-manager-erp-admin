@@ -146,7 +146,7 @@ export const copyEquipmentSystemTemplate = (id: string | number): AxiosPromise<n
 export const publishEquipmentSystemTemplate = (id: string | number): AxiosPromise<void> => {
   return request({
     url: `/erp/saltprocess/equipmentSystemTemplate/${id}/publish`,
-    method: 'put'
+    method: 'post'
   });
 };
 

@@ -149,7 +149,7 @@
               />
             </el-tooltip>
             <el-tooltip content="发布" placement="top" v-if="scope.row.status === 'DRAFT'">
-              <el-button link type="success" icon="Check" @click.stop="handlePublish(scope.row)" v-hasPermi="['erp:saltprocess:equipmentSystemTemplate:edit']" />
+              <el-button link type="success" icon="Check" @click.stop="handlePublish(scope.row)" v-hasPermi="['erp:saltprocess:equipmentSystemTemplate:publish']" />
             </el-tooltip>
             <el-tooltip content="删除" placement="top">
               <el-button link type="danger" icon="Delete" @click.stop="handleDelete(scope.row)" v-hasPermi="['erp:saltprocess:equipmentSystemTemplate:remove']" />
@@ -372,13 +372,15 @@ const handlePublish = async (row?: EquipmentSystemTemplateVO): Promise<void> => 
       type: 'warning'
     });
 
+    // 调用专用发布接口（POST）
     await publishEquipmentSystemTemplate(templateId);
     ElMessage.success('发布成功');
     getList();
   } catch (error: any) {
     if (error !== 'cancel') {
       console.error('发布失败:', error);
-      ElMessage.error('发布失败');
+      const msg = (error?.response?.data?.msg || error?.response?.data?.message) || error?.message || '发布失败';
+      ElMessage.error(msg);
     }
   }
 };
