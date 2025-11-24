@@ -132,6 +132,67 @@
       :existing-template-ids="existingTemplateIds"
       @confirm="handleSubsystemConfirm"
     />
+
+    <!-- 编辑子系统对话框 -->
+    <el-dialog
+      title="编辑子系统"
+      v-model="editDialog.visible"
+      width="800px"
+      append-to-body
+      destroy-on-close
+    >
+      <el-form
+        ref="editFormRef"
+        :model="editForm"
+        :rules="editRules"
+        label-width="100px"
+      >
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="子系统名称" prop="subsystemName">
+              <el-input v-model="editForm.subsystemName" placeholder="请输入子系统名称" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="分类" prop="category">
+              <el-input v-model="editForm.category" placeholder="请输入分类" />
+            </el-form-item>
+          </el-col>
+        </el-row>
+
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="子系统类型" prop="subsystemType">
+              <el-select v-model="editForm.subsystemType" placeholder="请选择子系统类型" style="width: 100%">
+                <el-option label="机械设备" value="MECHANICAL" />
+                <el-option label="电控设备" value="ELECTRICAL" />
+                <el-option label="管路设备" value="PIPELINE" />
+              </el-select>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="排序号" prop="sequenceNumber">
+              <el-input-number v-model="editForm.sequenceNumber" :min="0" style="width: 100%" />
+            </el-form-item>
+          </el-col>
+        </el-row>
+
+        <el-form-item label="描述" prop="description">
+          <el-input v-model="editForm.description" type="textarea" :rows="2" placeholder="请输入描述" />
+        </el-form-item>
+
+        <el-form-item label="备注" prop="remarks">
+          <el-input v-model="editForm.remarks" type="textarea" :rows="2" placeholder="请输入备注" />
+        </el-form-item>
+      </el-form>
+
+      <template #footer>
+        <div class="dialog-footer">
+          <el-button @click="editDialog.visible = false">取消</el-button>
+          <el-button type="primary" @click="submitEdit" :loading="editDialog.loading">确定</el-button>
+        </div>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -149,9 +210,10 @@ import type { FormInstance, FormRules } from 'element-plus';
 import {
   getEquipmentSystemTemplate,
   addEquipmentSystemTemplate,
-  updateEquipmentSystemTemplate
+  updateEquipmentSystemTemplate,
+  updateSubsystemTemplate
 } from '@/api/erp/saltprocess/equipment-system/template';
-import type { EquipmentSystemTemplateForm, SubsystemTemplateForm } from '@/api/erp/saltprocess/equipment-system/types';
+import type { EquipmentSystemTemplateForm, SubsystemTemplateForm, SubsystemTemplateUpdateForm } from '@/api/erp/saltprocess/equipment-system/types';
 import SubsystemTemplateSelector from './SubsystemTemplateSelector.vue';
 
 // Props
@@ -171,6 +233,57 @@ const emit = defineEmits<{
 const formRef = ref<FormInstance>();
 const buttonLoading = ref(false);
 const subsystemFormVisible = ref(false);
+
+// 编辑对话框
+const editDialog = ref({
+  visible: false,
+  loading: false
+});
+
+const editFormRef = ref<FormInstance>();
+const editForm = ref<{
+  id: string | number;
+  index: number;
+  subsystemName: string;
+  category: string;
+  subsystemType: string;
+  description: string;
+  status: string;
+  remarks: string;
+  sequenceNumber: number;
+}>({
+  id: '',
+  index: -1,
+  subsystemName: '',
+  category: '',
+  subsystemType: '',
+  description: '',
+  status: '',
+  remarks: '',
+  sequenceNumber: 0
+});
+
+const editRules = reactive<FormRules>({
+  subsystemName: [
+    { required: true, message: '请输入子系统名称', trigger: 'blur' },
+    { max: 100, message: '子系统名称长度不能超过100个字符', trigger: 'blur' }
+  ],
+  category: [
+    { max: 50, message: '分类长度不能超过50个字符', trigger: 'blur' }
+  ],
+  subsystemType: [
+    { max: 50, message: '子系统类型长度不能超过50个字符', trigger: 'blur' }
+  ],
+  description: [
+    { max: 500, message: '描述长度不能超过500个字符', trigger: 'blur' }
+  ],
+  remarks: [
+    { max: 500, message: '备注长度不能超过500个字符', trigger: 'blur' }
+  ],
+  sequenceNumber: [
+    { type: 'number', min: 0, message: '排序号不能小于0', trigger: 'blur' }
+  ]
+});
 
 // 计算已添加的子系统模板ID列表
 const existingTemplateIds = computed(() => {
@@ -317,9 +430,29 @@ const handleAddSubsystem = () => {
   subsystemFormVisible.value = true;
 };
 
-// 编辑子系统（暂不支持编辑，只能删除后重新添加）
-const handleEditSubsystem = (_index: number) => {
-  ElMessage.info('暂不支持编辑，请删除后重新添加');
+// 编辑子系统
+const handleEditSubsystem = (index: number) => {
+  const subsystem = form.subsystemTemplates[index];
+
+  // 检查是否有ID
+  if (!subsystem.id) {
+    ElMessage.warning('该子系统没有ID，无法编辑');
+    return;
+  }
+
+  // 填充表单数据（保持ID为字符串格式，避免雪花算法ID精度丢失）
+  editForm.value = {
+    id: subsystem.id,  // 直接使用原始ID，不进行Number()转换
+    index: index,
+    subsystemName: subsystem.subsystemName || '',
+    category: subsystem.category || '',
+    subsystemType: subsystem.subsystemType || '',
+    description: subsystem.description || '',
+    status: subsystem.status || '',
+    remarks: subsystem.remarks || '',
+    sequenceNumber: subsystem.sequenceNumber || 0
+  };
+  editDialog.value.visible = true;
 };
 
 // 处理子系统确认（接收数组）
@@ -335,6 +468,50 @@ const handleRemoveSubsystem = (index: number) => {
   form.subsystemTemplates.splice(index, 1);
   // 触发表单验证
   formRef.value?.validateField('subsystemTemplates');
+};
+
+// 提交编辑
+const submitEdit = async () => {
+  if (!editFormRef.value) return;
+
+  try {
+    await editFormRef.value.validate();
+
+    editDialog.value.loading = true;
+
+    // 构建提交数据（移除index字段）
+    const { index, ...submitData } = editForm.value;
+
+    // 调用子系统模板修改接口
+    await updateSubsystemTemplate(submitData as SubsystemTemplateUpdateForm);
+
+    ElMessage.success('编辑成功');
+    editDialog.value.visible = false;
+
+    // 如果是编辑模式（有templateId），重新获取模板详情以刷新子系统列表
+    if (props.templateId) {
+      await getTemplateDetail();
+    } else {
+      // 如果是新增模式，只更新本地表单数据
+      const subsystem = form.subsystemTemplates[index];
+      Object.assign(subsystem, {
+        subsystemName: editForm.value.subsystemName,
+        category: editForm.value.category,
+        subsystemType: editForm.value.subsystemType,
+        description: editForm.value.description,
+        status: editForm.value.status,
+        remarks: editForm.value.remarks,
+        sequenceNumber: editForm.value.sequenceNumber
+      });
+    }
+  } catch (error: any) {
+    if (error !== false) {
+      console.error('编辑子系统失败:', error);
+      ElMessage.error('编辑失败');
+    }
+  } finally {
+    editDialog.value.loading = false;
+  }
 };
 
 // 提交表单
