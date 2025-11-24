@@ -53,7 +53,13 @@ export default defineComponent({
       style="width: 100%"
       height="450"
     >
-      <el-table-column type="selection" width="55" align="center" />
+      <el-table-column type="selection" width="55" align="center" :selectable="checkSelectable" />
+      <el-table-column label="状态" width="100" align="center">
+        <template #default="scope">
+          <el-tag v-if="isAdded(scope.row)" type="success" size="small">已添加</el-tag>
+          <el-tag v-else type="info" size="small">未添加</el-tag>
+        </template>
+      </el-table-column>
       <el-table-column label="模板编号" prop="templateCode" width="150" show-overflow-tooltip />
       <el-table-column label="模板名称" prop="templateName" min-width="180" show-overflow-tooltip />
       <el-table-column label="分类" width="120" align="center">
@@ -69,13 +75,6 @@ export default defineComponent({
       <el-table-column label="物料数" width="100" align="center">
         <template #default="scope">
           <el-tag type="warning" size="small">{{ scope.row.materialCount || 0 }}</el-tag>
-        </template>
-      </el-table-column>
-      <el-table-column label="状态" width="100" align="center">
-        <template #default="scope">
-          <el-tag :type="getStatusTagType(scope.row.status)" size="small">
-            {{ getStatusText(scope.row.status) }}
-          </el-tag>
         </template>
       </el-table-column>
       <el-table-column prop="description" label="描述" min-width="150" show-overflow-tooltip />
@@ -111,9 +110,12 @@ import type { SubsystemTemplateVO, SubsystemTemplateQuery } from '@/api/erp/subs
 // Props
 interface Props {
   modelValue: boolean;
+  existingTemplateIds?: number[]; // 已添加的子系统模板ID列表
 }
 
-const props = defineProps<Props>();
+const props = withDefaults(defineProps<Props>(), {
+  existingTemplateIds: () => []
+});
 
 // Emits
 const emit = defineEmits<{
@@ -174,6 +176,16 @@ const loadTemplateList = async () => {
   } finally {
     loading.value = false;
   }
+};
+
+// 检查模板是否已添加
+const isAdded = (row: SubsystemTemplateVO): boolean => {
+  return props.existingTemplateIds.includes(row.id as number);
+};
+
+// 检查行是否可选择（已添加的不能再选）
+const checkSelectable = (row: SubsystemTemplateVO): boolean => {
+  return !isAdded(row);
 };
 
 // 选择变化

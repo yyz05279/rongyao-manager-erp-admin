@@ -133,6 +133,7 @@ export default defineComponent({
     <!-- 项目子系统选择器 -->
     <project-subsystem-selector
       v-model="subsystemSelectorVisible"
+      :existing-template-ids="existingTemplateIds"
       @confirm="handleSubsystemConfirm"
     />
 
@@ -200,7 +201,7 @@ export default defineComponent({
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import type { FormInstance } from 'element-plus';
 import { Menu } from '@element-plus/icons-vue';
@@ -242,6 +243,13 @@ const viewDialog = ref({
 
 // 子系统选择器
 const subsystemSelectorVisible = ref(false);
+
+// 计算已添加的子系统模板ID列表
+const existingTemplateIds = computed(() => {
+  return subsystemList.value
+    .filter((item: ProjectSubsystemVO) => item.templateId)
+    .map((item: ProjectSubsystemVO) => item.templateId as number);
+});
 
 // 编辑对话框
 const editDialog = ref({
