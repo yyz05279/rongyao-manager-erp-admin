@@ -153,7 +153,7 @@ export default defineComponent({
         <el-row :gutter="20">
           <el-col :span="12">
             <el-form-item label="子系统编码" prop="subsystemCode">
-              <el-input v-model="editForm.subsystemCode" placeholder="请输入子系统编码" editable="false" />
+              <el-input v-model="editForm.subsystemCode" placeholder="请输入子系统编码" :disabled="true" />
             </el-form-item>
           </el-col>
           <el-col :span="12">
