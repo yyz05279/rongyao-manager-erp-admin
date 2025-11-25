@@ -1,6 +1,7 @@
 <template>
   <div class="project-subsystem-detail" v-loading="loading">
-    <el-descriptions :column="2" border>
+    <!-- 基本信息 -->
+    <el-descriptions :column="2" border class="mb-4">
       <el-descriptions-item label="子系统编码">
         {{ detail.subsystemCode }}
       </el-descriptions-item>
@@ -54,6 +55,13 @@
         {{ detail.remarks || '-' }}
       </el-descriptions-item>
     </el-descriptions>
+
+    <!-- 子项列表 -->
+    <ProjectSubsystemItemList
+      v-if="detail.items && detail.items.length > 0"
+      :items="detail.items"
+      :loading="loading"
+    />
   </div>
 </template>
 
@@ -70,6 +78,7 @@ import { ElMessage } from 'element-plus';
 import { getProjectSubsystem } from '@/api/erp/saltprocess/subsystem';
 import { parseTime } from '@/utils/ruoyi';
 import type { ProjectSubsystemVO } from '@/api/erp/saltprocess/equipment-system/types';
+import ProjectSubsystemItemList from './ProjectSubsystemItemList.vue';
 
 // 使用统一的类型定义
 type ProjectSubsystemDetailVO = ProjectSubsystemVO;
@@ -166,6 +175,10 @@ const formatWeight = (weight?: number | string | null): string => {
 <style scoped lang="scss">
 .project-subsystem-detail {
   padding: 0;
+
+  .mb-4 {
+    margin-bottom: 24px;
+  }
 }
 </style>
 

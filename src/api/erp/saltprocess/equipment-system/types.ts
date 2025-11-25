@@ -333,6 +333,28 @@ export interface ProjectSubsystemVO {
   updateBy?: string | number | null;
   tenantId?: string | null;
   delFlag?: number;
+  // 子项列表（详情接口返回）
+  items?: ProjectSubsystemItemVO[];
+}
+
+/**
+ * 项目子系统子项VO（详情接口返回的子项数据）
+ */
+export interface ProjectSubsystemItemVO {
+  id: string | number;                // 子项ID
+  itemCode: string;                   // 子项编码
+  itemName: string;                   // 子项名称
+  itemType?: string;                  // 子项类型（组件/部件等）
+  quantity: number | string;          // 数量（支持字符串类型如 "1.00"）
+  unit: string;                       // 单位
+  unitWeight: number | string;        // 单件重量（支持字符串类型如 "0.00"）
+  totalWeight: number | string;       // 总重量（支持字符串类型如 "0.00"）
+  materialCount: number;              // 材料数量
+  status: string;                     // 状态（DRAFT-草稿，ACTIVE-启用等）
+  sequenceNumber?: number;            // 序号
+  specification?: string;             // 规格型号
+  description?: string;               // 描述
+  remarks?: string;                   // 备注
 }
 
 /**
