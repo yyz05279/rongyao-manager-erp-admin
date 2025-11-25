@@ -1,17 +1,26 @@
 <template>
   <div class="project-subsystem-item-list">
-    <!-- 子项列表 -->
-    <el-card shadow="never" class="mb-4">
-      <template #header>
-        <div class="card-header">
-          <span class="card-title">
+    <!-- 标题栏 -->
+    <div class="header-section mb-4">
+      <el-row :gutter="10">
+        <el-col :span="12">
+          <h3 class="section-title">
             <el-icon class="mr-2"><Menu /></el-icon>
             子项列表
-          </span>
+          </h3>
+        </el-col>
+        <el-col :span="12" class="text-right">
           <el-tag v-if="items && items.length > 0" type="success" size="small">
             共 {{ items.length }} 个
           </el-tag>
-        </div>
+        </el-col>
+      </el-row>
+    </div>
+
+    <!-- 子项列表 -->
+    <el-card shadow="never" class="mb-4">
+      <template #header>
+        <span class="card-title">子项列表</span>
       </template>
 
       <el-table
@@ -30,12 +39,12 @@
             <span v-else class="text-muted">-</span>
           </template>
         </el-table-column>
-        <el-table-column label="数量" prop="quantity" width="100" align="center">
+        <el-table-column label="数量" prop="quantity" width="150" align="center">
           <template #default="scope">
             {{ formatQuantity(scope.row.quantity) }}
           </template>
         </el-table-column>
-        <el-table-column label="单位" prop="unit" width="100" align="center" />
+        <el-table-column label="单位" prop="unit" width="130" align="center" />
         <el-table-column label="单件重量" prop="unitWeight" width="120" align="center">
           <template #default="scope">
             {{ formatWeight(scope.row.unitWeight) }}
@@ -46,7 +55,7 @@
             {{ formatWeight(scope.row.totalWeight) }}
           </template>
         </el-table-column>
-        <el-table-column label="材料数量" prop="materialCount" width="110" align="center">
+        <el-table-column label="材料数量" prop="materialCount" width="140" align="center">
           <template #default="scope">
             <el-tag v-if="scope.row.materialCount > 0" type="warning" size="small">
               {{ scope.row.materialCount }}
@@ -153,17 +162,24 @@ const formatWeight = (weight?: number | string): string => {
 
 <style scoped lang="scss">
 .project-subsystem-item-list {
-  .card-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
+  .header-section {
+    .section-title {
+      display: flex;
+      align-items: center;
+      font-size: 18px;
+      font-weight: 600;
+      color: #303133;
+      margin: 0;
+    }
   }
 
   .card-title {
-    display: flex;
-    align-items: center;
     font-weight: 600;
     color: #303133;
+  }
+
+  .text-right {
+    text-align: right;
   }
 
   .mb-4 {
