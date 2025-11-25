@@ -10,9 +10,18 @@
           </h3>
         </el-col>
         <el-col :span="12" class="text-right">
-          <el-tag v-if="items && items.length > 0" type="success" size="small">
-            共 {{ items.length }} 个
-          </el-tag>
+          <el-button
+            type="danger"
+            plain
+            icon="Delete"
+            :disabled="selectedItems.length === 0"
+            @click="handleBatchDelete"
+          >
+            批量删除
+          </el-button>
+          <el-button type="primary" icon="Plus" @click="handleAddItem">
+            添加子项
+          </el-button>
         </el-col>
       </el-row>
     </div>
@@ -26,56 +35,34 @@
       <el-table
         v-loading="loading"
         :data="items"
+        @selection-change="handleItemSelectionChange"
+        @row-click="handleItemClick"
         highlight-current-row
         style="width: 100%"
       >
+        <el-table-column type="selection" width="55" align="center" />
         <el-table-column label="子项编号" prop="itemCode" width="220" show-overflow-tooltip />
         <el-table-column label="子项名称" prop="itemName" width="200" show-overflow-tooltip />
-        <el-table-column label="子项类型" prop="itemType" width="120" align="center">
-          <template #default="scope">
-            <el-tag v-if="scope.row.itemType" :type="getItemTypeTagType(scope.row.itemType)" size="small">
-              {{ scope.row.itemType }}
-            </el-tag>
-            <span v-else class="text-muted">-</span>
-          </template>
-        </el-table-column>
         <el-table-column label="数量" prop="quantity" width="150" align="center">
           <template #default="scope">
             {{ formatQuantity(scope.row.quantity) }}
           </template>
         </el-table-column>
         <el-table-column label="单位" prop="unit" width="130" align="center" />
-        <el-table-column label="单件重量" prop="unitWeight" width="120" align="center">
+        <el-table-column label="操作" align="center" width="180" fixed="right">
           <template #default="scope">
-            {{ formatWeight(scope.row.unitWeight) }}
-          </template>
-        </el-table-column>
-        <el-table-column label="总重量" prop="totalWeight" width="120" align="center">
-          <template #default="scope">
-            {{ formatWeight(scope.row.totalWeight) }}
-          </template>
-        </el-table-column>
-        <el-table-column label="材料数量" prop="materialCount" width="140" align="center">
-          <template #default="scope">
-            <el-tag v-if="scope.row.materialCount > 0" type="warning" size="small">
-              {{ scope.row.materialCount }}
-            </el-tag>
-            <span v-else class="text-muted">0</span>
-          </template>
-        </el-table-column>
-        <el-table-column label="状态" prop="status" width="100" align="center">
-          <template #default="scope">
-            <el-tag :type="getStatusTagType(scope.row.status)" size="small">
-              {{ getStatusText(scope.row.status) }}
-            </el-tag>
+            <el-tooltip content="查看物料" placement="top">
+              <el-button link type="primary" icon="View" @click.stop="handleViewMaterials(scope.row)" />
+            </el-tooltip>
+            <el-tooltip content="编辑" placement="top">
+              <el-button link type="primary" icon="Edit" @click.stop="handleEditItem(scope.row)" />
+            </el-tooltip>
+            <el-tooltip content="删除" placement="top">
+              <el-button link type="danger" icon="Delete" @click.stop="handleDeleteItem(scope.row)" />
+            </el-tooltip>
           </template>
         </el-table-column>
       </el-table>
-
-      <!-- 空状态 -->
-      <div v-if="!loading && (!items || items.length === 0)" class="empty-state">
-        <el-empty description="暂无子项数据" />
-      </div>
     </el-card>
   </div>
 </template>
@@ -88,6 +75,8 @@ export default defineComponent({
 </script>
 
 <script setup lang="ts">
+import { ref } from 'vue';
+import { ElMessage, ElMessageBox } from 'element-plus';
 import type { ProjectSubsystemItemVO } from '@/api/erp/saltprocess/equipment-system/types';
 
 // Props
@@ -102,37 +91,92 @@ const props = withDefaults(defineProps<Props>(), {
   loading: false
 });
 
-// 获取子项类型标签类型
-const getItemTypeTagType = (itemType?: string): string => {
-  const typeMap: Record<string, string> = {
-    '组件': 'primary',
-    '部件': 'success',
-    '配件': 'warning',
-    '紧固件': 'info'
-  };
-  return typeMap[itemType || ''] || 'info';
+// Emits
+const emit = defineEmits<{
+  /** 查看物料事件 */
+  viewMaterials: [item: ProjectSubsystemItemVO];
+  /** 编辑子项事件 */
+  editItem: [item: ProjectSubsystemItemVO];
+  /** 删除子项事件 */
+  deleteItem: [item: ProjectSubsystemItemVO];
+  /** 批量删除事件 */
+  batchDelete: [items: ProjectSubsystemItemVO[]];
+  /** 添加子项事件 */
+  addItem: [];
+  /** 行点击事件 */
+  rowClick: [item: ProjectSubsystemItemVO];
+}>();
+
+// 响应式数据
+const selectedItems = ref<ProjectSubsystemItemVO[]>([]);
+
+// 子项选择变化
+const handleItemSelectionChange = (selection: ProjectSubsystemItemVO[]) => {
+  selectedItems.value = selection;
 };
 
-// 获取状态标签类型
-const getStatusTagType = (status?: string): string => {
-  const typeMap: Record<string, string> = {
-    DRAFT: 'info',
-    ACTIVE: 'success',
-    INACTIVE: 'warning',
-    ARCHIVED: 'danger'
-  };
-  return typeMap[status || ''] || 'info';
+// 子项行点击
+const handleItemClick = (row: ProjectSubsystemItemVO) => {
+  emit('rowClick', row);
 };
 
-// 获取状态文本
-const getStatusText = (status?: string): string => {
-  const textMap: Record<string, string> = {
-    DRAFT: '草稿',
-    ACTIVE: '启用',
-    INACTIVE: '停用',
-    ARCHIVED: '归档'
-  };
-  return textMap[status || ''] || status || '-';
+// 查看物料
+const handleViewMaterials = (row: ProjectSubsystemItemVO) => {
+  emit('viewMaterials', row);
+};
+
+// 编辑子项
+const handleEditItem = (row: ProjectSubsystemItemVO) => {
+  emit('editItem', row);
+};
+
+// 删除子项
+const handleDeleteItem = async (row: ProjectSubsystemItemVO) => {
+  try {
+    await ElMessageBox.confirm(
+      `是否确认删除子项"${row.itemName}"？`,
+      '警告',
+      {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }
+    );
+    emit('deleteItem', row);
+  } catch (error) {
+    // 用户取消删除
+  }
+};
+
+// 批量删除子项
+const handleBatchDelete = async () => {
+  if (selectedItems.value.length === 0) {
+    ElMessage.warning('请选择要删除的子项');
+    return;
+  }
+
+  try {
+    const itemNames = selectedItems.value.map(item => item.itemName).join('、');
+    await ElMessageBox.confirm(
+      `是否确认删除选中的 ${selectedItems.value.length} 个子项（${itemNames}）？`,
+      '批量删除警告',
+      {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }
+    );
+    emit('batchDelete', selectedItems.value);
+    // 清空选中状态
+    selectedItems.value = [];
+  } catch (error) {
+    // 用户取消删除
+  }
+};
+
+// 添加子项
+const handleAddItem = () => {
+  emit('addItem');
 };
 
 // 格式化数量显示
@@ -140,23 +184,9 @@ const formatQuantity = (quantity?: number | string): string => {
   if (quantity === null || quantity === undefined) {
     return '-';
   }
-  
+
   const num = typeof quantity === 'string' ? parseFloat(quantity) : quantity;
   return isNaN(num) ? '-' : num.toString();
-};
-
-// 格式化重量显示
-const formatWeight = (weight?: number | string): string => {
-  if (weight === null || weight === undefined) {
-    return '-';
-  }
-
-  const num = typeof weight === 'string' ? parseFloat(weight) : weight;
-  if (isNaN(num)) {
-    return '-';
-  }
-  
-  return num === 0 ? '0.00 kg' : `${num.toFixed(2)} kg`;
 };
 </script>
 

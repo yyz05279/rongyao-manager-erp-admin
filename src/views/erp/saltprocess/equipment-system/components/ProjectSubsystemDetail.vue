@@ -61,6 +61,12 @@
       v-if="detail.items && detail.items.length > 0"
       :items="detail.items"
       :loading="loading"
+      @view-materials="handleViewMaterials"
+      @edit-item="handleEditItem"
+      @delete-item="handleDeleteItem"
+      @batch-delete="handleBatchDelete"
+      @add-item="handleAddItem"
+      @row-click="handleRowClick"
     />
   </div>
 </template>
@@ -77,7 +83,7 @@ import { ref, onMounted } from 'vue';
 import { ElMessage } from 'element-plus';
 import { getProjectSubsystem } from '@/api/erp/saltprocess/subsystem';
 import { parseTime } from '@/utils/ruoyi';
-import type { ProjectSubsystemVO } from '@/api/erp/saltprocess/equipment-system/types';
+import type { ProjectSubsystemVO, ProjectSubsystemItemVO } from '@/api/erp/saltprocess/equipment-system/types';
 import ProjectSubsystemItemList from './ProjectSubsystemItemList.vue';
 
 // 使用统一的类型定义
@@ -169,6 +175,41 @@ const formatWeight = (weight?: number | string | null): string => {
 
   // 如果是数字，格式化为两位小数并添加单位
   return `${weight.toFixed(2)} kg`;
+};
+
+// 子项列表事件处理函数
+const handleViewMaterials = (item: ProjectSubsystemItemVO) => {
+  ElMessage.info(`查看子项"${item.itemName}"的物料列表`);
+  // TODO: 实现查看物料功能
+};
+
+const handleEditItem = (item: ProjectSubsystemItemVO) => {
+  ElMessage.info(`编辑子项"${item.itemName}"`);
+  // TODO: 实现编辑子项功能
+};
+
+const handleDeleteItem = (item: ProjectSubsystemItemVO) => {
+  ElMessage.success(`删除子项"${item.itemName}"成功`);
+  // TODO: 实现删除子项功能
+  // 刷新详情数据
+  getDetail();
+};
+
+const handleBatchDelete = (items: ProjectSubsystemItemVO[]) => {
+  ElMessage.success(`批量删除 ${items.length} 个子项成功`);
+  // TODO: 实现批量删除功能
+  // 刷新详情数据
+  getDetail();
+};
+
+const handleAddItem = () => {
+  ElMessage.info('添加新子项');
+  // TODO: 实现添加子项功能
+};
+
+const handleRowClick = (item: ProjectSubsystemItemVO) => {
+  console.log('点击子项行:', item);
+  // TODO: 实现行点击功能（如选中高亮等）
 };
 </script>
 
