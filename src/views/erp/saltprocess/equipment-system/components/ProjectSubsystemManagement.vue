@@ -210,12 +210,14 @@ import ProjectSubsystemSelector from './ProjectSubsystemSelector.vue';
 import type { ProjectSubsystemVO } from '@/api/erp/saltprocess/equipment-system/types';
 import type { SubsystemTemplateVO } from '@/api/erp/subsystem/types';
 import {
-  addProjectSubsystem,
   updateProjectSubsystem,
   deleteProjectSubsystem,
-  type ProjectSubsystemAddForm,
   type ProjectSubsystemUpdateForm
 } from '@/api/erp/saltprocess/subsystem';
+import {
+  batchAddSubsystemTemplates,
+  type BatchAddSubsystemForm
+} from '@/api/erp/saltprocess/equipment-system';
 
 // Emits
 const emit = defineEmits<{ refresh: [] }>();
@@ -353,35 +355,74 @@ const handleViewSubsystem = (row: ProjectSubsystemVO) => {
 
 // 添加子系统
 const handleAddSubsystem = () => {
+  console.log('🎯 [ProjectSubsystemManagement.handleAddSubsystem] 用户点击添加子系统按钮');
+  console.log('📋 当前系统ID:', props.systemId);
+  console.log('📋 当前项目ID:', props.projectId);
+  console.log('📋 已存在的模板ID列表:', existingTemplateIds.value);
   subsystemSelectorVisible.value = true;
 };
 
-// 处理子系统确认
+// 处理子系统确认（为项目设备系统添加新的子系统）
 const handleSubsystemConfirm = async (selectedTemplates: SubsystemTemplateVO[]) => {
+  console.log('🎉 [ProjectSubsystemManagement.handleSubsystemConfirm] 接收到子系统模板选择确认');
+  console.log('📦 接收到的模板数据:', selectedTemplates);
+  console.log('📊 模板数量:', selectedTemplates.length);
+  console.log('📋 模板详细信息:', JSON.stringify(selectedTemplates, null, 2));
+  console.log('📋 当前项目设备系统ID:', props.systemId);
+  console.log('📋 当前项目ID:', props.projectId);
+
   try {
-    // 批量创建项目子系统
-    for (const template of selectedTemplates) {
-      const subsystemData: ProjectSubsystemAddForm = {
-        projectSystemId: props.systemId,
-        projectId: props.projectId,
+    console.log('🔄 [ProjectSubsystemManagement.handleSubsystemConfirm] 开始批量添加项目子系统');
+
+    // 构建批量添加的子系统数据
+    const subsystemsData: BatchAddSubsystemForm[] = selectedTemplates.map((template, index) => {
+      const subsystemData: BatchAddSubsystemForm = {
         templateId: template.id,
-        subsystemCode: template.templateCode || '',
         subsystemName: template.templateName || '',
-        category: template.category,
-        subsystemType: (template as any).subsystemType,
-        description: template.description,
+        subsystemCode: template.templateCode || '',
+        category: template.category || '',
+        description: template.description || '',
         status: 'ACTIVE',
+        sequenceNumber: index + 1,
         remarks: `从模板创建：${template.templateName}`
       };
 
-      await addProjectSubsystem(subsystemData);
-    }
+      console.log(`📝 [${index + 1}/${selectedTemplates.length}] 构建子系统数据:`, {
+        templateId: template.id,
+        templateName: template.templateName,
+        subsystemCode: template.templateCode,
+        category: template.category,
+        sequenceNumber: index + 1
+      });
+
+      return subsystemData;
+    });
+
+    console.log('📋 构建完成的子系统数据数组:', subsystemsData);
+    console.log('📊 数据数量:', subsystemsData.length);
+
+    console.log('📤 [ProjectSubsystemManagement.handleSubsystemConfirm] 准备调用 batchAddSubsystemTemplates 接口');
+    console.log('📋 接口参数:', { systemId: props.systemId, subsystemsData });
+    console.log('🔍 接口方法: POST (批量新增子系统)');
+    console.log('🔍 接口路径: /erp/saltprocess/projectEquipmentSystem/{systemId}/subsystems/batch');
+    console.log('🔍 调用栈: ProjectSubsystemManagement.handleSubsystemConfirm -> batchAddSubsystemTemplates');
+    console.log('✨ 优化说明: 使用批量接口替代循环调用，传递完整的子系统配置对象数组');
+
+    // 调用批量接口
+    const response = await batchAddSubsystemTemplates(props.systemId, subsystemsData);
+
+    console.log('✅ [ProjectSubsystemManagement.handleSubsystemConfirm] 批量接口调用成功');
+    console.log('📋 响应数据:', response);
+    console.log('🎉 [ProjectSubsystemManagement.handleSubsystemConfirm] 所有子系统添加完成');
 
     ElMessage.success(`成功添加 ${selectedTemplates.length} 个子系统`);
+
+    console.log('🔄 [ProjectSubsystemManagement.handleSubsystemConfirm] 触发刷新事件');
     emit('refresh');
   } catch (error: any) {
-    console.error('添加子系统失败:', error);
-    ElMessage.error('添加子系统失败');
+    console.error('❌ [ProjectSubsystemManagement.handleSubsystemConfirm] 批量添加子系统失败:', error);
+    console.error('❌ 错误详情:', JSON.stringify(error, null, 2));
+    ElMessage.error('批量添加子系统失败');
   }
 };
 

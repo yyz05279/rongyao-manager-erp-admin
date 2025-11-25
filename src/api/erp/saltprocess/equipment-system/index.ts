@@ -8,6 +8,7 @@ import {
   ProjectEquipmentSystemQuery,
   ProjectEquipmentSystemVO,
   ProjectEquipmentSystemForm,
+  ProjectEquipmentSystemFullForm,
   ProjectEquipmentSystemDetailVO,
   PageResult
 } from './types';
@@ -48,12 +49,25 @@ export const addProjectEquipmentSystem = (data: ProjectEquipmentSystemForm): Axi
 };
 
 /**
- * 修改项目设备系统
+ * 修改项目设备系统（基本编辑）
  * @param data 设备系统表单数据
  */
 export const updateProjectEquipmentSystem = (data: ProjectEquipmentSystemForm): AxiosPromise<void> => {
   return request({
     url: '/erp/saltprocess/projectEquipmentSystem',
+    method: 'put',
+    data
+  });
+};
+
+/**
+ * 完整编辑项目设备系统（支持级联更新子系统）
+ * @param data 设备系统完整编辑表单数据
+ * @description 支持级联删除旧的子系统、子项、物料，并创建新的子系统、子项、物料
+ */
+export const updateProjectEquipmentSystemFull = (data: ProjectEquipmentSystemFullForm): AxiosPromise<void> => {
+  return request({
+    url: '/erp/saltprocess/projectEquipmentSystem/full',
     method: 'put',
     data
   });
@@ -155,6 +169,38 @@ export const publishProjectSystem = (id: string | number): AxiosPromise<void> =>
   return request({
     url: `/erp/saltprocess/projectEquipmentSystem/${id}/publish`,
     method: 'post'
+  });
+};
+
+/**
+ * 批量新增子系统数据接口
+ */
+export interface BatchAddSubsystemForm {
+  templateId: string | number;          // 子系统模板ID
+  subsystemName: string;                // 子系统名称
+  subsystemCode?: string;               // 子系统编码（可选）
+  category?: string;                    // 子系统分类（可选）
+  subsystemType?: string;               // 子系统类型（可选）
+  description?: string;                 // 描述（可选）
+  status?: string;                      // 状态（可选）
+  sequenceNumber?: number;              // 序号（可选）
+  remarks?: string;                     // 备注（可选）
+}
+
+/**
+ * 批量新增子系统模板到项目设备系统
+ * @param systemId 项目设备系统ID
+ * @param subsystemsData 子系统配置对象数组
+ * @description 从子系统模板批量创建项目子系统
+ */
+export const batchAddSubsystemTemplates = (
+  systemId: string | number,
+  subsystemsData: BatchAddSubsystemForm[]
+): AxiosPromise<void> => {
+  return request({
+    url: `/erp/saltprocess/projectEquipmentSystem/${systemId}/subsystems/batch`,
+    method: 'post',
+    data: subsystemsData
   });
 };
 
