@@ -49,7 +49,13 @@
           </template>
         </el-table-column>
         <el-table-column label="单位" prop="unit" width="130" align="center" />
-        <el-table-column label="操作" align="center" width="180" fixed="right">
+        <el-table-column label="是否必需" prop="isRequired" width="140" align="center">
+          <template #default="scope">
+            <el-tag v-if="scope.row.isRequired" type="success" size="small">是</el-tag>
+            <el-tag v-else type="info" size="small">否</el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" align="center" width="220" fixed="right">
           <template #default="scope">
             <el-tooltip content="查看物料" placement="top">
               <el-button link type="primary" icon="View" @click.stop="handleViewMaterials(scope.row)" />
