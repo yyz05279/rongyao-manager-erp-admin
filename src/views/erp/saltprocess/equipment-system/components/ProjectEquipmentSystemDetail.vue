@@ -148,15 +148,28 @@ onMounted(() => {
 
 // 获取详情
 const getDetail = async () => {
+  console.log('🔄 [ProjectEquipmentSystemDetail.getDetail] 开始获取系统详情');
+  console.log('📋 系统ID:', props.systemId);
+
   loading.value = true;
   try {
     const res = await getProjectEquipmentSystem(props.systemId);
     detail.value = res.data;
-    console.log('📦 ProjectEquipmentSystemDetail - 获取到的详情数据:', res.data);
+
+    console.log('✅ [ProjectEquipmentSystemDetail.getDetail] 获取详情成功');
+    console.log('📦 详情数据:', res.data);
     console.log('📋 项目子系统列表:', res.data.projectSubsystems);
     console.log('📊 子系统数量:', res.data.projectSubsystems?.length || 0);
+
+    // 记录每个子系统的关键信息
+    if (res.data.projectSubsystems && res.data.projectSubsystems.length > 0) {
+      console.log('📝 [ProjectEquipmentSystemDetail.getDetail] 子系统详细信息:');
+      res.data.projectSubsystems.forEach((subsystem, index) => {
+        console.log(`  ${index + 1}. ID: ${subsystem.id}, 名称: ${subsystem.subsystemName}, 模板ID: ${(subsystem as any).templateId || (subsystem as any).referenceTemplateId || 'N/A'}`);
+      });
+    }
   } catch (error) {
-    console.error('获取设备系统详情失败:', error);
+    console.error('❌ [ProjectEquipmentSystemDetail.getDetail] 获取设备系统详情失败:', error);
     ElMessage.error('获取设备系统详情失败');
   } finally {
     loading.value = false;
@@ -230,6 +243,8 @@ const formatWeight = (weight?: number | string | null): string => {
   // 如果是数字，格式化为两位小数
   return `${weight.toFixed(2)} kg`;
 };
+
+
 
 // 关闭
 const handleClose = () => {

@@ -217,7 +217,7 @@ export interface ProjectEquipmentSystemVO {
 }
 
 /**
- * 项目设备系统表单数据
+ * 项目设备系统表单数据（基本编辑）
  */
 export interface ProjectEquipmentSystemForm {
   id?: string | number;               // 主键ID（支持 string 避免精度丢失）
@@ -234,6 +234,50 @@ export interface ProjectEquipmentSystemForm {
   status?: string;                    // 状态
   priority?: number;                  // 优先级
   remarks?: string;                   // 备注
+}
+
+/**
+ * 项目子系统表单数据（用于完整编辑）
+ */
+export interface ProjectSubsystemForm {
+  id?: string | number;               // 子系统ID（编辑时使用）
+  projectSystemId: string | number;   // 项目设备系统ID（必填）
+  projectId: string | number;         // 项目ID（必填）
+  templateId?: string | number;       // 子系统模板ID（引用模板时填写）
+  subsystemCode?: string;             // 子系统编码（可选，不传则自动生成）
+  subsystemName: string;              // 子系统名称（必填）
+  subsystemType?: string;             // 子系统类型
+  category?: string;                  // 分类
+  specification?: string;             // 规格型号
+  model?: string;                     // 型号
+  manufacturer?: string;              // 制造商
+  description?: string;               // 描述
+  status?: string;                    // 状态
+  sequenceNumber?: number;            // 排序号
+  remarks?: string;                   // 备注
+}
+
+/**
+ * 项目设备系统完整编辑表单数据（支持级联更新子系统）
+ */
+export interface ProjectEquipmentSystemFullForm {
+  id: string | number;                // 项目设备系统ID（必填）
+  projectId: string | number;         // 化盐项目ID（必填，用于数据隔离验证）
+  projectName?: string;               // 项目名称（冗余）
+  templateId?: string | number;       // 设备系统模板ID（追溯来源）
+  systemCode: string;                 // 系统编码（必填）
+  systemName: string;                 // 系统名称（必填）
+  systemType?: string;                // 系统类型（SOLID/LIQUID/POWDER/BURNER）
+  category?: string;                  // 分类
+  description?: string;               // 描述（最多500字符）
+  responsiblePersonId?: string | number; // 负责人ID
+  responsiblePerson?: string;         // 负责人姓名
+  status?: string;                    // 状态（DRAFT/ACTIVE/COMPLETED/ARCHIVED）
+  priority?: number;                  // 优先级
+  sequenceNumber?: number;            // 排序号
+  remarks?: string;                   // 备注（最多500字符）
+  version?: number;                   // 版本号（乐观锁）
+  subsystems: ProjectSubsystemForm[]; // 项目子系统列表（必填，至少1个）
 }
 
 // ==================== 统计和详情类型 ====================
