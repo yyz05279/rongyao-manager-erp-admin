@@ -309,6 +309,7 @@ export interface ProjectSubsystemVO {
   projectSystemId: string | number;
   projectId: string | number;
   templateId?: string | number | null;
+  referenceTemplateId?: string | number | null;  // 引用的模板ID（与templateId字段含义相同，兼容不同接口返回）
   subsystemCode: string;
   subsystemName: string;
   subsystemType: string;
