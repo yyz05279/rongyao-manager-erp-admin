@@ -1,41 +1,33 @@
 <template>
   <div class="project-subsystem-item-list">
-    <!-- 标题栏 -->
-    <div class="header-section mb-4">
-      <el-row :gutter="10">
-        <el-col :span="12">
-          <h3 class="section-title">
+    <!-- 子项列表 -->
+    <el-card shadow="never" class="mb-4">
+      <template #header>
+        <div class="card-header">
+          <span class="card-title">
             <el-icon class="mr-2"><Menu /></el-icon>
             子项列表
-            <el-tag v-if="items && items.length > 0" type="success" size="small" class="ml-2">
-              共 {{ items.length }} 个子项
-            </el-tag>
-          </h3>
-        </el-col>
-      </el-row>
-    </div>
+          </span>
+          <el-tag v-if="items && items.length > 0" type="success" size="small">
+            共 {{ items.length }} 个
+          </el-tag>
+        </div>
+      </template>
 
-    <!-- 子项列表表格 -->
-    <el-card shadow="never">
       <el-table
         v-loading="loading"
         :data="items"
+        highlight-current-row
         style="width: 100%"
-        stripe
-        border
       >
-        <el-table-column label="序号" prop="sequenceNumber" width="80" align="center">
-          <template #default="scope">
-            {{ scope.row.sequenceNumber || scope.$index + 1 }}
-          </template>
-        </el-table-column>
-        <el-table-column label="子项编码" prop="itemCode" width="200" show-overflow-tooltip />
-        <el-table-column label="子项名称" prop="itemName" min-width="180" show-overflow-tooltip />
+        <el-table-column label="子项编号" prop="itemCode" width="220" show-overflow-tooltip />
+        <el-table-column label="子项名称" prop="itemName" width="200" show-overflow-tooltip />
         <el-table-column label="子项类型" prop="itemType" width="120" align="center">
           <template #default="scope">
-            <el-tag :type="getItemTypeTagType(scope.row.itemType)" size="small">
-              {{ scope.row.itemType || '-' }}
+            <el-tag v-if="scope.row.itemType" :type="getItemTypeTagType(scope.row.itemType)" size="small">
+              {{ scope.row.itemType }}
             </el-tag>
+            <span v-else class="text-muted">-</span>
           </template>
         </el-table-column>
         <el-table-column label="数量" prop="quantity" width="100" align="center">
@@ -43,7 +35,7 @@
             {{ formatQuantity(scope.row.quantity) }}
           </template>
         </el-table-column>
-        <el-table-column label="单位" prop="unit" width="80" align="center" />
+        <el-table-column label="单位" prop="unit" width="100" align="center" />
         <el-table-column label="单件重量" prop="unitWeight" width="120" align="center">
           <template #default="scope">
             {{ formatWeight(scope.row.unitWeight) }}
@@ -54,7 +46,7 @@
             {{ formatWeight(scope.row.totalWeight) }}
           </template>
         </el-table-column>
-        <el-table-column label="材料数量" prop="materialCount" width="100" align="center">
+        <el-table-column label="材料数量" prop="materialCount" width="110" align="center">
           <template #default="scope">
             <el-tag v-if="scope.row.materialCount > 0" type="warning" size="small">
               {{ scope.row.materialCount }}
@@ -161,15 +153,17 @@ const formatWeight = (weight?: number | string): string => {
 
 <style scoped lang="scss">
 .project-subsystem-item-list {
-  .header-section {
-    .section-title {
-      display: flex;
-      align-items: center;
-      font-size: 18px;
-      font-weight: 600;
-      color: #303133;
-      margin: 0;
-    }
+  .card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .card-title {
+    display: flex;
+    align-items: center;
+    font-weight: 600;
+    color: #303133;
   }
 
   .mb-4 {
@@ -178,10 +172,6 @@ const formatWeight = (weight?: number | string): string => {
 
   .mr-2 {
     margin-right: 8px;
-  }
-
-  .ml-2 {
-    margin-left: 8px;
   }
 
   .text-muted {
