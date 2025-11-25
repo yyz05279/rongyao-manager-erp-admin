@@ -303,7 +303,29 @@ const handleConfirm = () => {
     return;
   }
 
-  emit('confirm', selectedTemplates.value);
+  // 过滤掉已添加的模板，只保留新选择的模板（防御性编程）
+  const newTemplates = selectedTemplates.value.filter(template => {
+    return !isAdded(template);
+  });
+
+  // 如果所有选中的模板都已添加
+  if (newTemplates.length === 0) {
+    ElMessage.warning('所选模板均已添加，请选择其他模板');
+    return;
+  }
+
+  // 如果部分模板已添加，提示用户实际添加的数量
+  const filteredCount = selectedTemplates.value.length - newTemplates.length;
+  if (filteredCount > 0) {
+    ElMessage.info(`已过滤 ${filteredCount} 个已添加的模板，将添加 ${newTemplates.length} 个新模板`);
+  }
+
+  console.log('🎯 [ProjectSubsystemSelector.handleConfirm] 确认添加子系统模板');
+  console.log('📊 原始选中数量:', selectedTemplates.value.length);
+  console.log('📊 过滤后数量:', newTemplates.length);
+  console.log('📋 将要添加的模板:', newTemplates.map(t => ({ id: t.id, name: t.templateName })));
+
+  emit('confirm', newTemplates);
   dialogVisible.value = false;
   // 重置选择
   selectedTemplates.value = [];
