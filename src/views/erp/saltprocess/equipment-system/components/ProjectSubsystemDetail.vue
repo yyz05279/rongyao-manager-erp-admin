@@ -161,7 +161,7 @@
     </el-dialog>
 
     <!-- 子项表单对话框（仅用于编辑） -->
-    <el-dialog :title="itemDialog.title" v-model="itemDialog.visible" width="800px" append-to-body destroy-on-close>
+    <el-dialog :title="itemDialog.title" v-model="itemDialog.visible" width="1000px" append-to-body destroy-on-close>
       <el-form ref="itemFormRef" :model="itemForm" :rules="itemRules" label-width="100px">
         <el-row :gutter="20">
           <el-col :span="12">
