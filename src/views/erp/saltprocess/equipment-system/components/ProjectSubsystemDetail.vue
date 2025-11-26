@@ -546,11 +546,18 @@ const handleItemsSelected = async (items: SubsystemItemTemplateVO[]) => {
   console.log('=== handleItemsSelected 被调用 ===');
   console.log('接收到的子项数量:', items?.length);
   console.log('接收到的子项数据:', items);
-  console.log('projectSubsystemId:', detail.value.id);
+  console.log('当前子系统详情:', {
+    subsystemId: detail.value.id,
+    projectSystemId: detail.value.projectSystemId,
+    projectId: detail.value.projectId
+  });
 
   try {
     // 将选中的子项模板转换为项目子项数据
     const itemsToCreate: ProjectItemForm[] = items.map(item => ({
+      projectSubsystemId: detail.value.id,           // ✅ 项目子系统ID
+      projectSystemId: detail.value.projectSystemId, // ✅ 项目设备系统ID
+      projectId: detail.value.projectId,             // ✅ 项目ID
       itemCode: item.itemCode || `ITEM_${Date.now()}_${item.id}`,
       itemName: item.itemName,
       itemType: item.itemType || '',
@@ -562,6 +569,8 @@ const handleItemsSelected = async (items: SubsystemItemTemplateVO[]) => {
       sequenceNumber: 0,
       remarks: item.remarks || ''
     }));
+
+    console.log('准备提交的子项数据:', itemsToCreate);
 
     // 调用API添加子项
     await addProjectItems(detail.value.id, itemsToCreate);
@@ -588,8 +597,18 @@ const submitItemForm = async () => {
 
     itemDialog.loading = true;
 
+    // 确保提交数据包含必要的关联字段
+    const submitData: ProjectItemForm = {
+      ...itemForm,
+      projectSubsystemId: detail.value.id,           // ✅ 项目子系统ID
+      projectSystemId: detail.value.projectSystemId, // ✅ 项目设备系统ID
+      projectId: detail.value.projectId              // ✅ 项目ID
+    };
+
+    console.log('提交编辑的子项数据:', submitData);
+
     // 只支持编辑
-    await updateProjectItem(detail.value.id, itemForm.id, itemForm);
+    await updateProjectItem(detail.value.id, itemForm.id, submitData);
     ElMessage.success('修改成功');
 
     itemDialog.visible = false;
