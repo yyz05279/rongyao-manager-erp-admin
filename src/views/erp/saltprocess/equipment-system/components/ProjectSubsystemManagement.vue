@@ -363,7 +363,15 @@ const handleAddSubsystem = () => {
 };
 
 // 处理子系统确认（为项目设备系统添加新的子系统）
-const handleSubsystemConfirm = async (selectedTemplates: SubsystemTemplateVO[]) => {
+const handleSubsystemConfirm = async (
+  selectedTemplates: Array<{
+    mode: string;
+    referenceTemplateId: number;
+    referenceTemplateName: string;
+    sequenceNumber: number;
+    remarks: string;
+  }>
+) => {
   console.log('🎉 [ProjectSubsystemManagement.handleSubsystemConfirm] 接收到子系统模板选择确认');
   console.log('📦 接收到的模板数据:', selectedTemplates);
   console.log('📊 模板数量:', selectedTemplates.length);
@@ -375,24 +383,24 @@ const handleSubsystemConfirm = async (selectedTemplates: SubsystemTemplateVO[]) 
     console.log('🔄 [ProjectSubsystemManagement.handleSubsystemConfirm] 开始批量添加项目子系统');
 
     // 构建批量添加的子系统数据
-    const subsystemsData: BatchAddSubsystemForm[] = selectedTemplates.map((template, index) => {
+    const subsystemsData: BatchAddSubsystemForm[] = selectedTemplates.map((template) => {
       const subsystemData: BatchAddSubsystemForm = {
-        templateId: template.id,
-        subsystemName: template.templateName || '',
-        subsystemCode: template.templateCode || '',
-        category: template.category || '',
-        description: template.description || '',
+        templateId: template.referenceTemplateId,
+        subsystemName: template.referenceTemplateName || '',
+        subsystemCode: '', // 后端自动生成
+        category: '', // 从模板中获取（此处仅作为基础数据，后端会自动补充）
+        description: '', // 从模板中获取（此处仅作为基础数据，后端会自动补充）
         status: 'ACTIVE',
-        sequenceNumber: index + 1,
-        remarks: `从模板创建：${template.templateName}`
+        sequenceNumber: template.sequenceNumber,
+        remarks: template.remarks || `从模板创建：${template.referenceTemplateName}`
       };
 
-      console.log(`📝 [${index + 1}/${selectedTemplates.length}] 构建子系统数据:`, {
-        templateId: template.id,
-        templateName: template.templateName,
-        subsystemCode: template.templateCode,
-        category: template.category,
-        sequenceNumber: index + 1
+      console.log(`📝 [${template.sequenceNumber}] 构建子系统数据:`, {
+        mode: template.mode,
+        templateId: template.referenceTemplateId,
+        subsystemName: template.referenceTemplateName,
+        sequenceNumber: template.sequenceNumber,
+        remarks: subsystemData.remarks
       });
 
       return subsystemData;

@@ -44,6 +44,13 @@ export default defineComponent({
       </el-form>
     </div>
 
+    <!-- 操作按钮区 -->
+    <div class="action-section mb-3">
+      <el-button type="success" icon="Plus" @click="handleAddNewTemplate">
+        新建子系统模板
+      </el-button>
+    </div>
+
     <!-- 子系统模板列表 -->
     <el-table
       ref="tableRef"
@@ -98,6 +105,23 @@ export default defineComponent({
         确定（已选{{ selectedTemplates.length }}个）
       </el-button>
     </template>
+
+    <!-- 新建子系统模板对话框 -->
+    <el-dialog
+      title="新建子系统模板"
+      v-model="newTemplateDialog.visible"
+      width="900px"
+      append-to-body
+      :close-on-click-modal="false"
+      @close="handleNewTemplateDialogClose"
+    >
+      <subsystem-template-form-with-items
+        v-if="newTemplateDialog.visible"
+        ref="newTemplateFormRef"
+        @success="handleNewTemplateSuccess"
+        @cancel="newTemplateDialog.visible = false"
+      />
+    </el-dialog>
   </el-dialog>
 </template>
 
@@ -106,6 +130,8 @@ import { ref, reactive, computed, watch, nextTick } from 'vue';
 import { ElMessage } from 'element-plus';
 import { listSubsystemTemplate } from '@/api/erp/subsystem/template';
 import type { SubsystemTemplateVO, SubsystemTemplateQuery } from '@/api/erp/subsystem/types';
+import type { SubsystemTemplateForm as SubsystemTemplateFormType } from '@/api/erp/saltprocess/equipment-system/types';
+import SubsystemTemplateFormWithItems from '../../equipment-system/template/components/SubsystemTemplateFormWithItems.vue';
 
 // Props
 interface Props {
@@ -120,7 +146,7 @@ const props = withDefaults(defineProps<Props>(), {
 // Emits
 const emit = defineEmits<{
   'update:modelValue': [value: boolean];
-  confirm: [templates: SubsystemTemplateVO[]];
+  confirm: [templates: Array<SubsystemTemplateFormType & { mode: string }>];
 }>();
 
 // 响应式数据
@@ -129,6 +155,12 @@ const templateList = ref<SubsystemTemplateVO[]>([]);
 const selectedTemplates = ref<SubsystemTemplateVO[]>([]);
 const total = ref(0);
 const tableRef = ref();
+const newTemplateFormRef = ref();
+
+// 新建子系统模板对话框
+const newTemplateDialog = reactive({
+  visible: false
+});
 
 const queryParams = reactive<SubsystemTemplateQuery>({
   pageNum: 1,
@@ -296,6 +328,35 @@ const getStatusText = (status?: string): string => {
   return textMap[status || ''] || status || '-';
 };
 
+// 新建子系统模板
+const handleAddNewTemplate = () => {
+  newTemplateDialog.visible = true;
+};
+
+// 新建子系统模板成功
+const handleNewTemplateSuccess = async (templateId: number) => {
+  // 关闭对话框
+  newTemplateDialog.visible = false;
+
+  // 刷新列表
+  await loadTemplateList();
+
+  ElMessage.success('新建子系统模板成功');
+
+  // 尝试自动选中新建的模板
+  const newTemplate = templateList.value.find(t => t.id === templateId);
+  if (newTemplate && tableRef.value) {
+    // 自动勾选新建的模板
+    tableRef.value.toggleRowSelection(newTemplate, true);
+    selectedTemplates.value.push(newTemplate);
+  }
+};
+
+// 新建子系统模板对话框关闭
+const handleNewTemplateDialogClose = () => {
+  newTemplateDialog.visible = false;
+};
+
 // 确认选择
 const handleConfirm = () => {
   if (selectedTemplates.value.length === 0) {
@@ -315,17 +376,26 @@ const handleConfirm = () => {
   }
 
   // 如果部分模板已添加，提示用户实际添加的数量
-  const filteredCount = selectedTemplates.value.length - newTemplates.length;
-  if (filteredCount > 0) {
-    ElMessage.info(`已过滤 ${filteredCount} 个已添加的模板，将添加 ${newTemplates.length} 个新模板`);
-  }
+  // const filteredCount = selectedTemplates.value.length - newTemplates.length;
+  // if (filteredCount > 0) {
+  //   ElMessage.info(`已过滤 ${filteredCount} 个已添加的模板，将添加 ${newTemplates.length} 个新模板`);
+  // }
 
   console.log('🎯 [ProjectSubsystemSelector.handleConfirm] 确认添加子系统模板');
   console.log('📊 原始选中数量:', selectedTemplates.value.length);
   console.log('📊 过滤后数量:', newTemplates.length);
   console.log('📋 将要添加的模板:', newTemplates.map(t => ({ id: t.id, name: t.templateName })));
 
-  emit('confirm', newTemplates);
+  // 将选中的模板转换为SubsystemTemplateFormType格式
+  const result: Array<SubsystemTemplateFormType & { mode: string }> = newTemplates.map((template, index) => ({
+    mode: 'reference',
+    referenceTemplateId: template.id as number,
+    referenceTemplateName: template.templateName, // 添加模板名称用于前端显示
+    sequenceNumber: index + 1,
+    remarks: ''
+  }));
+
+  emit('confirm', result);
   dialogVisible.value = false;
   // 重置选择
   selectedTemplates.value = [];
@@ -352,7 +422,8 @@ const handleClose = () => {
 
 .action-section {
   display: flex;
-  justify-content: flex-end;
+  justify-content: flex-start;
+  padding: 8px 0;
 }
 
 .mb-3 {
