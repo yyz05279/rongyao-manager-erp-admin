@@ -160,7 +160,7 @@
       </template>
     </el-dialog>
 
-    <!-- 子项表单对话框 -->
+    <!-- 子项表单对话框（仅用于编辑） -->
     <el-dialog :title="itemDialog.title" v-model="itemDialog.visible" width="800px" append-to-body destroy-on-close>
       <el-form ref="itemFormRef" :model="itemForm" :rules="itemRules" label-width="100px">
         <el-row :gutter="20">
@@ -223,6 +223,15 @@
         <el-button type="primary" @click="submitItemForm" :loading="itemDialog.loading">确定</el-button>
       </template>
     </el-dialog>
+
+    <!-- 子项选择器对话框 -->
+    <ItemTemplateSelectorDialog
+      v-model="itemSelectorVisible"
+      :template-id="0"
+      :existing-item-ids="existingItemCodes"
+      @confirm="handleItemsSelected"
+      @refresh="loadItemList"
+    />
   </div>
 </template>
 
@@ -234,7 +243,7 @@ export default defineComponent({
 </script>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue';
+import { ref, reactive, computed, onMounted } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { getProjectSubsystem } from '@/api/erp/saltprocess/subsystem';
 import {
@@ -253,6 +262,8 @@ import type {
   ProjectItemMaterialVO,
   ProjectItemForm
 } from '@/api/erp/saltprocess/project-item';
+import type { SubsystemItemTemplateVO } from '@/api/erp/subsystem/types';
+import ItemTemplateSelectorDialog from '@/views/erp/subsystem/template/components/ItemTemplateSelectorDialog.vue';
 
 // Props
 interface Props {
@@ -272,6 +283,16 @@ const materialList = ref<ProjectItemMaterialVO[]>([]);
 const selectedItems = ref<QueryProjectItemVO[]>([]);
 const selectedItemId = ref<string | number | null>(null);
 const selectedItemName = ref<string>('');
+
+// 子项选择器
+const itemSelectorVisible = ref(false);
+
+// 计算已添加的子项编码列表（用于选择器中的已添加标记）
+const existingItemCodes = computed<(number | string)[]>(() => {
+  return itemList.value
+    .map(item => item.itemCode)
+    .filter((code): code is string => Boolean(code));
+});
 
 // 物料详情弹窗
 const materialDetailDialog = ref({
@@ -515,29 +536,61 @@ const handleBatchDelete = async () => {
   }
 };
 
-// 添加子项
+// 添加子项（打开选择器）
 const handleAddItem = () => {
-  resetItemForm();
-  itemDialog.title = '添加子项';
-  itemDialog.visible = true;
+  itemSelectorVisible.value = true;
 };
 
-// 提交子项表单
+// 处理选中的子项模板
+const handleItemsSelected = async (items: SubsystemItemTemplateVO[]) => {
+  console.log('=== handleItemsSelected 被调用 ===');
+  console.log('接收到的子项数量:', items?.length);
+  console.log('接收到的子项数据:', items);
+  console.log('projectSubsystemId:', detail.value.id);
+
+  try {
+    // 将选中的子项模板转换为项目子项数据
+    const itemsToCreate: ProjectItemForm[] = items.map(item => ({
+      itemCode: item.itemCode || `ITEM_${Date.now()}_${item.id}`,
+      itemName: item.itemName,
+      itemType: item.itemType || '',
+      specification: item.specification || '',
+      description: item.description || '',
+      quantity: item.defaultQuantity || 1,
+      unit: item.unit || '台',
+      unitWeight: 0,
+      sequenceNumber: 0,
+      remarks: item.remarks || ''
+    }));
+
+    // 调用API添加子项
+    await addProjectItems(detail.value.id, itemsToCreate);
+
+    ElMessage.success(`成功添加 ${items.length} 个子项`);
+
+    // 刷新子项列表
+    await loadItemList();
+  } catch (error) {
+    console.error('批量添加子项失败:', error);
+    ElMessage.error('添加子项失败');
+  }
+};
+
+// 提交子项表单（仅用于编辑）
 const submitItemForm = async () => {
   try {
     await itemFormRef.value?.validate();
 
+    if (!itemForm.id) {
+      ElMessage.error('表单数据错误，缺少子项ID');
+      return;
+    }
+
     itemDialog.loading = true;
 
-    if (itemForm.id) {
-      // 编辑
-      await updateProjectItem(detail.value.id, itemForm.id, itemForm);
-      ElMessage.success('修改成功');
-    } else {
-      // 新增
-      await addProjectItems(detail.value.id, [itemForm]);
-      ElMessage.success('添加成功');
-    }
+    // 只支持编辑
+    await updateProjectItem(detail.value.id, itemForm.id, itemForm);
+    ElMessage.success('修改成功');
 
     itemDialog.visible = false;
     await loadItemList();
