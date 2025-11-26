@@ -90,6 +90,32 @@ export interface ProjectItemMaterialVO {
   unit: string;
 }
 
+/**
+ * 项目子项表单数据（用于新增和编辑）
+ */
+export interface ProjectItemForm {
+  id?: string | number;                // 主键ID（编辑时必填）
+  projectSubsystemId?: string | number; // 项目子系统ID（自动注入）
+  projectSystemId?: string | number;    // 项目设备系统ID（自动注入）
+  projectId?: string | number;          // 项目ID（自动注入）
+  templateId?: string | number;         // 子项模板ID
+  itemCode: string;                     // 子项编码（必填）
+  itemName: string;                     // 子项名称（必填）
+  itemType?: string;                    // 子项类型
+  specification?: string;               // 规格型号
+  description?: string;                 // 描述
+  quantity?: number;                    // 数量
+  unit?: string;                        // 单位
+  unitWeight?: number;                  // 单重(kg)
+  totalWeight?: number;                 // 总重(kg)
+  materialCount?: number;               // 物料数量
+  parentItemId?: string | number;       // 父子项ID
+  status?: string;                      // 状态
+  sequenceNumber?: number;              // 排序号
+  remarks?: string;                     // 备注
+  version?: number;                     // 版本号（乐观锁）
+}
+
 // ==================== API接口 ====================
 
 /**
@@ -151,6 +177,58 @@ export const getItemMaterials = (projectItemId: string | number): AxiosPromise<P
   return request({
     url: `/erp/saltprocess/projectEquipmentSystem/item/${projectItemId}/materials`,
     method: 'get'
+  });
+};
+
+// ==================== 子项管理接口 ====================
+
+/**
+ * 新增项目子项（支持批量）
+ * @param projectSubsystemId 项目子系统ID
+ * @param data 子项数据数组
+ */
+export const addProjectItems = (
+  projectSubsystemId: string | number,
+  data: ProjectItemForm[]
+): AxiosPromise<void> => {
+  return request({
+    url: `/erp/saltprocess/projectEquipmentSystem/subsystem/${projectSubsystemId}/items`,
+    method: 'post',
+    data
+  });
+};
+
+/**
+ * 编辑项目子项
+ * @param projectSubsystemId 项目子系统ID
+ * @param itemId 子项ID
+ * @param data 子项数据
+ */
+export const updateProjectItem = (
+  projectSubsystemId: string | number,
+  itemId: string | number,
+  data: ProjectItemForm
+): AxiosPromise<void> => {
+  return request({
+    url: `/erp/saltprocess/projectEquipmentSystem/subsystem/${projectSubsystemId}/items/${itemId}`,
+    method: 'put',
+    data
+  });
+};
+
+/**
+ * 删除项目子项（支持批量）
+ * @param projectSubsystemId 项目子系统ID
+ * @param itemIds 子项ID（单个或数组）
+ */
+export const deleteProjectItems = (
+  projectSubsystemId: string | number,
+  itemIds: string | number | Array<string | number>
+): AxiosPromise<void> => {
+  const ids = Array.isArray(itemIds) ? itemIds.join(',') : itemIds;
+  return request({
+    url: `/erp/saltprocess/projectEquipmentSystem/subsystem/${projectSubsystemId}/items/${ids}`,
+    method: 'delete'
   });
 };
 

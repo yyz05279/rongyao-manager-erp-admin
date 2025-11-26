@@ -159,6 +159,70 @@
         <el-button @click="materialDetailDialog.visible = false">关闭</el-button>
       </template>
     </el-dialog>
+
+    <!-- 子项表单对话框 -->
+    <el-dialog :title="itemDialog.title" v-model="itemDialog.visible" width="800px" append-to-body destroy-on-close>
+      <el-form ref="itemFormRef" :model="itemForm" :rules="itemRules" label-width="100px">
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="子项编码" prop="itemCode">
+              <el-input v-model="itemForm.itemCode" placeholder="请输入子项编码" maxlength="50" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="子项名称" prop="itemName">
+              <el-input v-model="itemForm.itemName" placeholder="请输入子项名称" maxlength="100" />
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="子项类型" prop="itemType">
+              <el-input v-model="itemForm.itemType" placeholder="如：设备、配件等" maxlength="50" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="规格型号" prop="specification">
+              <el-input v-model="itemForm.specification" placeholder="请输入规格型号" maxlength="500" />
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="数量" prop="quantity">
+              <el-input-number v-model="itemForm.quantity" :min="0.01" :step="1" controls-position="right" style="width: 100%" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="单位" prop="unit">
+              <el-input v-model="itemForm.unit" placeholder="如：个、台等" maxlength="20" />
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="单重(kg)" prop="unitWeight">
+              <el-input-number v-model="itemForm.unitWeight" :min="0" :step="0.01" :precision="2" controls-position="right" style="width: 100%" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="排序号" prop="sequenceNumber">
+              <el-input-number v-model="itemForm.sequenceNumber" :min="0" :step="1" controls-position="right" style="width: 100%" />
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-form-item label="描述" prop="description">
+          <el-input v-model="itemForm.description" type="textarea" :rows="3" placeholder="请输入描述" maxlength="500" />
+        </el-form-item>
+        <el-form-item label="备注" prop="remarks">
+          <el-input v-model="itemForm.remarks" type="textarea" :rows="2" placeholder="请输入备注" maxlength="500" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="itemDialog.visible = false">取消</el-button>
+        <el-button type="primary" @click="submitItemForm" :loading="itemDialog.loading">确定</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -170,17 +234,24 @@ export default defineComponent({
 </script>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, reactive, onMounted } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { getProjectSubsystem } from '@/api/erp/saltprocess/subsystem';
-import { getSubsystemItems, getItemMaterials } from '@/api/erp/saltprocess/project-item';
+import {
+  getSubsystemItems,
+  getItemMaterials,
+  addProjectItems,
+  updateProjectItem,
+  deleteProjectItems
+} from '@/api/erp/saltprocess/project-item';
 import { parseTime } from '@/utils/ruoyi';
 import type {
   ProjectSubsystemVO
 } from '@/api/erp/saltprocess/equipment-system/types';
 import type {
   ProjectSubsystemItemVO as QueryProjectItemVO,
-  ProjectItemMaterialVO
+  ProjectItemMaterialVO,
+  ProjectItemForm
 } from '@/api/erp/saltprocess/project-item';
 
 // Props
@@ -206,6 +277,32 @@ const selectedItemName = ref<string>('');
 const materialDetailDialog = ref({
   visible: false
 });
+
+// 子项表单
+const itemFormRef = ref();
+const itemDialog = reactive({
+  visible: false,
+  title: '',
+  loading: false
+});
+
+const itemForm = reactive<ProjectItemForm>({
+  itemCode: '',
+  itemName: '',
+  itemType: '',
+  specification: '',
+  description: '',
+  quantity: 1,
+  unit: '台',
+  unitWeight: 0,
+  sequenceNumber: 0,
+  remarks: ''
+});
+
+const itemRules = {
+  itemCode: [{ required: true, message: '请输入子项编码', trigger: 'blur' }],
+  itemName: [{ required: true, message: '请输入子项名称', trigger: 'blur' }]
+};
 
 // 生命周期
 onMounted(() => {
@@ -332,8 +429,25 @@ const handleViewMaterials = async (row: QueryProjectItemVO) => {
 
 // 编辑子项
 const handleEditItem = (row: QueryProjectItemVO) => {
-  ElMessage.info(`编辑子项"${row.itemName}"`);
-  // TODO: 实现编辑子项功能
+  resetItemForm();
+  // 填充表单数据（使用类型断言以支持所有字段）
+  const rowData = row as any;
+  Object.assign(itemForm, {
+    id: row.id,
+    itemCode: row.itemCode,
+    itemName: row.itemName,
+    itemType: rowData.itemType || '',
+    specification: rowData.specification || '',
+    description: rowData.description || '',
+    quantity: typeof row.quantity === 'string' ? parseFloat(row.quantity) : row.quantity,
+    unit: row.unit || '台',
+    unitWeight: typeof rowData.unitWeight === 'string' ? parseFloat(rowData.unitWeight) : (rowData.unitWeight || 0),
+    sequenceNumber: rowData.sequenceNumber || 0,
+    remarks: rowData.remarks || ''
+  });
+
+  itemDialog.title = '编辑子项';
+  itemDialog.visible = true;
 };
 
 // 删除子项
@@ -349,8 +463,10 @@ const handleDeleteItem = async (row: QueryProjectItemVO) => {
       }
     );
 
+    // 调用删除API
+    await deleteProjectItems(detail.value.id, row.id);
     ElMessage.success(`删除子项"${row.itemName}"成功`);
-    // TODO: 调用删除API
+
     // 刷新数据
     await loadItemList();
   } catch (error) {
@@ -381,8 +497,12 @@ const handleBatchDelete = async () => {
       }
     );
 
+    // 调用批量删除API
+    const ids = selectedItems.value.map(item => item.id);
+    await deleteProjectItems(detail.value.id, ids);
+
     ElMessage.success(`批量删除 ${selectedItems.value.length} 个子项成功`);
-    // TODO: 调用批量删除API
+
     // 清空选中状态
     selectedItems.value = [];
     // 刷新列表
@@ -397,45 +517,72 @@ const handleBatchDelete = async () => {
 
 // 添加子项
 const handleAddItem = () => {
-  ElMessage.info('添加新子项');
-  // TODO: 实现添加子项功能
+  resetItemForm();
+  itemDialog.title = '添加子项';
+  itemDialog.visible = true;
+};
+
+// 提交子项表单
+const submitItemForm = async () => {
+  try {
+    await itemFormRef.value?.validate();
+
+    itemDialog.loading = true;
+
+    if (itemForm.id) {
+      // 编辑
+      await updateProjectItem(detail.value.id, itemForm.id, itemForm);
+      ElMessage.success('修改成功');
+    } else {
+      // 新增
+      await addProjectItems(detail.value.id, [itemForm]);
+      ElMessage.success('添加成功');
+    }
+
+    itemDialog.visible = false;
+    await loadItemList();
+  } catch (error) {
+    if (error !== false) {
+      console.error('保存子项失败:', error);
+      ElMessage.error('保存失败');
+    }
+  } finally {
+    itemDialog.loading = false;
+  }
+};
+
+// 重置子项表单
+const resetItemForm = () => {
+  itemForm.id = undefined;
+  itemForm.itemCode = '';
+  itemForm.itemName = '';
+  itemForm.itemType = '';
+  itemForm.specification = '';
+  itemForm.description = '';
+  itemForm.quantity = 1;
+  itemForm.unit = '台';
+  itemForm.unitWeight = 0;
+  itemForm.sequenceNumber = 0;
+  itemForm.remarks = '';
+  itemFormRef.value?.clearValidate();
 };
 
 // 在物料弹窗中添加物料
 const handleAddMaterialInDialog = () => {
-  ElMessage.info('添加物料');
-  // TODO: 实现添加物料功能
+  ElMessage.info('物料管理功能暂未开放');
+  // TODO: 实现添加物料功能（需要后端API支持）
 };
 
 // 编辑物料
-const handleEditMaterial = (row: ProjectItemMaterialVO) => {
-  ElMessage.info(`编辑物料"${row.materialName}"`);
-  // TODO: 实现编辑物料功能
+const handleEditMaterial = (_row: ProjectItemMaterialVO) => {
+  ElMessage.info('物料编辑功能暂未开放');
+  // TODO: 实现编辑物料功能（需要后端API支持）
 };
 
 // 删除物料
-const handleDeleteMaterial = async (row: ProjectItemMaterialVO) => {
-  try {
-    await ElMessageBox.confirm(
-      `是否确认删除物料"${row.materialName}"？`,
-      '警告',
-      {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        type: 'warning'
-      }
-    );
-
-    ElMessage.success(`删除物料"${row.materialName}"成功`);
-    // TODO: 调用删除API
-    // 刷新物料列表
-    await loadMaterialList();
-  } catch (error) {
-    if (error !== 'cancel') {
-      console.error('删除物料失败:', error);
-      ElMessage.error('删除失败');
-    }
-  }
+const handleDeleteMaterial = async (_row: ProjectItemMaterialVO) => {
+  ElMessage.info('物料删除功能暂未开放');
+  // TODO: 实现删除物料功能（需要后端API支持）
 };
 </script>
 
