@@ -467,6 +467,7 @@ export interface SubsystemMaterialTemplateVO {
   materialId: string | number;         // 基础物料ID
   materialCode?: string;               // 物料编码（冗余字段）
   materialName?: string;               // 物料名称（冗余字段）
+  templateCode?: string;               // 子系统模板编码（冗余字段）
   specification?: string;              // 规格型号（冗余字段）
   unit?: string;                       // 单位（冗余字段）
   defaultQuantity: number;             // 默认数量
