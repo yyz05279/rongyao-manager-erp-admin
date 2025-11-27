@@ -160,6 +160,25 @@
       </template>
     </el-dialog>
 
+    <!-- 物料编辑对话框 -->
+    <el-dialog title="编辑物料" v-model="materialEditDialog.visible" width="600px" append-to-body>
+      <el-form ref="materialFormRef" :model="materialForm" :rules="materialRules" label-width="100px">
+        <el-form-item label="物料名称">
+          <el-input :value="materialForm.materialName" disabled />
+        </el-form-item>
+        <el-form-item label="数量" prop="quantity">
+          <el-input-number v-model="materialForm.quantity" :min="1" :step="1" style="width: 100%" />
+        </el-form-item>
+        <el-form-item label="备注" prop="remarks">
+          <el-input v-model="materialForm.remarks" type="textarea" :rows="3" placeholder="请输入备注" maxlength="500" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="materialEditDialog.visible = false">取消</el-button>
+        <el-button type="primary" @click="submitMaterialForm" :loading="materialEditDialog.loading">确定</el-button>
+      </template>
+    </el-dialog>
+
     <!-- 子项表单对话框 -->
     <el-dialog :title="itemDialog.title" v-model="itemDialog.visible" width="1000px" append-to-body destroy-on-close>
       <el-form ref="itemFormRef" :model="itemForm" :rules="itemRules" label-width="100px">
@@ -260,6 +279,13 @@
       </template>
     </el-dialog>
 
+    <!-- 物料选择器对话框 -->
+    <MaterialSelectorDialog
+      v-model="materialSelectorVisible"
+      :existing-material-codes="existingMaterialCodes"
+      @confirm="handleMaterialsSelected"
+    />
+
     <!-- 子项选择器对话框 -->
     <ItemTemplateSelectorDialog
       v-model="itemSelectorVisible"
@@ -279,7 +305,7 @@ export default defineComponent({
 </script>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted } from 'vue';
+import { ref, reactive, computed, onMounted, watch } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { getProjectSubsystem } from '@/api/erp/saltprocess/subsystem';
 import {
@@ -287,7 +313,10 @@ import {
   getItemMaterials,
   addProjectItems,
   updateProjectItem,
-  deleteProjectItems
+  deleteProjectItems,
+  updateProjectMaterial,
+  deleteProjectMaterials,
+  batchSaveProjectMaterials
 } from '@/api/erp/saltprocess/project-item';
 import { parseTime } from '@/utils/ruoyi';
 import type {
@@ -296,17 +325,23 @@ import type {
 import type {
   ProjectSubsystemItemVO as QueryProjectItemVO,
   ProjectItemMaterialVO,
-  ProjectItemForm
+  ProjectItemForm,
+  ProjectMaterialForm
 } from '@/api/erp/saltprocess/project-item';
 import type { SubsystemItemTemplateVO } from '@/api/erp/subsystem/types';
+import type { MaterialVO } from '@/api/erp/material/material/types';
 import ItemTemplateSelectorDialog from '@/views/erp/subsystem/template/components/ItemTemplateSelectorDialog.vue';
+import MaterialSelectorDialog from '@/views/erp/subsystem/template/components/MaterialSelectorDialog.vue';
 
 // Props
 interface Props {
   subsystemId: string | number;
+  selectedItemId?: string | number;  // 从父组件传入的子项ID
 }
 
-const props = defineProps<Props>();
+const props = withDefaults(defineProps<Props>(), {
+  selectedItemId: undefined
+});
 
 // 响应式数据
 const loading = ref(false);
@@ -324,6 +359,9 @@ const selectedItemName = ref<string>('');
 // 子项选择器
 const itemSelectorVisible = ref(false);
 
+// 物料选择器
+const materialSelectorVisible = ref(false);
+
 // 计算已添加的子项编码列表（用于选择器中的已添加标记）
 const existingItemCodes = computed<(number | string)[]>(() => {
   return itemList.value
@@ -331,10 +369,56 @@ const existingItemCodes = computed<(number | string)[]>(() => {
     .filter((code): code is string => Boolean(code));
 });
 
+// 计算已添加的物料编码列表（用于物料选择器中的已添加标记）
+const existingMaterialCodes = computed<string[]>(() => {
+  return materialList.value
+    .map(material => material.materialCode)
+    .filter((code): code is string => Boolean(code));
+});
+
 // 物料详情弹窗
 const materialDetailDialog = ref({
   visible: false
 });
+
+// 物料表单
+const materialFormRef = ref();
+const materialEditDialog = reactive({
+  visible: false,
+  loading: false
+});
+
+const materialForm = reactive<ProjectMaterialForm>({
+  id: undefined,
+  materialCode: '',
+  materialName: '',
+  specification: '',
+  materialType: '',
+  materialCategory: '',
+  quantity: 1,
+  unit: '',
+  unitWeight: 0,
+  totalWeight: 0,
+  manufacturer: '',
+  model: '',
+  serialNumber: '',
+  packageType: '',
+  packageQuantity: 0,
+  isFragile: false,
+  isHazardous: false,
+  storageRequirement: '',
+  status: 'NORMAL',
+  sequenceNumber: 0,
+  remarks: '',
+  remarks1: '',
+  remarks2: ''
+});
+
+const materialRules = {
+  materialName: [{ required: true, message: '请输入物料名称', trigger: 'blur' }],
+  quantity: [{ required: false, message: '请输入数量', trigger: 'blur' }],
+  unit: [{ required: false, message: '请输入单位', trigger: 'blur' }]
+};
 
 // 子项表单
 const itemFormRef = ref();
@@ -378,6 +462,17 @@ const itemRules = {
 // 生命周期
 onMounted(() => {
   getDetail();
+});
+
+// 监听 props 中的 selectedItemId 变化
+watch(() => props.selectedItemId, (newVal) => {
+  if (newVal) {
+    console.log('=== Props selectedItemId 变化 ===');
+    console.log('新的 selectedItemId:', newVal);
+    selectedItemId.value = newVal;
+    // 自动加载物料列表
+    loadMaterialList();
+  }
 });
 
 // 获取详情
@@ -732,22 +827,164 @@ const resetItemForm = () => {
   itemFormRef.value?.clearValidate();
 };
 
+// 重置物料表单
+const resetMaterialForm = () => {
+  materialForm.id = undefined;
+  materialForm.materialCode = '';
+  materialForm.materialName = '';
+  materialForm.specification = '';
+  materialForm.materialType = '';
+  materialForm.materialCategory = '';
+  materialForm.quantity = 1;
+  materialForm.unit = '';
+  materialForm.unitWeight = 0;
+  materialForm.totalWeight = 0;
+  materialForm.manufacturer = '';
+  materialForm.model = '';
+  materialForm.serialNumber = '';
+  materialForm.packageType = '';
+  materialForm.packageQuantity = 0;
+  materialForm.isFragile = false;
+  materialForm.isHazardous = false;
+  materialForm.storageRequirement = '';
+  materialForm.status = 'NORMAL';
+  materialForm.sequenceNumber = 0;
+  materialForm.remarks = '';
+  materialForm.remarks1 = '';
+  materialForm.remarks2 = '';
+  materialFormRef.value?.clearValidate();
+};
+
 // 在物料弹窗中添加物料
 const handleAddMaterialInDialog = () => {
-  ElMessage.info('物料管理功能暂未开放');
-  // TODO: 实现添加物料功能（需要后端API支持）
+  materialSelectorVisible.value = true;
 };
 
 // 编辑物料
-const handleEditMaterial = (_row: ProjectItemMaterialVO) => {
-  ElMessage.info('物料编辑功能暂未开放');
-  // TODO: 实现编辑物料功能（需要后端API支持）
+const handleEditMaterial = (row: ProjectItemMaterialVO) => {
+  resetMaterialForm();
+  // 填充表单数据（仅填充编辑对话框需要的字段）
+  const rowData = row as any;
+  Object.assign(materialForm, {
+    id: row.id,
+    materialCode: row.materialCode || '',
+    materialName: row.materialName,
+    quantity: typeof row.quantity === 'string' ? parseFloat(row.quantity) : row.quantity,
+    unit: row.unit || '',
+    remarks: rowData.remarks || ''
+  });
+  materialEditDialog.visible = true;
 };
 
 // 删除物料
-const handleDeleteMaterial = async (_row: ProjectItemMaterialVO) => {
-  ElMessage.info('物料删除功能暂未开放');
-  // TODO: 实现删除物料功能（需要后端API支持）
+const handleDeleteMaterial = async (row: ProjectItemMaterialVO) => {
+  if (!selectedItemId.value) {
+    ElMessage.error('未选择子项');
+    return;
+  }
+
+  try {
+    await ElMessageBox.confirm(
+      `是否确认删除物料"${row.materialName}"？`,
+      '警告',
+      {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }
+    );
+
+    // 调用删除API
+    await deleteProjectMaterials(selectedItemId.value, row.id);
+    ElMessage.success(`删除物料"${row.materialName}"成功`);
+
+    // 刷新物料列表
+    await loadMaterialList();
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error('删除物料失败:', error);
+      ElMessage.error('删除失败');
+    }
+  }
+};
+
+// 处理选中的物料
+const handleMaterialsSelected = async (materials: MaterialVO[]) => {
+  console.log('=== handleMaterialsSelected 被调用 ===');
+  console.log('接收到的物料数量:', materials?.length);
+  console.log('接收到的物料数据:', materials);
+  console.log('当前选中的子项ID:', selectedItemId.value);
+
+  if (!selectedItemId.value) {
+    ElMessage.error('未选择子项，请先在物料列表中选择一个子项');
+    return;
+  }
+
+  try {
+    // 将选中的物料转换为物料表单数据（仅传递必要字段，避免冗余与空值）
+    const materialsToCreate: ProjectMaterialForm[] = materials.map(material => {
+      const dto: ProjectMaterialForm = {
+        materialName: material.materialName || '',
+        quantity: 1
+      };
+      if (material.materialCode) dto.materialCode = material.materialCode;
+      if (material.specification) dto.specification = material.specification;
+      if (material.materialType) {
+        dto.materialType = material.materialType;
+        dto.materialCategory = material.materialType; // 与后端模型兼容
+      }
+      if (material.unit) dto.unit = material.unit;
+      if (material.model) dto.model = material.model;
+      if (material.remarks) dto.remarks = material.remarks;
+      return dto;
+    });
+
+    console.log('准备提交的物料数据:', materialsToCreate);
+    console.log('调用 batchSaveProjectMaterials，参数：', {
+      projectItemId: selectedItemId.value,
+      materialsCount: materialsToCreate.length
+    });
+
+    // 调用API批量保存物料
+    await batchSaveProjectMaterials(selectedItemId.value, materialsToCreate);
+    ElMessage.success(`成功添加 ${materials.length} 个物料`);
+
+    // 刷新物料列表
+    await loadMaterialList();
+  } catch (error) {
+    console.error('添加物料失败:', error);
+    ElMessage.error('添加物料失败');
+  }
+};
+
+// 提交物料表单
+const submitMaterialForm = async () => {
+  try {
+    await materialFormRef.value?.validate();
+
+    if (!selectedItemId.value) {
+      ElMessage.error('未选择子项');
+      return;
+    }
+
+    materialEditDialog.loading = true;
+
+    if (materialForm.id) {
+      // 编辑物料
+      await updateProjectMaterial(selectedItemId.value, materialForm.id, materialForm);
+      ElMessage.success('修改物料成功');
+    }
+
+    materialEditDialog.visible = false;
+    await loadMaterialList();
+  } catch (error) {
+    if (error !== false) {
+      console.error('保存物料失败:', error);
+      ElMessage.error('保存失败');
+    }
+  } finally {
+    materialEditDialog.loading = false;
+  }
 };
 </script>
 
