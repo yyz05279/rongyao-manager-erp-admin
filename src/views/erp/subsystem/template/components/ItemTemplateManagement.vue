@@ -424,10 +424,12 @@ const materialEditDialog = reactive({
 });
 
 // 简化后的物料表单，只包含可编辑字段
-// ✅ 添加 materialId 和 itemTemplateId，用于批量更新API
+// ✅ 添加 materialId、materialCode 和 itemTemplateId，用于批量更新API
 const materialForm = reactive({
   id: undefined as string | number | undefined,
   materialId: undefined as string | number | undefined,
+  materialCode: undefined as string | undefined,
+  templateCode: undefined as string | undefined,
   itemTemplateId: undefined as string | number | undefined,
   materialName: '',
   defaultQuantity: 1,
@@ -1190,6 +1192,8 @@ const handleEditMaterial = (row: SubsystemMaterialTemplateVO) => {
   // ✅ 保存完整的物料信息，用于批量更新API
   materialForm.id = row.id;
   materialForm.materialId = row.materialId;
+  materialForm.materialCode = row.materialCode;
+  materialForm.templateCode = row.templateCode;
   materialForm.itemTemplateId = row.itemTemplateId;
   materialForm.materialName = row.materialName || '';
   materialForm.defaultQuantity = row.defaultQuantity;
@@ -1244,6 +1248,7 @@ const submitMaterialEditForm = async () => {
       const updateData = [{
         id: materialForm.id,
         materialId: materialForm.materialId,
+        materialCode: materialForm.materialCode, // ✅ 添加物料编码
         templateId: props.templateId, // 保留templateId，表示关联到子系统
         defaultQuantity: materialForm.defaultQuantity,
         remarks: materialForm.remarks
@@ -1273,6 +1278,9 @@ const indexMethod = (index: number) => {
 // 重置物料表单
 const resetMaterialForm = () => {
   materialForm.id = undefined;
+  materialForm.materialId = undefined;
+  materialForm.materialCode = undefined;
+  materialForm.itemTemplateId = undefined;
   materialForm.materialName = '';
   materialForm.defaultQuantity = 1;
   materialForm.remarks = '';
