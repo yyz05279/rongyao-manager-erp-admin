@@ -5,6 +5,7 @@
 import request from '@/utils/request';
 import { AxiosPromise } from 'axios';
 import type { PageResult } from '../types';
+import { buildMaterialUpdatePayload, buildMaterialUpsertPayload } from '@/utils/material-payload';
 
 // ==================== 类型定义 ====================
 
@@ -229,6 +230,153 @@ export const deleteProjectItems = (
   return request({
     url: `/erp/saltprocess/projectEquipmentSystem/subsystem/${projectSubsystemId}/items/${ids}`,
     method: 'delete'
+  });
+};
+
+// ==================== 物料管理接口 ====================
+
+/**
+ * 物料表单数据（用于新增和编辑）
+ */
+export interface ProjectMaterialForm {
+  id?: string | number;                // 物料ID（编辑时必填）
+  materialCode?: string;               // 物料编码
+  materialName: string;                // 物料名称（必填）
+  specification?: string;              // 规格型号
+  materialType?: string;               // 物料类型
+  materialCategory?: string;           // 物料类别
+  quantity?: number;                   // 数量
+  unit?: string;                       // 单位
+  unitWeight?: number;                 // 单重(kg)
+  totalWeight?: number;                // 总重(kg)
+  manufacturer?: string;               // 制造商
+  model?: string;                      // 型号
+  serialNumber?: string;               // 序列号
+  packageType?: string;                // 包装方式
+  packageQuantity?: number;            // 包装件数
+  isFragile?: boolean;                 // 是否易碎
+  isHazardous?: boolean;               // 是否危险品
+  storageRequirement?: string;         // 存储要求
+  status?: string;                     // 状态
+  sequenceNumber?: number;             // 排序号
+  remarks?: string;                    // 备注
+  remarks1?: string;                   // 备注1
+  remarks2?: string;                   // 备注2
+}
+
+/**
+ * 批量物料操作结果
+ */
+export interface BatchMaterialResult {
+  totalCount: number;                  // 总数
+  successCount: number;                // 成功数
+  failureCount: number;                // 失败数
+  insertCount?: number;                // 新增数
+  updateCount?: number;                // 更新数
+  deleteCount?: number;                // 删除数
+  failures?: Array<{                   // 失败详情
+    rowNumber: number;
+    recordId?: string | number;
+    errorMessage: string;
+    errorField?: string;
+  }>;
+  message: string;                     // 操作信息
+}
+
+/**
+ * 根据《前端编辑物料请求调整指南》过滤冗余字段与空值
+ * - 移除：id、projectItemId、projectSubsystemId、projectSystemId、projectId、createTime、updateTime、version
+ * - 过滤：undefined 与 null
+ */
+const filterMaterialPayloadBase = (raw: Record<string, any>): Record<string, any> => {
+  const redundant = new Set([
+    'id',
+    'projectItemId',
+    'projectSubsystemId',
+    'projectSystemId',
+    'projectId',
+    'createTime',
+    'updateTime',
+    'version'
+  ]);
+  const payload: Record<string, any> = {};
+  Object.keys(raw || {}).forEach((key) => {
+    if (redundant.has(key)) return;
+    const val = (raw as any)[key];
+    if (val === undefined || val === null) return; // 过滤 undefined / null
+    payload[key] = val;
+  });
+  return payload;
+};
+
+/**
+ * 过滤编辑(单条 PUT)的 payload：不允许包含 id
+ */
+const buildMaterialUpdatePayload = (data: ProjectMaterialForm): Record<string, any> => {
+  // 若 data 内部意外包含 id，会被基础过滤移除
+  return filterMaterialPayloadBase(data as unknown as Record<string, any>);
+};
+
+/**
+ * 过滤批量保存(POST upsert)的 payload：允许包含 id 用于区分新增/更新
+ */
+const buildMaterialUpsertPayload = (data: ProjectMaterialForm): Record<string, any> => {
+  const baseRemoved = filterMaterialPayloadBase(data as unknown as Record<string, any>);
+  // 对于批量 upsert，保留 id（如果存在）
+  if (data.id !== undefined && data.id !== null) {
+    baseRemoved.id = data.id;
+  }
+  return baseRemoved;
+};
+
+/**
+ * 编辑项目物料（PUT）
+ * - 路径参数携带 projectItemId 与 materialId
+ * - 请求体仅包含需要修改的字段
+ */
+export const updateProjectMaterial = (
+  projectItemId: string | number,
+  materialId: string | number,
+  data: ProjectMaterialForm
+): AxiosPromise<void> => {
+  const payload = buildMaterialUpdatePayload(data);
+  return request({
+    url: `/erp/saltprocess/projectEquipmentSystem/item/${projectItemId}/materials/${materialId}`,
+    method: 'put',
+    data: payload
+  });
+};
+
+/**
+ * 删除项目物料（支持批量）
+ * @param projectItemId 项目子项ID
+ * @param materialIds 物料ID（单个或数组）
+ */
+export const deleteProjectMaterials = (
+  projectItemId: string | number,
+  materialIds: string | number | Array<string | number>
+): AxiosPromise<void> => {
+  const ids = Array.isArray(materialIds) ? materialIds.join(',') : materialIds;
+  return request({
+    url: `/erp/saltprocess/projectEquipmentSystem/item/${projectItemId}/materials/${ids}`,
+    method: 'delete'
+  });
+};
+
+/**
+ * 批量保存项目物料（Upsert，POST）
+ * - 路径参数携带 projectItemId
+ * - 请求体数组元素仅包含需要保存的字段；如为更新，需包含 id
+ */
+export const batchSaveProjectMaterials = (
+  projectItemId: string | number,
+  data: ProjectMaterialForm[]
+): AxiosPromise<BatchMaterialResult> => {
+  const payload = Array.isArray(data) ? data.map((d) => buildMaterialUpsertPayload(d)) : [];
+  return request({
+    url: `/erp/saltprocess/projectEquipmentSystem/item/${projectItemId}/materials/batch`,
+    method: 'post',
+    data: payload
   });
 };
 
