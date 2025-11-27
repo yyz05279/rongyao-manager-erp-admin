@@ -304,11 +304,11 @@ import {
   getEquipmentSystemItemMaterials,
   updateEquipmentSystemItemMaterial,
   deleteEquipmentSystemItemMaterials,
-  addEquipmentSystemItemMaterialFromBase,
   addEquipmentSystemItemMaterialsFromBaseBatch,
   addSubsystemItem,
   updateSubsystemItem,
-  removeSubsystemItems
+  removeSubsystemItems,
+  batchAddEquipmentSystemItemMaterials
 } from '@/api/erp/saltprocess/equipment-system/template';
 
 import {
@@ -360,6 +360,7 @@ const selectedItemName = ref<string>('');
 const materialSelectorVisible = ref(false);
 const itemSelectorVisible = ref(false);
 const updateMaterialData = ref(false); // ✅ 新增：控制是否更新物料数据（仅编辑模式使用）
+const originalMaterials = ref<any[]>([]); // ✅ 新增：保存原始物料列表快照，用于检测变更
 
 // 子项表单
 const itemFormRef = ref();
@@ -563,6 +564,9 @@ const loadEditItemMaterials = async (itemTemplateId: string | number) => {
       remarks: material.remarks || ''
     }));
 
+    // ✅ 保存原始物料列表快照，用于检测变更
+    originalMaterials.value = JSON.parse(JSON.stringify(itemForm.materials));
+
     console.log('加载编辑子项物料完成，物料数量:', itemForm.materials.length);
     console.log('物料数据:', itemForm.materials);
   } catch (error) {
@@ -573,50 +577,124 @@ const loadEditItemMaterials = async (itemTemplateId: string | number) => {
   }
 };
 
+// ✅ 新增：检测物料是否有变更
+const hasMaterialChanges = (currentMaterials: any[]): boolean => {
+  // 如果是新增模式（没有原始物料），则认为有变更
+  if (!originalMaterials.value || originalMaterials.value.length === 0) {
+    return currentMaterials && currentMaterials.length > 0;
+  }
+
+  // 数量不同，肯定有变更
+  if (currentMaterials.length !== originalMaterials.value.length) {
+    return true;
+  }
+
+  // 检查每个物料是否有变更
+  for (const current of currentMaterials) {
+    const original = originalMaterials.value.find(o => o.id === current.id);
+
+    // 新增的物料（没有id或找不到对应的原始物料）
+    if (!current.id || !original) {
+      return true;
+    }
+
+    // 检查关键字段是否有变化
+    if (
+      Number(current.defaultQuantity) !== Number(original.defaultQuantity) ||
+      current.isRequired !== original.isRequired ||
+      (current.remarks || '') !== (original.remarks || '') ||
+      current.materialId !== original.materialId
+    ) {
+      return true;
+    }
+  }
+
+  // 检查是否有物料被删除
+  for (const original of originalMaterials.value) {
+    const current = currentMaterials.find(c => c.id === original.id);
+    if (!current) {
+      return true;
+    }
+  }
+
+  return false;
+};
+
 // 同步子项物料变更（编辑模式）
-// ✅ 使用批量保存接口同步物料变更
+// ✅ 使用批量保存接口同步物料变更（合并新增和更新为一次调用）
 const syncItemMaterialChanges = async (itemTemplateId: string | number, currentMaterials: any[]) => {
   try {
-    // 设备系统API模式：保持原有逻辑（因为设备系统API不支持批量保存）
+    // ✅ 设备系统API模式：使用批量接口
     if (props.useEquipmentSystemApi) {
-      // 重新加载原始物料列表
-      const response = await getEquipmentSystemItemMaterials(itemTemplateId);
-      const originalMaterials = response.data || [];
-
-      // 找出需要更新的物料
-      const materialsToUpdate = currentMaterials.filter(current => current.id);
-
-      // 找出需要新增的物料
+      // 1. 分离新增物料
       const materialsToAdd = currentMaterials.filter(current => !current.id);
 
-      // 执行更新操作
-      if (materialsToUpdate.length > 0) {
-        for (const material of materialsToUpdate) {
-          await updateEquipmentSystemItemMaterial(itemTemplateId, material.id, {
-            defaultQuantity: material.defaultQuantity,
-            isRequired: material.isRequired,
-            remarks: material.remarks
-          });
-        }
+      // 2. 找出真正需要更新的物料（与原始数据对比）
+      const materialsToUpdate = currentMaterials.filter(current => {
+        if (!current.id) return false; // 没有 id 的是新增物料
+
+        // 查找对应的原始物料
+        const original = originalMaterials.value.find((o: any) => o.id === current.id);
+        if (!original) return false; // 找不到原始数据，跳过
+
+        // 检查是否有变化
+        return (
+          Number(current.defaultQuantity) !== Number(original.defaultQuantity) ||
+          current.isRequired !== original.isRequired ||
+          (current.remarks || '') !== (original.remarks || '') ||
+          current.materialId !== original.materialId
+        );
+      });
+
+      // 3. 如果没有任何变更，跳过接口调用
+      if (materialsToAdd.length === 0 && materialsToUpdate.length === 0) {
+        console.log('ℹ️ 物料数据未变更，跳过批量接口调用');
+        return;
       }
 
-      // 执行新增操作
-      if (materialsToAdd.length > 0) {
-        for (const material of materialsToAdd) {
-          await addEquipmentSystemItemMaterialFromBase(itemTemplateId, material.materialId);
-        }
-      }
+      // 4. 合并新增和更新数据，统一调用 POST 接口
+      // 后端接口逻辑：有 id 的执行更新，没有 id 的执行新增
+      const allMaterials = [
+        ...materialsToAdd.map(material => ({
+          itemTemplateId: itemTemplateId,
+          materialId: material.materialId,
+          materialName: material.materialName || '',
+          specification: material.specification || '',
+          defaultQuantity: material.defaultQuantity || 1,
+          defaultUnit: material.defaultUnit || material.unit || '个',
+          status: 'ACTIVE',
+          isRequired: material.isRequired ?? true,
+          remarks: material.remarks || ''
+        })),
+        ...materialsToUpdate.map(material => ({
+          id: material.id, // 有 id 表示更新
+          itemTemplateId: itemTemplateId,
+          materialId: material.materialId,
+          materialName: material.materialName || '',
+          specification: material.specification || '',
+          defaultQuantity: material.defaultQuantity || 1,
+          defaultUnit: material.defaultUnit || material.unit || '个',
+          status: 'ACTIVE',
+          isRequired: material.isRequired ?? true,
+          remarks: material.remarks || ''
+        }))
+      ];
+
+      console.log(`✅ 批量保存物料 - 新增: ${materialsToAdd.length}, 更新: ${materialsToUpdate.length}`);
+      await batchAddEquipmentSystemItemMaterials(itemTemplateId, allMaterials);
+      console.log('✅ 物料同步完成');
+
       return;
     }
 
     // ✅ 子系统模板模式：使用批量保存接口
     // 1. 重新加载原始物料列表
     const response = await listMaterialTemplateByItemId(itemTemplateId, props.templateId);
-    const originalMaterials = response.data || [];
+    const serverMaterials = response.data || [];
 
     // 2. 构建待删除的物料ID列表（在原始列表中但不在当前列表中）
     const currentMaterialIds = currentMaterials.filter(m => m.id).map(m => m.id);
-    const toDelete = originalMaterials
+    const toDelete = serverMaterials
       .filter((original: any) => !currentMaterialIds.includes(original.id))
       .map((m: any) => m.id);
 
@@ -624,7 +702,7 @@ const syncItemMaterialChanges = async (itemTemplateId: string | number, currentM
     const toUpdate = currentMaterials
       .filter(current => {
         if (!current.id) return false;
-        const original = originalMaterials.find((o: any) => o.id === current.id);
+        const original = serverMaterials.find((o: any) => o.id === current.id);
         if (!original) return false;
         // 检查是否有变化
         return (
@@ -919,10 +997,8 @@ const submitItemForm = async () => {
   try {
     await itemFormRef.value?.validate();
 
-    // ✅ 编辑模式统一进行物料批量保存，不再跳过物料同步
-
-    // ✅ 新增模式或编辑且更新物料时，检查物料是否已添加
-    if (!itemForm.materials || itemForm.materials.length === 0) {
+    // ✅ 检查物料是否已添加（新增模式必须有物料）
+    if (!itemForm.id && (!itemForm.materials || itemForm.materials.length === 0)) {
       ElMessage.warning('请至少添加一个物料');
       return;
     }
@@ -943,25 +1019,39 @@ const submitItemForm = async () => {
       };
 
       if (itemForm.id) {
-        // 编辑：更新基础信息和物料数据
+        // 编辑模式：先更新基础信息
         await updateSubsystemItem(props.templateId, itemForm.id, apiData as any);
-        // ✅ 同步物料变更
-        await syncItemMaterialChanges(itemForm.id, itemForm.materials);
+
+        // ✅ 判断是否需要同步物料变更
+        const hasChanges = hasMaterialChanges(itemForm.materials || []);
+        if (hasChanges) {
+          console.log('检测到物料数据变更，开始同步...');
+          await syncItemMaterialChanges(itemForm.id, itemForm.materials || []);
+        } else {
+          console.log('物料数据未变更，跳过同步');
+        }
+
         ElMessage.success('修改成功');
       } else {
-        // 新增
+        // 新增模式：先创建子项，然后添加物料
         await addSubsystemItem(props.templateId, [apiData as any]);
         ElMessage.success('添加成功');
       }
     } else {
       // 原有子系统模板模式
       if (itemForm.id) {
-        // 编辑模式：更新子项基本信息，并同步物料变更
+        // 编辑模式：更新子项基本信息
         const { materials, ...updateData } = itemForm;
         await updateItemTemplate(updateData);
 
-        // ✅ 同步物料变更
-        await syncItemMaterialChanges(itemForm.id, itemForm.materials);
+        // ✅ 判断是否需要同步物料变更
+        const hasChanges = hasMaterialChanges(itemForm.materials || []);
+        if (hasChanges) {
+          console.log('检测到物料数据变更，开始同步...');
+          await syncItemMaterialChanges(itemForm.id, itemForm.materials || []);
+        } else {
+          console.log('物料数据未变更，跳过同步');
+        }
 
         ElMessage.success('修改成功');
       } else {
@@ -998,6 +1088,7 @@ const resetItemForm = () => {
   itemForm.remarks = '';
   itemForm.materials = []; // ✅ 重置物料列表
   updateMaterialData.value = false; // ✅ 重置物料更新开关
+  originalMaterials.value = []; // ✅ 重置原始物料快照
   itemFormRef.value?.clearValidate();
 };
 
@@ -1043,17 +1134,6 @@ const handleRemoveItemMaterial = (index: number) => {
     itemForm.materials.splice(index, 1);
     // 手动触发表单验证
     itemFormRef.value?.validateField('materials');
-  }
-};
-
-// ✅ 新增：处理物料数据更新开关变化
-const handleUpdateMaterialDataChange = (value: boolean) => {
-  if (value) {
-    // 开启更新物料数据时，触发表单验证
-    itemFormRef.value?.validateField('materials');
-  } else {
-    // 关闭更新物料数据时，清除物料字段的验证错误
-    itemFormRef.value?.clearValidate('materials');
   }
 };
 
