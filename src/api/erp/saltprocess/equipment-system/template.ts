@@ -329,3 +329,39 @@ export const removeSubsystemItems = (
     method: 'delete'
   });
 };
+
+// ==================== 物料模板批量操作接口 ====================
+
+/**
+ * 批量新增物料模板
+ * @param itemTemplateId 子项模版ID
+ * @param materials 物料模板数据数组
+ * @returns Promise<BatchOperationResultVo>
+ */
+export const batchAddEquipmentSystemItemMaterials = (
+  itemTemplateId: string | number,
+  materials: any[]
+): AxiosPromise<any> => {
+  return request({
+    url: `/erp/saltprocess/equipmentSystemTemplate/item/${itemTemplateId}/materials/batch`,
+    method: 'post',
+    data: materials
+  });
+};
+
+/**
+ * 批量编辑物料模板
+ * @param itemTemplateId 子项模版ID
+ * @param materials 物料模板数据数组（必须包含id字段）
+ * @returns Promise<BatchOperationResultVo>
+ */
+export const batchUpdateEquipmentSystemItemMaterials = (
+  itemTemplateId: string | number,
+  materials: any[]
+): AxiosPromise<any> => {
+  return request({
+    url: `/erp/saltprocess/equipmentSystemTemplate/item/${itemTemplateId}/materials/batch`,
+    method: 'put',
+    data: materials
+  });
+};
