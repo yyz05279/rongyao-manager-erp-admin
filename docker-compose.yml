@@ -1,0 +1,51 @@
+version: '3.8'
+
+services:
+  # 海棠企业管理系统
+  haitang-admin:
+    # 构建配置
+    build:
+      context: .
+      dockerfile: Dockerfile
+    
+    # 容器名称
+    container_name: haitang-admin
+    
+    # 端口映射
+    ports:
+      - "8080:8080"
+    
+    # 环境变量
+    environment:
+      - NODE_ENV=production
+    
+    # 卷挂载（可选：用于开发调试）
+    volumes:
+      - ./dist:/app/dist
+    
+    # 重启策略
+    restart: unless-stopped
+    
+    # 日志配置
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    
+    # 资源限制
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+        reservations:
+          cpus: '0.5'
+          memory: 256M
+
+# 网络配置
+networks:
+  default:
+    name: haitang-network
+    driver: bridge
+
