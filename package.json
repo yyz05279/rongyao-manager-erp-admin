@@ -17,8 +17,8 @@
     "pack": "electron-builder --dir",
     "dist": "electron-builder",
     "dist:win": "cross-env VITE_APP_ENV=electron electron-builder --win",
-    "dist:mac": "cross-env VITE_APP_ENV=electron electron-builder --mac",
-    "dist:linux": "cross-env VITE_APP_ENV=electron electron-builder --linux",
+    "dist:mac": "VITE_APP_ENV=electron electron-builder --mac",
+    "dist:linux": "VITE_APP_ENV=electron electron-builder --linux",
     "lint": "eslint src/**/*.{ts,js,vue} --fix",
     "prepare": "husky install",
     "prettier": "prettier --write ."
@@ -109,9 +109,7 @@
       "node_modules/**/*"
     ],
     "win": {
-      "target": ["nsis", "portable"],
-      "certificateFile": null,
-      "certificatePassword": null
+      "target": ["nsis", "portable"]
     },
     "nsis": {
       "oneClick": false,
@@ -121,8 +119,14 @@
       "shortcutName": "海棠企业管理系统"
     },
     "mac": {
+      "executableName": "haitang-admin",
+      "icon": "assets/icon.icns",
       "target": ["dmg", "zip"],
-      "category": "public.app-category.business"
+      "category": "public.app-category.business",
+      "extendInfo": {
+        "CFBundleDisplayName": "海棠企业管理系统",
+        "CFBundleName": "haitang-admin"
+      }
     },
     "linux": {
       "target": ["AppImage", "deb"],
