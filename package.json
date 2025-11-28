@@ -8,11 +8,11 @@
 
   "scripts": {
     "dev": "vite serve --mode development",
-    "dev:electron": "electron-vite dev",
+    "dev:electron": "electron-vite dev --mode electron",
     "build:prod": "vite build --mode production && vue-tsc --noEmit",
     "build:electron": "electron-vite build --mode electron",
     "preview": "vite preview",
-    "preview:electron": "electron-vite preview",
+    "preview:electron": "electron-vite preview --mode electron",
     "serve:dist": "http-server dist -p 8080 -c-1 -o",
     "pack": "electron-builder --dir",
     "dist": "electron-builder",
