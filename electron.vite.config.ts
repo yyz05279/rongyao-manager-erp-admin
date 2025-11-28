@@ -51,6 +51,10 @@ export default defineConfig(({ command, mode }) => {
         },
         extensions: ['.mjs', '.js', '.ts', '.jsx', '.tsx', '.json', '.vue']
       },
+      server: {
+        // Electron 开发环境不需要代理，直接使用线上 API
+        proxy: {}
+      },
       define: {
         'import.meta.env.VITE_APP_BASE_API': JSON.stringify(env.VITE_APP_BASE_API || '/prod-api'),
         'import.meta.env.VITE_APP_ENV': JSON.stringify(env.VITE_APP_ENV || 'electron'),
