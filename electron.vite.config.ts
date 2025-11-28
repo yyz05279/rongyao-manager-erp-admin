@@ -2,6 +2,7 @@ import { defineConfig } from 'electron-vite'
 import vue from '@vitejs/plugin-vue'
 import path from 'path'
 import { loadEnv } from 'vite'
+import createPlugins from './vite/plugins'
 
 export default defineConfig(({ command, mode }) => {
   // 加载 Electron 环境变量
@@ -12,6 +13,7 @@ export default defineConfig(({ command, mode }) => {
       entry: 'src/main/index.ts',
       vite: {
         build: {
+          outDir: 'dist/main',
           rollupOptions: {
             external: ['sqlite3', 'better-sqlite3']
           }
@@ -23,18 +25,31 @@ export default defineConfig(({ command, mode }) => {
       }
     },
     preload: {
-      entry: 'src/preload/index.ts'
+      entry: 'src/preload/index.ts',
+      vite: {
+        build: {
+          outDir: 'dist/preload'
+        }
+      }
     },
     renderer: {
       root: '.',
+      entry: 'index.html',
       build: {
-        outDir: 'dist/renderer'
+        outDir: 'dist/renderer',
+        rollupOptions: {
+          input: 'index.html',
+          external: ['uno.css']
+        }
       },
-      plugins: [vue()],
+      plugins: createPlugins(env, command === 'build'),
       resolve: {
         alias: {
-          '@': path.resolve(__dirname, './src')
-        }
+          '~': path.resolve(__dirname, './'),
+          '@': path.resolve(__dirname, './src'),
+          'vue-i18n': 'vue-i18n/dist/vue-i18n.cjs.js'
+        },
+        extensions: ['.mjs', '.js', '.ts', '.jsx', '.tsx', '.json', '.vue']
       },
       define: {
         'import.meta.env.VITE_APP_BASE_API': JSON.stringify(env.VITE_APP_BASE_API || '/prod-api'),
