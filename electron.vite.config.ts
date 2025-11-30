@@ -13,7 +13,7 @@ export default defineConfig(({ command, mode }) => {
       entry: 'src/main/index.ts',
       vite: {
         build: {
-          outDir: 'dist/main',
+          outDir: 'out/main',
           rollupOptions: {
             external: ['sqlite3', 'better-sqlite3']
           }
@@ -28,7 +28,7 @@ export default defineConfig(({ command, mode }) => {
       entry: 'src/preload/index.ts',
       vite: {
         build: {
-          outDir: 'dist/preload'
+          outDir: 'out/preload'
         }
       }
     },
@@ -36,7 +36,7 @@ export default defineConfig(({ command, mode }) => {
       root: '.',
       entry: 'index.html',
       build: {
-        outDir: 'dist/renderer',
+        outDir: 'out/renderer',
         rollupOptions: {
           input: 'index.html',
           external: ['uno.css']
