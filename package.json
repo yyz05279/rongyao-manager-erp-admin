@@ -4,7 +4,7 @@
   "description": "江苏联储ERP管理系统",
   "author": "HaiTang Team",
   "license": "MIT",
-  "main": "dist/main/index.js",
+  "main": "out/main/index.js",
 
   "scripts": {
     "dev": "vite serve --mode development",
@@ -105,7 +105,7 @@
       "buildResources": "assets"
     },
     "files": [
-      "dist/**/*",
+      "out/**/*",
       "node_modules/**/*"
     ],
     "win": {
