@@ -6,7 +6,7 @@
       <p class="system-desc">现代化的企业级管理平台，专注于提供高效、安全、易用的业务管理解决方案</p>
       <div class="version-info">
         <el-tag type="success">v1.0.0</el-tag>
-        <el-tag type="primary">企业级解决方案</el-tag>
+        <el-tag type="info">企业级解决方案</el-tag>
         <el-tag type="warning">持续迭代中</el-tag>
       </div>
     </div>
@@ -305,8 +305,23 @@ const versionHistory = ref([
 ]);
 
 onMounted(() => {
-  let protocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://'
-  initWebSocket(protocol + window.location.host + import.meta.env.VITE_APP_BASE_API + "/resource/websocket");
+  try {
+    // 构建 WebSocket URL
+    let protocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
+    let host = window.location.host;
+    let basePath = import.meta.env.VITE_APP_BASE_API || '/api';
+
+    // 确保 basePath 不会导致 URL 重复
+    let wsUrl = protocol + host + basePath + "/resource/websocket";
+
+    console.log('WebSocket 连接地址:', wsUrl);
+
+    // 初始化 WebSocket
+    initWebSocket(wsUrl);
+  } catch (error) {
+    console.error('WebSocket 初始化出错:', error);
+    // 不中断页面加载，继续显示首页内容
+  }
 });
 </script>
 

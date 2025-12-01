@@ -2,7 +2,11 @@
   <div v-if="!item.hidden">
     <template v-if="hasOneShowingChild(item, item.children) && (!onlyOneChild.children || onlyOneChild.noShowingChildren) && !item.alwaysShow">
       <app-link v-if="onlyOneChild.meta" :to="resolvePath(onlyOneChild.path, onlyOneChild.query)">
-        <el-menu-item :index="resolvePath(onlyOneChild.path)" :class="{ 'submenu-title-noDropdown': !isNest }">
+        <el-menu-item
+          :index="resolvePath(onlyOneChild.path)"
+          :class="{ 'submenu-title-noDropdown': !isNest }"
+          @click="handleMenuClick"
+        >
           <svg-icon :icon-class="onlyOneChild.meta.icon || (item.meta && item.meta.icon)" />
           <template #title>
             <span class="menu-title" :title="hasTitle(onlyOneChild.meta.title)">{{ onlyOneChild.meta.title }}</span>
@@ -75,12 +79,8 @@ const hasOneShowingChild = (parent: RouteOption, children?:RouteOption[]) => {
     // Show parent if there are no child router to display
     if (showingChildren.length === 0) {
         onlyOneChild.value = { ...parent, path: '', noShowingChildren: true }
-        if (parent.name === '2222') {
-          console.log(onlyOneChild.value)
-        }
         return true
     }
-
 
     return false
 };
@@ -104,5 +104,14 @@ const hasTitle = (title: string | undefined): string => {
         return "";
     }
     return title;
+}
+
+const handleMenuClick = () => {
+    console.log('菜单项被点击:', {
+        itemName: props.item.name,
+        itemPath: props.item.path,
+        basePath: props.basePath,
+        resolvedPath: resolvePath(onlyOneChild.value.path, onlyOneChild.value.query)
+    });
 }
 </script>
