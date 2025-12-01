@@ -44,25 +44,20 @@ jobs:
           ls -lh dist/
           file dist/*.dmg || true
       
-      - name: Upload macOS Intel artifacts
-        uses: actions/upload-artifact@v3
-        with:
-          name: macos-intel
-          path: |
-            dist/Haitang*.dmg
-            dist/Haitang*.zip
-          retention-days: 30
-      
       - name: Create checksums
         run: |
           cd dist
           shasum -a 256 Haitang*.dmg > checksums-intel.txt
           cat checksums-intel.txt
-      
-      - name: Upload checksums
-        uses: actions/upload-artifact@v3
+
+      - name: Upload macOS Intel artifacts
+        uses: actions/upload-artifact@v4
         with:
-          name: checksums-intel
-          path: dist/checksums-intel.txt
+          name: macos-intel
+          path: |
+            dist/Haitang*.dmg
+            dist/Haitang*.zip
+            dist/checksums-intel.txt
           retention-days: 30
+          if-no-files-found: warn
 

@@ -44,25 +44,20 @@ jobs:
           ls -lh dist/
           file dist/*.dmg || true
       
-      - name: Upload macOS ARM64 artifacts
-        uses: actions/upload-artifact@v3
-        with:
-          name: macos-arm64
-          path: |
-            dist/Haitang*.dmg
-            dist/Haitang*.zip
-          retention-days: 30
-      
       - name: Create checksums
         run: |
           cd dist
           shasum -a 256 Haitang*.dmg > checksums-arm64.txt
           cat checksums-arm64.txt
-      
-      - name: Upload checksums
-        uses: actions/upload-artifact@v3
+
+      - name: Upload macOS ARM64 artifacts
+        uses: actions/upload-artifact@v4
         with:
-          name: checksums-arm64
-          path: dist/checksums-arm64.txt
+          name: macos-arm64
+          path: |
+            dist/Haitang*.dmg
+            dist/Haitang*.zip
+            dist/checksums-arm64.txt
           retention-days: 30
+          if-no-files-found: warn
 
