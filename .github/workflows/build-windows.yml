@@ -36,7 +36,7 @@ jobs:
         id: lock
         shell: pwsh
         run: |
-          $npm = Test-Path package-lock.json -or Test-Path npm-shrinkwrap.json
+          $npm = (Test-Path package-lock.json) -or (Test-Path npm-shrinkwrap.json)
           $yarn = Test-Path yarn.lock
           "npm=$npm"   | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
           "yarn=$yarn" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
