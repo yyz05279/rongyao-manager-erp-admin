@@ -306,13 +306,13 @@ const versionHistory = ref([
 
 onMounted(() => {
   try {
-    // 构建 WebSocket URL
+    // 构建 WebSocket URL - 使用本地主机而不是代理的后端地址
     let protocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
     let host = window.location.host;
-    let basePath = import.meta.env.VITE_APP_BASE_API || '/api';
 
-    // 确保 basePath 不会导致 URL 重复
-    let wsUrl = protocol + host + basePath + "/resource/websocket";
+    // WebSocket 应该连接到本地开发服务器或真实的后端服务器
+    // 不应该使用代理的 VITE_APP_BASE_API
+    let wsUrl = protocol + host + "/resource/websocket";
 
     console.log('WebSocket 连接地址:', wsUrl);
 
