@@ -46,13 +46,22 @@ export const initWebSocket = (url: any) => {
     }
 
     // 防止 URL 重复添加协议前缀
-    if (url.includes('://') && url.split('://').length > 2) {
+    const protocolCount = (url.match(/:\/\//g) || []).length;
+    if (protocolCount > 1) {
       console.error('WebSocket URL 格式错误，包含多个协议前缀:', url);
       return;
     }
 
+    // 验证 URL 是否以 ws:// 或 wss:// 开头
+    if (!url.startsWith('ws://') && !url.startsWith('wss://')) {
+      console.error('WebSocket URL 必须以 ws:// 或 wss:// 开头:', url);
+      return;
+    }
+
     socketUrl = url;
-    const fullUrl = url + '?Authorization=Bearer ' + getToken() + '&clientid=' + import.meta.env.VITE_APP_CLIENT_ID;
+    const token = getToken();
+    const clientId = import.meta.env.VITE_APP_CLIENT_ID;
+    const fullUrl = url + '?Authorization=Bearer ' + token + '&clientid=' + clientId;
 
     console.log('正在初始化 WebSocket，URL:', fullUrl);
 
