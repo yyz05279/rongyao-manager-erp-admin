@@ -34,17 +34,40 @@ let socketError = 0 as number; // 错误次数
 // 初始化socket
 export const initWebSocket = (url: any) => {
   if (import.meta.env.VITE_APP_WEBSOCKET === 'false') {
+    console.log('WebSocket 已禁用');
     return;
   }
-  socketUrl = url;
-  // 初始化 websocket
-  websocket = new WebSocket(url + '?Authorization=Bearer ' + getToken() + '&clientid=' + import.meta.env.VITE_APP_CLIENT_ID);
-  websocketonopen();
-  websocketonmessage();
-  websocketonerror();
-  websocketclose();
-  sendSocketHeart();
-  return websocket;
+
+  try {
+    // 验证 URL 格式
+    if (!url || typeof url !== 'string') {
+      console.error('WebSocket URL 无效:', url);
+      return;
+    }
+
+    // 防止 URL 重复添加协议前缀
+    if (url.includes('://') && url.split('://').length > 2) {
+      console.error('WebSocket URL 格式错误，包含多个协议前缀:', url);
+      return;
+    }
+
+    socketUrl = url;
+    const fullUrl = url + '?Authorization=Bearer ' + getToken() + '&clientid=' + import.meta.env.VITE_APP_CLIENT_ID;
+
+    console.log('正在初始化 WebSocket，URL:', fullUrl);
+
+    // 初始化 websocket
+    websocket = new WebSocket(fullUrl);
+    websocketonopen();
+    websocketonmessage();
+    websocketonerror();
+    websocketclose();
+    sendSocketHeart();
+    return websocket;
+  } catch (error) {
+    console.error('WebSocket 初始化失败:', error);
+    return null;
+  }
 };
 
 // socket 连接成功
