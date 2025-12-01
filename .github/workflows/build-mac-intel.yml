@@ -1,0 +1,68 @@
+name: Build macOS Intel (x86_64)
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-latest
+    strategy:
+      matrix:
+        node-version: [16.x]
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Build Vue application
+        run: npm run build
+      
+      - name: Build Electron app (Intel x86_64)
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          CSC_LINK: ${{ secrets.CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+        run: |
+          npm run electron:build -- --mac x64 --publish=never
+      
+      - name: List build output
+        run: |
+          ls -lh dist/
+          file dist/*.dmg || true
+      
+      - name: Upload macOS Intel artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: macos-intel
+          path: |
+            dist/Haitang*.dmg
+            dist/Haitang*.zip
+          retention-days: 30
+      
+      - name: Create checksums
+        run: |
+          cd dist
+          shasum -a 256 Haitang*.dmg > checksums-intel.txt
+          cat checksums-intel.txt
+      
+      - name: Upload checksums
+        uses: actions/upload-artifact@v3
+        with:
+          name: checksums-intel
+          path: dist/checksums-intel.txt
+          retention-days: 30
+

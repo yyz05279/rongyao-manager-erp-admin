@@ -1,0 +1,129 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build-mac-intel:
+    uses: ./.github/workflows/build-mac-intel.yml
+    secrets: inherit
+
+  build-mac-arm64:
+    uses: ./.github/workflows/build-mac-arm64.yml
+    secrets: inherit
+
+  build-windows:
+    uses: ./.github/workflows/build-windows.yml
+    secrets: inherit
+
+  create-release:
+    needs: [build-mac-intel, build-mac-arm64, build-windows]
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Download all artifacts
+        uses: actions/download-artifact@v3
+        with:
+          path: artifacts
+      
+      - name: Display artifact structure
+        run: |
+          echo "=== Artifact Structure ==="
+          find artifacts -type f -name "*.dmg" -o -name "*.exe" -o -name "*.msi" -o -name "*.txt"
+      
+      - name: Prepare release files
+        run: |
+          mkdir -p release
+          
+          # Copy macOS Intel
+          cp artifacts/macos-intel/Haitang*.dmg release/ 2>/dev/null || true
+          cp artifacts/checksums-intel/checksums-intel.txt release/ 2>/dev/null || true
+          
+          # Copy macOS ARM64
+          cp artifacts/macos-arm64/Haitang*.dmg release/ 2>/dev/null || true
+          cp artifacts/checksums-arm64/checksums-arm64.txt release/ 2>/dev/null || true
+          
+          # Copy Windows
+          cp artifacts/windows-x64/Haitang*.exe release/ 2>/dev/null || true
+          cp artifacts/windows-x64/Haitang*.msi release/ 2>/dev/null || true
+          cp artifacts/checksums-windows/checksums-windows.txt release/ 2>/dev/null || true
+          
+          echo "=== Release Files ==="
+          ls -lh release/
+      
+      - name: Generate release notes
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/}
+          echo "# 海棠企业管理系统 $VERSION" > RELEASE_NOTES.md
+          echo "" >> RELEASE_NOTES.md
+          echo "## 下载" >> RELEASE_NOTES.md
+          echo "" >> RELEASE_NOTES.md
+          echo "### macOS" >> RELEASE_NOTES.md
+          echo "- **Intel (x86_64)**: Haitang-$VERSION-x64.dmg" >> RELEASE_NOTES.md
+          echo "- **Apple Silicon (ARM64)**: Haitang-$VERSION-arm64.dmg" >> RELEASE_NOTES.md
+          echo "" >> RELEASE_NOTES.md
+          echo "### Windows" >> RELEASE_NOTES.md
+          echo "- **安装程序**: Haitang-$VERSION.exe" >> RELEASE_NOTES.md
+          echo "- **便携版**: Haitang-$VERSION-portable.exe" >> RELEASE_NOTES.md
+          echo "" >> RELEASE_NOTES.md
+          echo "## 校验和" >> RELEASE_NOTES.md
+          echo "" >> RELEASE_NOTES.md
+          echo "### macOS Intel" >> RELEASE_NOTES.md
+          echo "\`\`\`" >> RELEASE_NOTES.md
+          cat release/checksums-intel.txt >> RELEASE_NOTES.md || true
+          echo "\`\`\`" >> RELEASE_NOTES.md
+          echo "" >> RELEASE_NOTES.md
+          echo "### macOS ARM64" >> RELEASE_NOTES.md
+          echo "\`\`\`" >> RELEASE_NOTES.md
+          cat release/checksums-arm64.txt >> RELEASE_NOTES.md || true
+          echo "\`\`\`" >> RELEASE_NOTES.md
+          echo "" >> RELEASE_NOTES.md
+          echo "### Windows" >> RELEASE_NOTES.md
+          echo "\`\`\`" >> RELEASE_NOTES.md
+          cat release/checksums-windows.txt >> RELEASE_NOTES.md || true
+          echo "\`\`\`" >> RELEASE_NOTES.md
+          echo "" >> RELEASE_NOTES.md
+          echo "## 系统要求" >> RELEASE_NOTES.md
+          echo "- **macOS**: 10.13 或更高版本" >> RELEASE_NOTES.md
+          echo "- **Windows**: Windows 7 或更高版本" >> RELEASE_NOTES.md
+          echo "" >> RELEASE_NOTES.md
+          echo "## 安装说明" >> RELEASE_NOTES.md
+          echo "### macOS" >> RELEASE_NOTES.md
+          echo "1. 下载 .dmg 文件" >> RELEASE_NOTES.md
+          echo "2. 双击打开 DMG 文件" >> RELEASE_NOTES.md
+          echo "3. 将应用拖到 Applications 文件夹" >> RELEASE_NOTES.md
+          echo "" >> RELEASE_NOTES.md
+          echo "### Windows" >> RELEASE_NOTES.md
+          echo "1. 下载 .exe 文件" >> RELEASE_NOTES.md
+          echo "2. 双击运行安装程序" >> RELEASE_NOTES.md
+          echo "3. 按照提示完成安装" >> RELEASE_NOTES.md
+          
+          cat RELEASE_NOTES.md
+      
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            release/Haitang*.dmg
+            release/Haitang*.exe
+            release/Haitang*.msi
+            release/checksums-*.txt
+          body_path: RELEASE_NOTES.md
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Upload to release summary
+        run: |
+          echo "## 🎉 Release Created Successfully" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📦 Artifacts" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          ls -1 release/ | sed 's/^/- /' >> $GITHUB_STEP_SUMMARY
+
