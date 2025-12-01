@@ -9,6 +9,15 @@ yarn-error.log*
 /docs/淮安项目发货清单/
 /out
 
+# 排除src目录中的文档和测试文件（防止打包时包含）
+src/**/*.md
+src/**/*.test.js
+src/**/*.spec.js
+src/**/*.test.ts
+src/**/*.spec.ts
+src/**/test-*.js
+src/**/*-test.js
+
 # 测试相关文件
 tests/
 !tests/README.md
