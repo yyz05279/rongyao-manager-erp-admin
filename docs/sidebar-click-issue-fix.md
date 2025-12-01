@@ -5,21 +5,22 @@
 
 ## 根本原因分析
 
-### 1. WebSocket 初始化错误
-**症状**: 控制台显示 WebSocket URL 构建错误
+### 1. WebSocket 网址构建错误（主要原因）
+**症状**: 控制台显示 WebSocket 网址构建错误
 ```
 Failed to construct 'WebSocket': The URL 'ws://localhost:5173http://42.192.76.234:8080/resource/websocket?...' is invalid.
 ```
 
-**原因**: 
-- 在 `src/views/index.vue` 的 `mounted` 钩子中，WebSocket URL 构建逻辑不完善
-- 当 `VITE_APP_BASE_API` 被代理到真实后端地址时，导致 URL 中出现重复的协议前缀
-- WebSocket 初始化失败导致首页 mounted 钩子抛出异常，可能影响整个页面的交互
+**原因**:
+- 在 `src/views/index.vue` 的 `onMounted` 钩子中，WebSocket 网址构建逻辑使用了 `VITE_APP_BASE_API`
+- 在开发环境中，`VITE_APP_BASE_API` 被代理到真实后端地址（如 `http://42.192.76.234:8080`）
+- 导致网址中出现重复的协议前缀：`ws://localhost:5173` + `http://42.192.76.234:8080`
+- WebSocket 初始化失败导致首页 mounted 钩子抛出异常，影响整个页面的交互
 
-### 2. 首页 ElTag 类型错误
+### 2. 首页标签类型错误
 **症状**: 控制台警告 `Invalid prop: validation failed for prop "type". Expected one of ["success", "info", "warning", "danger", ""], got value "primary"`
 
-**原因**: 
+**原因**:
 - Element Plus 的 ElTag 组件只支持特定的类型值
 - 首页中使用了不支持的 `type="primary"`
 
@@ -30,24 +31,26 @@ Failed to construct 'WebSocket': The URL 'ws://localhost:5173http://42.192.76.23
 
 ## 修复方案
 
-### 1. 增强 WebSocket 初始化的错误处理
-**文件**: `src/utils/websocket.ts`
-
-修改 `initWebSocket` 函数：
-- 添加 URL 格式验证
-- 检测 URL 中是否存在重复的协议前缀
-- 添加 try-catch 错误捕获
-- 添加详细的日志输出
-
-### 2. 修复首页 mounted 钩子
+### 1. 修复 WebSocket 网址构建逻辑
 **文件**: `src/views/index.vue`
 
 修改 `onMounted` 钩子：
+- 不再使用代理的 `VITE_APP_BASE_API`
+- 直接使用本地主机地址构建 WebSocket 网址
 - 添加 try-catch 错误处理
-- 确保 WebSocket 初始化失败不会中断页面加载
 - 添加详细的日志输出
 
-### 3. 修复 ElTag 类型
+### 2. 增强 WebSocket 初始化的验证
+**文件**: `src/utils/websocket.ts`
+
+修改 `initWebSocket` 函数：
+- 验证网址格式
+- 检测网址中是否存在重复的协议前缀
+- 验证网址是否以 `ws://` 或 `wss://` 开头
+- 添加 try-catch 错误捕获
+- 添加详细的日志输出
+
+### 3. 修复标签类型
 **文件**: `src/views/index.vue`
 
 将 `type="primary"` 改为 `type="info"`
@@ -68,8 +71,8 @@ Failed to construct 'WebSocket': The URL 'ws://localhost:5173http://42.192.76.23
 
 ## 预期结果
 
-- 首页加载时不再出现 WebSocket 错误
-- 首页不再出现 ElTag 类型错误
-- 侧边栏功能按钮点击时能正确响应
-- 能正确导航到对应页面
+- ✓ 首页加载时不再出现 WebSocket 错误
+- ✓ 首页不再出现标签类型错误
+- ✓ 侧边栏功能按钮点击时能正确响应
+- ✓ 能正确导航到对应页面
 
