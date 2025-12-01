@@ -13,6 +13,9 @@ import usePermissionStore from '@/store/modules/permission';
 NProgress.configure({ showSpinner: false });
 const whiteList = ['/login', '/register', '/social-callback'];
 
+// 标记路由是否已加载，防止重复加载
+let routesLoaded = false;
+
 router.beforeEach(async (to, from, next) => {
   NProgress.start();
   if (getToken()) {
@@ -35,19 +38,26 @@ router.beforeEach(async (to, from, next) => {
         } else {
           isRelogin.show = false;
           try {
-            const accessRoutes = await usePermissionStore().generateRoutes();
-            // 根据roles权限生成可访问的路由表
-            accessRoutes.forEach((route) => {
-              if (!isHttp(route.path)) {
-                router.addRoute(route); // 动态添加可访问路由表
-              }
-            });
-            next({ ...to, replace: true }); // hack方法 确保addRoutes已完成
+            // 防止重复加载路由
+            if (!routesLoaded) {
+              const accessRoutes = await usePermissionStore().generateRoutes();
+              // 根据roles权限生成可访问的路由表
+              accessRoutes.forEach((route) => {
+                if (!isHttp(route.path)) {
+                  router.addRoute(route); // 动态添加可访问路由表
+                }
+              });
+              routesLoaded = true;
+              console.log('✅ 路由加载完成');
+            }
+            // 改进：直接进行导航，而不是使用 replace: true
+            next();
           } catch (error) {
-            console.error('加载路由失败，使用默认路由:', error);
+            console.error('❌ 加载路由失败:', error);
             ElMessage.warning('加载菜单失败，部分功能可能无法使用');
             // 即使API失败，也继续导航，使用静态路由
-            next({ ...to, replace: true });
+            routesLoaded = true;
+            next();
           }
         }
       } else {

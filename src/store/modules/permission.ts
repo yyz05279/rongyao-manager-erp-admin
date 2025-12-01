@@ -196,6 +196,14 @@ export const usePermissionStore = defineStore('permission', () => {
             console.log(`✅ 从映射表获取 component: ${route.path} (完整路径: ${normalizedPath})`);
           } else {
             console.warn(`⚠️  无法为路由 ${route.path} 找到 component (完整路径: ${normalizedPath})`);
+            // 改进：如果有子路由，使用 ParentView；否则使用 Layout 作为后备
+            if (route.children && route.children.length > 0) {
+              route.component = ParentView;
+              console.log(`✅ 为路由 ${route.path} 分配后备 component: ParentView`);
+            } else if (!route.path.startsWith('/')) {
+              // 相对路径且无子路由，不设置 component，让父路由处理
+              console.log(`ℹ️  路由 ${route.path} 为相对路径且无子路由，不设置 component`);
+            }
           }
         }
       }
