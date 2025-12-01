@@ -22,14 +22,21 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
-          cache: 'npm'
-          cache-dependency-path: |
-            package-lock.json
-            **/package-lock.json
-            npm-shrinkwrap.json
 
       - name: Install dependencies
-        run: npm ci
+        shell: bash
+        run: |
+          if [[ -f "package-lock.json" || -f "npm-shrinkwrap.json" ]]; then
+            echo "Using npm ci (lockfile found)"
+            npm ci
+          elif [[ -f "yarn.lock" ]]; then
+            echo "Using yarn (yarn.lock found)"
+            corepack enable || true
+            yarn install --frozen-lockfile
+          else
+            echo "No lockfile found, falling back to npm install"
+            npm install
+          fi
       
       - name: Build Vue application
         run: npm run build
