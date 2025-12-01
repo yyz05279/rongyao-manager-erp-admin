@@ -38,16 +38,6 @@ jobs:
           dir dist\
           Get-ChildItem dist\*.exe | ForEach-Object { Write-Host $_.FullName }
       
-      - name: Upload Windows artifacts
-        uses: actions/upload-artifact@v3
-        with:
-          name: windows-x64
-          path: |
-            dist/Haitang*.exe
-            dist/Haitang*.msi
-            dist/Haitang*.nsis.7z
-          retention-days: 30
-      
       - name: Create checksums
         run: |
           cd dist
@@ -57,11 +47,16 @@ jobs:
             "$hash  $($file.Name)" | Add-Content checksums-windows.txt
           }
           Get-Content checksums-windows.txt
-      
-      - name: Upload checksums
-        uses: actions/upload-artifact@v3
+
+      - name: Upload Windows artifacts
+        uses: actions/upload-artifact@v4
         with:
-          name: checksums-windows
-          path: dist/checksums-windows.txt
+          name: windows-x64
+          path: |
+            dist/Haitang*.exe
+            dist/Haitang*.msi
+            dist/Haitang*.nsis.7z
+            dist/checksums-windows.txt
           retention-days: 30
+          if-no-files-found: warn
 
