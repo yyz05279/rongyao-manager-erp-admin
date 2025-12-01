@@ -30,7 +30,7 @@ jobs:
             /*
             !/src/**/*.md
             !/src/views/erp/saltprocess/records/binary/*
-          sparse-checkout-cone: false
+          sparse-checkout-cone-mode: false
 
       - name: Detect lockfiles
         id: lock
