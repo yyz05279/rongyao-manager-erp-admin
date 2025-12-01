@@ -5,14 +5,29 @@ directories:
   output: dist
 
 files:
+  # 编译后的源代码
   - from: out
     to: .
+  # node_modules 依赖，排除文档和测试文件
   - from: node_modules
     to: node_modules
     filter:
       - '!**/node_modules/*/{CHANGELOG.md,README.md,README,readme.md,readme,*.md}'
       - '!**/node_modules/*/{test,tests,*.test.js,*.spec.js}'
       - '!**/node_modules/*/{.eslintrc*,eslint*,prettier*,tslint*}'
+      - '!**/node_modules/*/{.github,examples,docs,doc}'
+  # 排除 docs 目录中的所有文件
+  - '!docs/**/*'
+  # 排除 src 目录中的文档文件
+  - '!src/**/*.md'
+  # 排除测试文件
+  - '!src/**/*.test.js'
+  - '!src/**/*.spec.js'
+  - '!src/**/*.test.ts'
+  - '!src/**/*.spec.ts'
+  # 排除其他非源代码文件
+  - '!**/*.test-export.js'
+  - '!**/test-*.js'
 
 win:
   target:
