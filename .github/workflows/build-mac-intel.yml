@@ -1,0 +1,76 @@
+name: Build macOS Intel (x86_64)
+
+on:
+  # 已禁用 - 仅在需要时手动触发
+  # workflow_call:
+  # push:
+  #   tags:
+  #     - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-latest
+    strategy:
+      matrix:
+        node-version: [16.x]
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - name: Install dependencies
+        shell: bash
+        run: |
+          if [[ -f "package-lock.json" || -f "npm-shrinkwrap.json" ]]; then
+            echo "Using npm ci (lockfile found)"
+            npm ci
+          elif [[ -f "yarn.lock" ]]; then
+            echo "Using yarn (yarn.lock found)"
+            corepack enable || true
+            yarn install --frozen-lockfile
+          else
+            echo "No lockfile found, falling back to npm install"
+            npm install
+          fi
+      
+      - name: Build Vue application
+        run: npm run build
+      
+      - name: Build Electron app (Intel x86_64)
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          CSC_LINK: ${{ secrets.CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+        run: |
+          npm run electron:build -- --mac x64 --publish=never
+      
+      - name: List build output
+        run: |
+          ls -lh dist/
+          file dist/*.dmg || true
+      
+      - name: Create checksums
+        run: |
+          cd dist
+          shasum -a 256 Haitang*.dmg > checksums-intel.txt
+          cat checksums-intel.txt
+
+      - name: Upload macOS Intel artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-intel
+          path: |
+            dist/Haitang*.dmg
+            dist/Haitang*.zip
+            dist/checksums-intel.txt
+          retention-days: 30
+          if-no-files-found: warn
+

@@ -1,0 +1,130 @@
+{
+  "appId": "com.haitang.admin",
+  "productName": "海棠企业管理系统",
+  "directories": {
+    "output": "dist",
+    "buildResources": "electron/resources"
+  },
+  "files": [
+    "dist/**/*",
+    "!dist/**/*.md",
+    "!dist/**/*.test.js",
+    "!dist/**/*.spec.js",
+    "node_modules/**/*",
+    "!node_modules/**/CHANGELOG.md",
+    "!node_modules/**/README.md",
+    "!node_modules/**/readme.md",
+    "!node_modules/**/*.md",
+    "!node_modules/**/test",
+    "!node_modules/**/tests",
+    "!node_modules/**/*.test.js",
+    "!node_modules/**/*.spec.js",
+    "!node_modules/**/.eslintrc*",
+    "!node_modules/**/eslint*",
+    "!node_modules/**/prettier*",
+    "!node_modules/**/tslint*",
+    "!node_modules/**/.github",
+    "!node_modules/**/examples",
+    "!node_modules/**/docs",
+    "!node_modules/**/doc",
+    "electron/main.js",
+    "electron/preload.js",
+    "package.json"
+  ],
+  "extraMetadata": {
+    "main": "electron/main.js"
+  },
+  "mac": {
+    "target": [
+      {
+        "target": "dmg",
+        "arch": [
+          "x64",
+          "arm64"
+        ]
+      },
+      {
+        "target": "zip",
+        "arch": [
+          "x64",
+          "arm64"
+        ]
+      }
+    ],
+    "category": "public.app-category.business",
+    "hardenedRuntime": true,
+    "gatekeeperAssess": false,
+    "entitlements": "electron/entitlements.mac.plist",
+    "entitlementsInherit": "electron/entitlements.mac.plist",
+    "certificateFile": null,
+    "certificatePassword": null,
+    "signingHashAlgorithms": [
+      "sha256"
+    ],
+    "notarize": {
+      "teamId": null
+    }
+  },
+  "dmg": {
+    "contents": [
+      {
+        "x": 130,
+        "y": 220,
+        "type": "file"
+      },
+      {
+        "x": 410,
+        "y": 220,
+        "type": "link",
+        "path": "/Applications"
+      }
+    ],
+    "window": {
+      "width": 540,
+      "height": 380
+    }
+  },
+  "win": {
+    "target": [
+      {
+        "target": "nsis",
+        "arch": [
+          "x64"
+        ]
+      },
+      {
+        "target": "portable",
+        "arch": [
+          "x64"
+        ]
+      }
+    ],
+    "certificateFile": null,
+    "certificatePassword": null,
+    "signingHashAlgorithms": [
+      "sha256"
+    ],
+    "sign": null
+  },
+  "nsis": {
+    "oneClick": false,
+    "allowToChangeInstallationDirectory": true,
+    "createDesktopShortcut": true,
+    "createStartMenuShortcut": true,
+    "shortcutName": "海棠企业管理系统",
+    "installerIcon": "electron/resources/icon.ico",
+    "uninstallerIcon": "electron/resources/icon.ico",
+    "installerHeaderIcon": "electron/resources/icon.ico"
+  },
+  "portable": {
+    "artifactName": "${productName}-${version}-portable.${ext}"
+  },
+  "linux": {
+    "target": [
+      "AppImage",
+      "deb"
+    ],
+    "category": "Office"
+  }
+}
+
