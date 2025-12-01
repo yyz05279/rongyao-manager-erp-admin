@@ -1,10 +1,11 @@
 name: Build macOS ARM64 (Apple Silicon M系列)
 
 on:
-  workflow_call:
-  push:
-    tags:
-      - 'v*'
+  # 已禁用 - 仅在需要时手动触发
+  # workflow_call:
+  # push:
+  #   tags:
+  #     - 'v*'
   workflow_dispatch:
 
 jobs:
