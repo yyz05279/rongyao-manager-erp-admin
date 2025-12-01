@@ -1,0 +1,94 @@
+name: Build macOS
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:
+
+jobs:
+  build-mac:
+    runs-on: macos-latest
+    timeout-minutes: 60
+
+    strategy:
+      matrix:
+        node-version: [18.x]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+
+      - name: Check system resources
+        run: |
+          echo "Available memory:"
+          vm_stat | grep "Pages free"
+          echo "Available disk space:"
+          df -h .
+
+      - name: Increase file descriptor limit
+        run: |
+          ulimit -n 4096
+          ulimit -u 2048
+          echo "File descriptor limit: $(ulimit -n)"
+
+      - name: Set environment variables
+        run: |
+          echo "NODE_OPTIONS=--max-old-space-size=4096" >> $GITHUB_ENV
+          echo "ELECTRON_BUILDER_CACHE_DIR=$HOME/.electron-builder-cache" >> $GITHUB_ENV
+          echo "ELECTRON_BUILDER_ALLOW_UNRESOLVED_DEPENDENCIES=true" >> $GITHUB_ENV
+          echo "VITE_APP_ENV=electron" >> $GITHUB_ENV
+
+      - name: Clean cache
+        run: |
+          rm -rf dist out node_modules/.cache
+          npm cache clean --force
+
+      - name: Install dependencies
+        run: npm ci --prefer-offline --no-audit
+
+      - name: Build Electron app
+        run: npm run build:electron
+
+      - name: Build macOS package
+        run: |
+          VITE_APP_ENV=electron npx electron-builder \
+            --mac \
+            --publish=never \
+            --config electron-builder.yml \
+            -c.artifactBuildStarted=null \
+            -c.mac.asarUnpack="**/*.node"
+
+      - name: Upload artifacts
+        if: success()
+        uses: actions/upload-artifact@v3
+        with:
+          name: macos-build
+          path: dist/mac
+          retention-days: 30
+
+      - name: Create Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v1
+        with:
+          files: dist/mac/**/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Notify on failure
+        if: failure()
+        run: |
+          echo "❌ macOS 构建失败"
+          echo "请检查以下内容："
+          echo "1. 系统资源是否充足"
+          echo "2. 磁盘空间是否充足"
+          echo "3. 网络连接是否正常"
+          echo "4. app-builder 版本是否最新"
+
