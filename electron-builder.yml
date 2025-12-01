@@ -1,0 +1,60 @@
+appId: com.haitang.admin
+productName: 海棠企业管理系统
+directories:
+  buildResources: assets
+  output: dist
+
+files:
+  - from: out
+    to: .
+  - from: node_modules
+    to: node_modules
+    filter:
+      - '!**/node_modules/*/{CHANGELOG.md,README.md,README,readme.md,readme,*.md}'
+      - '!**/node_modules/*/{test,tests,*.test.js,*.spec.js}'
+      - '!**/node_modules/*/{.eslintrc*,eslint*,prettier*,tslint*}'
+
+win:
+  target:
+    - nsis
+    - portable
+  certificateFile: null
+  certificatePassword: null
+
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: 海棠企业管理系统
+
+mac:
+  executableName: haitang-admin
+  icon: assets/icon.icns
+  target:
+    - dmg
+    - zip
+  category: public.app-category.business
+  hardenedRuntime: true
+  gatekeeperAssess: false
+  entitlements: build/entitlements.mac.plist
+  entitlementsInherit: build/entitlements.mac.plist
+  asarUnpack:
+    - '**/*.node'
+  extendInfo:
+    CFBundleDisplayName: 海棠企业管理系统
+    CFBundleName: haitang-admin
+    NSPrincipalClass: NSApplication
+
+# macOS 特定的构建优化选项
+afterPack: scripts/afterPack.js
+
+linux:
+  target:
+    - AppImage
+    - deb
+  category: Utility
+
+# 通用构建选项
+publish: null
+
