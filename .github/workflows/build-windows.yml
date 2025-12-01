@@ -15,25 +15,65 @@ jobs:
         node-version: [18.x]
 
     steps:
-      - name: Checkout code
+      - name: Checkout code (exclude problematic docs)
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          sparse-checkout: |
+            /*
+            !/src/**/*.md
+            !/src/views/erp/saltprocess/records/binary/*
+          sparse-checkout-cone: false
 
-      - name: Setup Node.js
+      - name: Detect lockfiles
+        id: lock
+        shell: pwsh
+        run: |
+          $npm = Test-Path package-lock.json -or Test-Path npm-shrinkwrap.json
+          $yarn = Test-Path yarn.lock
+          "npm=$npm"   | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          "yarn=$yarn" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+
+      - name: Setup Node.js (npm cache)
+        if: steps.lock.outputs.npm == 'True'
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
           cache: 'npm'
+
+      - name: Setup Node.js (yarn cache)
+        if: steps.lock.outputs.yarn == 'True'
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'yarn'
+
+      - name: Setup Node.js (no cache)
+        if: steps.lock.outputs.npm != 'True' && steps.lock.outputs.yarn != 'True'
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
 
       - name: Verify Node and npm versions
         run: |
           node --version
           npm --version
 
-      - name: Install dependencies
+      - name: Install dependencies (npm ci)
+        if: steps.lock.outputs.npm == 'True'
         run: npm ci --prefer-offline --no-audit
-      
+
+      - name: Install dependencies (yarn)
+        if: steps.lock.outputs.yarn == 'True'
+        shell: pwsh
+        run: |
+          corepack enable || true
+          yarn install --frozen-lockfile
+
+      - name: Install dependencies (no lockfile)
+        if: steps.lock.outputs.npm != 'True' && steps.lock.outputs.yarn != 'True'
+        run: npm install --no-audit
+
       - name: Build Vue application
         run: npm run build:prod
         env:
