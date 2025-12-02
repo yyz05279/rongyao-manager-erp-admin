@@ -2,7 +2,7 @@ import vue from '@vitejs/plugin-vue';
 import createUnoCss from './unocss';
 import createAutoImport from './auto-import';
 import createComponents from './components';
-import createIcons from './icons';
+// import createIcons from './icons'; // 禁用 unplugin-icons 以避免 Windows 环境中的 ESM/CommonJS 兼容性问题
 import createSvgIconsPlugin from './svg-icon';
 import createCompression from './compression';
 import createSetupExtend from './setup-extend';
@@ -15,11 +15,8 @@ export default (viteEnv: any, isBuild = false): [] => {
   vitePlusgins.push(createAutoImport(path));
   vitePlusgins.push(createComponents(path));
   vitePlusgins.push(createCompression(viteEnv));
-  // 在构建时跳过 unplugin-icons 以避免 Windows 环境中的 ESM/CommonJS 兼容性问题
-  // 这个插件在 GitHub Actions 流水线中会导致构建失败
-  if (!isBuild) {
-    vitePlusgins.push(createIcons());
-  }
+  // unplugin-icons 已禁用，使用 SVG 图标插件替代
+  // vitePlusgins.push(createIcons());
   vitePlusgins.push(createSvgIconsPlugin(path, isBuild));
   vitePlusgins.push(createSetupExtend());
   return vitePlusgins;
