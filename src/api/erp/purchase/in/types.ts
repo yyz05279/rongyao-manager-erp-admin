@@ -182,6 +182,11 @@ export interface PurchaseInForm extends BaseEntity {
    */
   remark?: string;
 
+  /**
+   * 采购入库项
+   */
+  items?: any[];
+
 }
 
 export interface PurchaseInQuery extends PageQuery {

@@ -189,12 +189,16 @@ interface PurchaseInItem {
   productName?: string;
   stockCount?: number;
   count?: number;
+  totalCount?: number;
+  inCount?: number;
   productPrice?: number;
   totalProductPrice?: number;
   taxPercent?: number;
   taxPrice?: number;
   totalPrice?: number;
   remark?: string;
+  barCode?: string;
+  productUnitName?: string;
 }
 
 const props = withDefaults(defineProps<{

@@ -84,6 +84,11 @@ export interface PurchaseOrderVO {
    */
   returnCount: number;
 
+  /**
+   * 采购订单项
+   */
+  items?: PurchaseOrderItem[];
+
 }
 
 export interface PurchaseOrderForm extends BaseEntity {
@@ -175,7 +180,12 @@ export interface PurchaseOrderForm extends BaseEntity {
   /**
    * 采购单明细
    */
-  purchaseOrderItems: PurchaseOrderItem[];
+  purchaseOrderItems?: PurchaseOrderItem[];
+
+  /**
+   * 采购单项（别名）
+   */
+  items?: any[];
 }
 
 export interface PurchaseOrderItem{
