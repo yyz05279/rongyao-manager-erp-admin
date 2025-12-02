@@ -389,7 +389,7 @@ const loadData = async () => {
 
     if (response.code === 200) {
       // 使用API返回的数据
-      const apiData = response.data;
+      const apiData = response.data as any;
       chartData.value = {
         dates: apiData.chartData.dates,
         nano3Data: apiData.chartData.nano3Data,
