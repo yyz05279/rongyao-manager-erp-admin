@@ -408,7 +408,8 @@ const loadAlertRecords = async (taskId: string) => {
 const loadInspectionRecords = async (taskId: string) => {
   try {
     const { data } = await listPreheatingInspection(taskId);
-    inspectionRecords.value = data;
+    // 处理 PageResult 返回类型
+    inspectionRecords.value = (data as any).rows || data || [];
   } catch (error) {
     console.error('加载巡检记录失败:', error);
   }

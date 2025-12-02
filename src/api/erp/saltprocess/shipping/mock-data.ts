@@ -591,13 +591,13 @@ export const paginateResults = <T>(data: T[], pageNum: number = 1, pageSize: num
   const pages = Math.ceil(total / pageSize);
   const start = (pageNum - 1) * pageSize;
   const end = start + pageSize;
-  const records = data.slice(start, end);
+  const rows = data.slice(start, end);
 
   return {
-    records,
+    rows,
     total,
-    size: pageSize,
-    current: pageNum,
+    pageNum,
+    pageSize,
     pages
   };
 };

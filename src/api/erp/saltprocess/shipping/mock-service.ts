@@ -40,7 +40,7 @@ interface ApiResponse<T> {
 }
 
 interface PageResult<T> {
-  records: T[];
+  rows: T[];
   total: number;
   pageNum: number;
   pageSize: number;

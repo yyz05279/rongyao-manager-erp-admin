@@ -291,8 +291,15 @@ const loadTemplateList = async () => {
 
     // 采用更安全的方式访问数据，兼容多种可能的返回结构
     const responseData = res.data || res;
-    templateList.value = responseData.rows || [];
-    total.value = responseData.total || 0;
+
+    // 处理 PageResult 和数组两种返回类型
+    if (Array.isArray(responseData)) {
+      templateList.value = responseData as any[];
+      total.value = responseData.length;
+    } else {
+      templateList.value = (responseData as any).rows || [];
+      total.value = (responseData as any).total || 0;
+    }
   } catch (error) {
     console.error('加载模板列表失败:', error);
     ElMessage.error('加载模板列表失败');
