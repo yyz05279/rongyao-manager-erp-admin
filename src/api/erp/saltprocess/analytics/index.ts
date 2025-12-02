@@ -263,22 +263,28 @@ export const getWorkloadAnalysis = (period: AnalysisPeriod): AxiosPromise<any> =
 /**
  * 获取仪表板数据
  */
-export const getDashboardData = (period: AnalysisPeriod): AxiosPromise<DashboardData> => {
+export const getDashboardData = (params: AnalysisQueryParams | AnalysisPeriod | string): AxiosPromise<DashboardData> => {
+  const queryParams = typeof params === 'object' && !('toString' in params)
+    ? params
+    : { period: params };
   return request({
     url: '/erp/saltprocess/analytics/dashboard',
     method: 'get',
-    params: { period }
+    params: queryParams
   });
 };
 
 /**
  * 获取KPI指标
  */
-export const getKPIMetrics = (period: AnalysisPeriod): AxiosPromise<any> => {
+export const getKPIMetrics = (params: AnalysisQueryParams | AnalysisPeriod | string): AxiosPromise<any> => {
+  const queryParams = typeof params === 'object' && !('toString' in params)
+    ? params
+    : { period: params };
   return request({
     url: '/erp/saltprocess/analytics/kpi',
     method: 'get',
-    params: { period }
+    params: queryParams
   });
 };
 

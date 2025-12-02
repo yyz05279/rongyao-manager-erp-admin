@@ -237,9 +237,10 @@ import {
 } from '@element-plus/icons-vue';
 import * as echarts from 'echarts';
 import { getDashboardData } from '@/api/erp/saltprocess/analytics';
-import type { 
-  DashboardData, 
-  KPIMetric, 
+import { AnalysisPeriod } from '@/api/erp/saltprocess/analytics/types';
+import type {
+  DashboardData,
+  KPIMetric,
   DashboardAlert,
   ProductionSummary,
   QualitySummary,
@@ -329,7 +330,7 @@ onUnmounted(() => {
 const loadDashboardData = async () => {
   try {
     loading.value = true;
-    const { data } = await getDashboardData('DAILY');
+    const { data } = await getDashboardData(AnalysisPeriod.DAILY);
     
     kpiMetrics.value = data.kpis || [];
     productionSummary.value = data.productionSummary || productionSummary.value;

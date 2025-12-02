@@ -327,10 +327,10 @@ const handleProjectChange = (projectId: string) => {
   // 根据项目类型自动设置默认参数
   const project = projectList.value.find(p => p.id === projectId);
   if (project?.projectName.includes('三元')) {
-    formData.saltType = 'TERNARY_SALT';
+    formData.saltType = SaltType.TERNARY_SALT;
     formData.targetTemperature = 220;
   } else {
-    formData.saltType = 'BINARY_SALT';
+    formData.saltType = SaltType.BINARY_SALT;
     formData.targetTemperature = 250;
   }
 };
