@@ -372,10 +372,10 @@ const formRef = ref<FormInstance>();
 const isEdit = computed(() => !!props.recordId);
 
 // 表单数据
-const formData = reactive<TernaryRecordForm>({
+const formData = reactive<Partial<TernaryRecordForm>>({
   recordCode: '',
   batchNumber: '',
-  projectId: '',
+  projectId: 0,
   recordDate: '',
   shift: 1,
   duration: 0,

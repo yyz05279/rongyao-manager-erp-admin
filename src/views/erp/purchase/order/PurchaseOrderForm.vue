@@ -149,20 +149,21 @@ const { proxy } = getCurrentInstance() as ComponentInternalInstance;
 /** ERP 销售订单表单 */
 defineOptions({ name: 'PurchaseOrderForm' })
 
-const formData =  ref({
+const formData =  ref<PurchaseOrderForm>({
   id: undefined,
   supplierId: undefined,
   accountId: undefined,
-  orderTime: undefined,
+  orderTime: undefined as any,
   fileUrl: '',
   remark: undefined,
   discountPercent: 0,
   discountPrice: 0,
   totalPrice: 0,
   depositPrice: 0,
+  // 与后端保持兼容，使用别名字段 items 进行子项绑定
   items: [],
-  no: undefined // 订单单号，后端返回
-});
+  no: undefined
+} as PurchaseOrderForm);
 const formType = ref('') // 表单的类型：create - 新增；update - 修改；detail - 详情
 
 const formRules = reactive({

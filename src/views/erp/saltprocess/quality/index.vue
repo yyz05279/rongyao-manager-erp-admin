@@ -415,7 +415,7 @@ const queryParams = reactive<QualityTestQuery>({
   testType: '',
   testStatus: '',
   testResult: '',
-  testDateRange: []
+  testDateRange: ['', '']
 });
 
 // 对话框

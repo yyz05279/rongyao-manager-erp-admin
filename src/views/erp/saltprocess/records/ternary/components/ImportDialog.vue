@@ -187,7 +187,7 @@ const emit = defineEmits<{
 // 响应式数据
 const importMethod = ref<'excel' | 'manual'>('excel');
 const uploadRef = ref<UploadInstance>();
-const previewData = ref<TernaryRecordForm[]>([]);
+const previewData = ref<Partial<TernaryRecordForm>[]>([]);
 const importing = ref(false);
 const importProgress = ref(0);
 const importStatus = ref<'success' | 'exception' | undefined>();
@@ -199,7 +199,7 @@ const importResult = ref<{
 } | null>(null);
 
 // 手动录入相关
-const manualRecords = ref<TernaryRecordForm[]>([]);
+const manualRecords = ref<Partial<TernaryRecordForm>[]>([]);
 const editFormVisible = ref(false);
 const editFormTitle = ref('新增记录');
 
@@ -335,7 +335,7 @@ const parseExcelFile = (file: File) => {
         remark: row['备注'] || ''
       }));
 
-      previewData.value = records;
+      previewData.value = records as Partial<TernaryRecordForm>[];
       ElMessage.success(`成功解析 ${records.length} 条记录`);
     } catch (error) {
       ElMessage.error('文件解析失败，请检查文件格式');

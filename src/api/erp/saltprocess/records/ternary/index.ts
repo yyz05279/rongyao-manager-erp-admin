@@ -34,7 +34,7 @@ export const getTernaryRecord = (id: string | number): AxiosPromise<TernaryRecor
 /**
  * 新增三元化盐记录
  */
-export const addTernaryRecord = (data: TernaryRecordForm): AxiosPromise<TernaryRecordVO> => {
+export const addTernaryRecord = (data: Partial<TernaryRecordForm>): AxiosPromise<TernaryRecordVO> => {
   return request({
     url: '/erp/saltprocess/ternary-record',
     method: 'post',
@@ -45,7 +45,7 @@ export const addTernaryRecord = (data: TernaryRecordForm): AxiosPromise<TernaryR
 /**
  * 修改三元化盐记录
  */
-export const updateTernaryRecord = (data: TernaryRecordForm): AxiosPromise<void> => {
+export const updateTernaryRecord = (data: Partial<TernaryRecordForm>): AxiosPromise<void> => {
   return request({
     url: '/erp/saltprocess/ternary-record',
     method: 'put',
