@@ -50,22 +50,28 @@ export const getProductionTrend = (params: AnalysisQueryParams | AnalysisPeriod,
 /**
  * 获取产能分析
  */
-export const getCapacityAnalysis = (period: AnalysisPeriod): AxiosPromise<any> => {
+export const getCapacityAnalysis = (params: AnalysisQueryParams | AnalysisPeriod): AxiosPromise<any> => {
+  const queryParams = typeof params === 'object' && !('toString' in params)
+    ? params
+    : { period: params };
   return request({
     url: '/erp/saltprocess/analytics/production/capacity',
     method: 'get',
-    params: { period }
+    params: queryParams
   });
 };
 
 /**
  * 获取效率分析
  */
-export const getEfficiencyAnalysis = (period: AnalysisPeriod): AxiosPromise<any> => {
+export const getEfficiencyAnalysis = (params: AnalysisQueryParams | AnalysisPeriod): AxiosPromise<any> => {
+  const queryParams = typeof params === 'object' && !('toString' in params)
+    ? params
+    : { period: params };
   return request({
     url: '/erp/saltprocess/analytics/production/efficiency',
     method: 'get',
-    params: { period }
+    params: queryParams
   });
 };
 

@@ -246,7 +246,7 @@ import {
   getRealtimeData,
   getPreheatingChartData,
   getPreheatingAlerts,
-  handleAlert
+  handleAlert as handlePreheatingAlert
 } from '@/api/erp/saltprocess/preheating';
 import type {
   PreheatingTaskVO,
@@ -537,8 +537,8 @@ const handleAlert = async (alert: PreheatingAlert) => {
         inputErrorMessage: '处理措施不能为空'
       }
     );
-    
-    await handleAlert(alert.id, action);
+
+    await handlePreheatingAlert(alert.id, action);
     ElMessage.success('报警处理成功');
     loadActiveAlerts(taskData.value.id);
   } catch (error) {

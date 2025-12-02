@@ -333,7 +333,7 @@ import {
   getSaltmakingChartData,
   getSaltmakingAlerts,
   getSaltmakingRatioData,
-  handleAlert
+  handleAlert as handleSaltmakingAlert
 } from '@/api/erp/saltprocess/saltmaking';
 import type {
   SaltmakingTaskVO,
@@ -489,7 +489,7 @@ const updateRatioChart = (data: SaltmakingRatioData[]) => {
       {
         name: '实际配比',
         type: 'bar',
-        data: data.map(item => item.actualRatio),
+        data: data.map(item => item.currentRatio),
         itemStyle: { color: '#67C23A' }
       }
     ]
@@ -684,8 +684,8 @@ const handleAlert = async (alert: SaltmakingAlert) => {
         inputErrorMessage: '处理措施不能为空'
       }
     );
-    
-    await handleAlert(alert.id, action);
+
+    await handleSaltmakingAlert(alert.id, action);
     ElMessage.success('报警处理成功');
     loadActiveAlerts(taskData.value.id);
   } catch (error) {
