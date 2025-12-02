@@ -50,6 +50,25 @@ export const getItemTemplate = (id: string | number): AxiosPromise<SubsystemItem
 };
 
 /**
+ * 根据子系统模板ID查询子项模板列表（子系统级别）
+ *
+ * 说明：返回指定子系统模板下已关联的子项模板列表
+ * 用途：在物料模板管理页面中，加载某个子系统模板下的子项列表
+ *
+ * @param templateId 子系统模板ID
+ * @returns 子项模板列表
+ */
+export const listItemTemplateByTemplateId = (
+  templateId: string | number
+): AxiosPromise<SubsystemItemTemplateVO[]> => {
+  return request({
+    url: `/erp/subsystem/item-template/list-by-template/${templateId}`,
+    method: 'get'
+  });
+};
+
+
+/**
  * 新增子项模板
  * 说明：
  * - 在公司级子项库中创建新的子项模板
