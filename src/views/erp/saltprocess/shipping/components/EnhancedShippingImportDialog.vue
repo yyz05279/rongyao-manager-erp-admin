@@ -89,8 +89,8 @@
                       filterable
                       style="width: 100%"
                       @change="handleProjectChange"
-                      @focus="() => console.log('✅ 项目选择器获得焦点')"
-                      @blur="() => console.log('✅ 项目选择器失去焦点')"
+                      @focus="onProjectSelectFocus"
+                      @blur="onProjectSelectBlur"
                     >
                       <el-option v-for="project in projectList" :key="project.id" :label="project.name" :value="project.id" />
                     </el-select>
@@ -502,6 +502,13 @@ const removeFile = () => {
 };
 
 // 项目选择后检查批次是否存在
+const onProjectSelectFocus = () => {
+  console.log('✅ 项目选择器获得焦点');
+};
+const onProjectSelectBlur = () => {
+  console.log('✅ 项目选择器失去焦点');
+};
+
 const handleProjectChange = async (projectId: string) => {
   console.log('=== handleProjectChange 被调用 ===');
   console.log('传入的 projectId:', projectId);

@@ -96,3 +96,13 @@ declare global {
   }
 }
 export {};
+
+
+// 组件实例全局属性补充：dateFormatter/dateFormatter2
+import type { TableColumnCtx } from 'element-plus';
+declare module 'vue' {
+  interface ComponentCustomProperties {
+    dateFormatter: (row: any, column: TableColumnCtx<any>, cellValue: any) => string;
+    dateFormatter2: (row: any, column: TableColumnCtx<any>, cellValue: any) => string;
+  }
+}

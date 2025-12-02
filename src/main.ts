@@ -18,6 +18,7 @@ import { download } from '@/utils/request';
 
 // 预设动画
 import animate from './animate';
+import { dateFormatter, dateFormatter2 } from '@/utils/formatTime';
 
 // svg图标
 import 'virtual:svg-icons-register';
@@ -45,6 +46,8 @@ app.config.globalProperties.addDateRange = addDateRange;
 app.config.globalProperties.selectDictLabel = selectDictLabel;
 app.config.globalProperties.selectDictLabels = selectDictLabels;
 app.config.globalProperties.animate = animate;
+app.config.globalProperties.dateFormatter = dateFormatter;
+app.config.globalProperties.dateFormatter2 = dateFormatter2;
 
 app.use(ElementIcons);
 app.use(router);
