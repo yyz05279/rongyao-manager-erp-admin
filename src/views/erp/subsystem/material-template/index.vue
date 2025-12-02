@@ -344,7 +344,7 @@ const resetQuery = () => {
 
 // 多选框选中数据
 const handleSelectionChange = (selection: SubsystemMaterialTemplateVO[]) => {
-  ids.value = selection.map(item => item.id);
+  ids.value = selection.map(item => Number(item.id));
   single.value = selection.length !== 1;
   multiple.value = !selection.length;
 };
@@ -366,7 +366,7 @@ const handleUpdate = async (row?: SubsystemMaterialTemplateVO) => {
 
     // 加载对应的子项列表
     if (form.templateId) {
-      await loadFormItemTemplateList(form.templateId);
+      await loadFormItemTemplateList(Number(form.templateId));
     }
 
     dialog.title = '修改物料';
@@ -423,7 +423,7 @@ const searchMaterials = async (query: string) => {
   materialSearchLoading.value = true;
   try {
     const response = await listMaterial({
-      name: query,
+      materialName: query,
       pageNum: 1,
       pageSize: 20
     });

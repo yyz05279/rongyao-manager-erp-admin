@@ -829,10 +829,11 @@ const submitMaterialEditForm = async () => {
     materialEditDialog.loading = true;
     // ✅ 使用新的RESTful风格批量更新接口（单条也用数组）
     const updateData = [{
-      id: materialForm.id,
-      materialId: materialForm.materialId,
+      id: materialForm.id ? Number(materialForm.id) : undefined,
+      materialId: Number(materialForm.materialId),
       defaultQuantity: materialForm.defaultQuantity,
-      remarks: materialForm.remarks
+      remarks: materialForm.remarks,
+      isRequired: (materialForm as any).isRequired ?? true
     }];
     await updateItemMaterials(materialDialog.itemId as number, updateData);
     ElMessage.success('修改成功');

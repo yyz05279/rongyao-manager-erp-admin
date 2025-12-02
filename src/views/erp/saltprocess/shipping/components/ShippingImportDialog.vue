@@ -298,8 +298,8 @@ const selectedFile = ref<File | null>(null);
 const sheetNames = ref<string[]>([]);
 const previewData = ref<ShippingItemForm[]>([]);
 const importErrors = ref<{ row: number; field: string; message: string }[]>([]);
-const projectList = ref<{ id: string; name: string }[]>([]);
-const responsiblePersonList = ref<{ id: string; name: string }[]>([]);
+const projectList = ref<{ id: string | number; name: string }[]>([]);
+const responsiblePersonList = ref<{ id: string | number; name: string }[]>([]);
 
 // 导入配置
 const importConfig = reactive<ShippingExcelImportConfig & {

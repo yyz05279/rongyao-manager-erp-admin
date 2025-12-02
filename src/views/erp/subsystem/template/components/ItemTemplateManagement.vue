@@ -433,7 +433,8 @@ const materialForm = reactive({
   itemTemplateId: undefined as string | number | undefined,
   materialName: '',
   defaultQuantity: 1,
-  remarks: ''
+  remarks: '',
+  isRequired: true
 });
 
 const materialRules = {
@@ -1246,12 +1247,13 @@ const submitMaterialEditForm = async () => {
       // ✅ 使用新的RESTful风格API批量更新物料
       // 注意：虽然只更新一个物料，但新API要求使用数组格式
       const updateData = [{
-        id: materialForm.id,
-        materialId: materialForm.materialId,
+        id: materialForm.id ? Number(materialForm.id) : undefined,
+        materialId: Number(materialForm.materialId),
         materialCode: materialForm.materialCode, // ✅ 添加物料编码
-        templateId: props.templateId, // 保留templateId，表示关联到子系统
+        templateId: props.templateId ? Number(props.templateId) : undefined, // 保留templateId，表示关联到子系统
         defaultQuantity: materialForm.defaultQuantity,
-        remarks: materialForm.remarks
+        remarks: materialForm.remarks,
+        isRequired: materialForm.isRequired
       }];
       await updateItemMaterials(selectedItemId.value! as number, updateData);
     }
