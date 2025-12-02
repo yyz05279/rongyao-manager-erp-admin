@@ -187,7 +187,7 @@
         </el-table>
 
         <div v-if="previewData.length > 100" class="preview-tip">
-          <el-text type="info">仅显示前100条数据，实际将导入全部数据</el-text>
+          <span class="preview-tip-text">仅显示前100条数据，实际将导入全部数据</span>
         </div>
 
         <!-- 错误信息 -->
@@ -603,6 +603,11 @@ watch(dialogVisible, async (visible) => {
     .preview-tip {
       margin-top: 12px;
       text-align: center;
+
+      .preview-tip-text {
+        color: #909399;
+        font-size: 12px;
+      }
     }
 
     .error-section {
