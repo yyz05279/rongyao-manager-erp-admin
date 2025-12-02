@@ -284,12 +284,10 @@ const props = withDefaults(defineProps<Props>(), {
 });
 
 // Emits
-interface Emits {
+const emit = defineEmits<{
   success: [];
   cancel: [];
-}
-
-const emit = defineEmits<Emits>();
+}>();
 
 // 响应式数据
 const loading = ref(false);
@@ -420,8 +418,8 @@ const loadTaskData = async () => {
       targetTemperature: data.targetTemperature,
       targetPressure: data.targetPressure,
       tolerance: data.tolerance,
-      duration: data.duration,
-      heatingRate: data.heatingRate,
+      duration: (data as any).duration || 60,
+      heatingRate: (data as any).heatingRate || 2,
       operatorId: data.operatorId,
       plannedStartTime: data.plannedStartTime,
       plannedEndTime: data.plannedEndTime,

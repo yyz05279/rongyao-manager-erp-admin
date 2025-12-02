@@ -170,7 +170,9 @@
   </el-form>
 </template>
 <script setup lang="ts">
-
+import { ref, reactive, watch, onMounted, withDefaults } from 'vue'
+import { ElMessage } from 'element-plus'
+import type { FormInstance } from 'element-plus'
 import {
   erpCountInputFormatter,
   erpPriceInputFormatter,
@@ -180,18 +182,36 @@ import {
 import {getWareHouseSimpleList} from "@/api/erp/stock/warehouse";
 import {WarehouseVO} from "@/api/erp/stock/warehouse/types";
 
-const props = defineProps<{
-  items: undefined
+interface PurchaseInItem {
+  id?: string | number;
+  warehouseId?: string | number;
+  productId?: string | number;
+  productName?: string;
+  stockCount?: number;
+  count?: number;
+  productPrice?: number;
+  totalProductPrice?: number;
+  taxPercent?: number;
+  taxPrice?: number;
+  totalPrice?: number;
+  remark?: string;
+}
+
+const props = withDefaults(defineProps<{
+  items?: PurchaseInItem[];
+  disabled?: boolean;
+}>(), {
+  items: () => [],
   disabled: false
-}>()
+})
 const formLoading = ref(false) // 表单的加载中
-const formData = ref([])
+const formData = ref<PurchaseInItem[]>([])
 const formRules = reactive({
   warehouseId: [{ required: true, message: '仓库不能为空', trigger: 'blur' }],
   productId: [{ required: true, message: '产品不能为空', trigger: 'blur' }],
   count: [{ required: true, message: '产品数量不能为空', trigger: 'blur' }]
 })
-const formRef = ref([]) // 表单 Ref
+const formRef = ref<FormInstance>() // 表单 Ref
 const warehouseList = ref<WarehouseVO[]>([]) // 仓库列表
 const defaultWarehouse = ref<WarehouseVO>(undefined) // 默认仓库
 
@@ -234,16 +254,16 @@ watch(
 )
 
 /** 合计 */
-const getSummaries = (param: SummaryMethodProps) => {
+const getSummaries = (param: any) => {
   const { columns, data } = param
   const sums: string[] = []
-  columns.forEach((column, index: number) => {
+  columns.forEach((column: any, index: number) => {
     if (index === 0) {
       sums[index] = '合计'
       return
     }
     if (['count', 'totalProductPrice', 'taxPrice', 'totalPrice'].includes(column.property)) {
-      const sum = getSumValue(data.map((item) => Number(item[column.property])))
+      const sum = getSumValue(data.map((item: any) => Number(item[column.property])))
       sums[index] =
         column.property === 'count' ? erpCountInputFormatter(sum) : erpPriceInputFormatter(sum)
     } else {
@@ -278,6 +298,12 @@ const handleDelete = (index: number) => {
   formData.value.splice(index, 1)
 }
 
+/** 仓库变更处理 */
+const onChangeWarehouse = (warehouseId: string | number, row: any) => {
+  // 仓库变更时的处理逻辑
+  row.warehouseId = warehouseId
+}
+
 /** 加载库存 */
 // const setStockCount = async (row: any) => {
 //   if (!row.productId) {
@@ -288,10 +314,11 @@ const handleDelete = (index: number) => {
 // }
 
 /** 表单校验 */
-const validate = () => {
-  return formRef.value.validate()
+const validate = async () => {
+  if (!formRef.value) return false
+  return await formRef.value.validate()
 }
-defineExpose({ validate })
+defineExpose({ validate, formData })
 
 /** 初始化 */
 onMounted(async () => {

@@ -3,6 +3,9 @@ import { AxiosPromise } from 'axios';
 import { ProductVO, ProductForm, ProductQuery } from '@/api/erp/product/product/types';
 import {ProductUnitVO} from "@/api/erp/product/unit/types";
 
+// 导出类型
+export type { ProductVO, ProductForm, ProductQuery };
+
 /**
  * 查询产品信息列表
  * @param query

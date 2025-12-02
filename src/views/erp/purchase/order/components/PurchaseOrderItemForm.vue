@@ -137,25 +137,29 @@
   </el-row>
 </template>
 <script setup lang="ts">
-import { reactive } from 'vue';
+import { reactive, ref, watch, onMounted, withDefaults } from 'vue';
+import type { FormInstance } from 'element-plus'
 import {erpCountInputFormatter, erpPriceInputFormatter, erpPriceMultiply, getSumValue} from "@/utils";
 import {PurchaseOrderItem} from "@/api/erp/purchase/order/types";
 import {ProductVO} from "@/api/erp/product/product/types";
 import {getProductSimpleList} from "@/api/erp/product/product";
 
-const props = defineProps<{
-  items: undefined
+const props = withDefaults(defineProps<{
+  items?: PurchaseOrderItem[];
+  disabled?: boolean;
+}>(), {
+  items: () => [],
   disabled: false
-}>()
+})
 const formLoading = ref(false) // 表单的加载中
-const formData = ref([])
+const formData = ref<PurchaseOrderItem[]>([])
 
 const formRules = reactive({
   productId: [{ required: true, message: '产品不能为空', trigger: 'blur' }],
   count: [{ required: true, message: '产品数量不能为空', trigger: 'blur' }]
 })
 
-const formRef = ref([]) // 表单 Ref
+const formRef = ref<FormInstance>() // 表单 Ref
 const productList = ref<ProductVO[]>([]) // 产品列表
 
 
@@ -200,16 +204,16 @@ watch(
 )
 
 /** 合计 */
-const getSummaries = (param: SummaryMethodProps) => {
+const getSummaries = (param: any) => {
   const { columns, data } = param
   const sums: string[] = []
-  columns.forEach((column, index: number) => {
+  columns.forEach((column: any, index: number) => {
     if (index === 0) {
       sums[index] = '合计'
       return
     }
     if (['count', 'totalProductPrice', 'taxPrice', 'totalPrice'].includes(column.property)) {
-      const sum = getSumValue(data.map((item) => Number(item[column.property])))
+      const sum = getSumValue(data.map((item: any) => Number(item[column.property])))
       sums[index] =
         column.property === 'count' ? erpCountInputFormatter(sum) : erpPriceInputFormatter(sum)
     } else {
@@ -245,7 +249,7 @@ const handleDelete = (index: number) => {
 }
 
 /** 处理产品变更 */
-const onChangeProduct = (productId, row) => {
+const onChangeProduct = (productId: string | number, row: any) => {
   const product = productList.value.find((item) => item.id === productId);
   if (product) {
     console.log("product:",product)
@@ -267,10 +271,11 @@ const onChangeProduct = (productId, row) => {
 // }
 
 /** 表单校验 */
-const validate = () => {
-  return formRef.value.validate()
+const validate = async () => {
+  if (!formRef.value) return false
+  return await formRef.value.validate()
 }
-defineExpose({ validate })
+defineExpose({ validate, formData })
 
 /** 初始化 */
 onMounted(async () => {

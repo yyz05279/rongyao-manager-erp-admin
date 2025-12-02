@@ -226,7 +226,8 @@
 
 <script setup name="RatioManagement" lang="ts">
 import { ref, reactive, onMounted } from 'vue';
-import { ElMessage, ElMessageBox, ElFormRules } from 'element-plus';
+import { ElMessage, ElMessageBox } from 'element-plus';
+import type { FormRules } from 'element-plus';
 import {
   getSaltmakingTask,
   getRatioRealtimeStatus,
@@ -249,11 +250,9 @@ interface Props {
 const props = defineProps<Props>();
 
 // Emits
-interface Emits {
+const emit = defineEmits<{
   close: [];
-}
-
-const emit = defineEmits<Emits>();
+}>();
 
 // 响应式数据
 const loading = ref(false);

@@ -2,6 +2,9 @@ import request from '@/utils/request';
 import { AxiosPromise } from 'axios';
 import { PurchaseInVO, PurchaseInForm, PurchaseInQuery } from '@/api/erp/purchase/in/types';
 
+// 导出类型
+export type { PurchaseInVO, PurchaseInForm, PurchaseInQuery };
+
 /**
  * 查询ERP 采购入库列表
  * @param query
