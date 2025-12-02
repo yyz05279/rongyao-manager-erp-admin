@@ -270,6 +270,105 @@ export const getKPIMetrics = (period: AnalysisPeriod): AxiosPromise<any> => {
 };
 
 /**
+ * 获取分析KPI数据（仪表板用）
+ */
+export const getAnalyticsKPI = (params?: any): AxiosPromise<any> => {
+  return request({
+    url: '/erp/saltprocess/analytics/dashboard/kpi',
+    method: 'get',
+    params
+  });
+};
+
+/**
+ * 获取质量分布数据
+ */
+export const getQualityDistribution = (params?: any): AxiosPromise<any> => {
+  return request({
+    url: '/erp/saltprocess/analytics/quality/distribution',
+    method: 'get',
+    params
+  });
+};
+
+/**
+ * 获取能源分析数据
+ */
+export const getEnergyAnalysis = (params?: any): AxiosPromise<any> => {
+  return request({
+    url: '/erp/saltprocess/analytics/energy/analysis',
+    method: 'get',
+    params
+  });
+};
+
+/**
+ * 获取设备利用率数据
+ */
+export const getEquipmentUtilization = (params?: any): AxiosPromise<any> => {
+  return request({
+    url: '/erp/saltprocess/analytics/equipment/utilization',
+    method: 'get',
+    params
+  });
+};
+
+/**
+ * 获取异常分析数据
+ */
+export const getAnomalyAnalysis = (params?: any): AxiosPromise<any> => {
+  return request({
+    url: '/erp/saltprocess/analytics/anomaly/analysis',
+    method: 'get',
+    params
+  });
+};
+
+/**
+ * 获取生产数据列表
+ */
+export const getProductionData = (params?: any): AxiosPromise<any> => {
+  return request({
+    url: '/erp/saltprocess/analytics/production/data',
+    method: 'get',
+    params
+  });
+};
+
+/**
+ * 获取质量数据列表
+ */
+export const getQualityData = (params?: any): AxiosPromise<any> => {
+  return request({
+    url: '/erp/saltprocess/analytics/quality/data',
+    method: 'get',
+    params
+  });
+};
+
+/**
+ * 获取能源数据列表
+ */
+export const getEnergyData = (params?: any): AxiosPromise<any> => {
+  return request({
+    url: '/erp/saltprocess/analytics/energy/data',
+    method: 'get',
+    params
+  });
+};
+
+/**
+ * 获取异常数据列表
+ */
+export const getAnomalyData = (params?: any): AxiosPromise<any> => {
+  return request({
+    url: '/erp/saltprocess/analytics/anomaly/data',
+    method: 'get',
+    params
+  });
+};
+
+/**
  * 获取综合分析报告
  */
 export const getComprehensiveAnalysis = (period: AnalysisPeriod, startDate?: string, endDate?: string): AxiosPromise<any> => {
