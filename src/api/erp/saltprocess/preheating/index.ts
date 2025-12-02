@@ -391,3 +391,34 @@ export const getOperatorList = (): AxiosPromise<any> => {
     method: 'get'
   });
 };
+
+/**
+ * 复制预热巡检记录
+ */
+export const copyPreheatingInspection = (id: string): AxiosPromise<PreheatingInspectionVO> => {
+  return request({
+    url: `/erp/saltprocess/preheating/inspection/${id}/copy`,
+    method: 'post'
+  });
+};
+
+/**
+ * 删除预热巡检记录
+ */
+export const deletePreheatingInspection = (ids: string[]): AxiosPromise<void> => {
+  return request({
+    url: `/erp/saltprocess/preheating/inspection/${ids.join(',')}`,
+    method: 'delete'
+  });
+};
+
+/**
+ * 导出预热巡检列表
+ */
+export const exportPreheatingInspectionList = (): AxiosPromise<Blob> => {
+  return request({
+    url: '/erp/saltprocess/preheating/inspection/export',
+    method: 'get',
+    responseType: 'blob'
+  });
+};
