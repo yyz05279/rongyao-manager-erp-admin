@@ -186,14 +186,14 @@ watch(
       if (item.productPrice == undefined || item.count == undefined) {
         item.totalProductPrice = 0
       } else {
-        item.totalProductPrice = erpPriceMultiply(item.productPrice, item.count)
+        item.totalProductPrice = erpPriceMultiply(Number(item.productPrice), Number(item.count))
       }
 
       // 若总产品价格或税率为空，则税金价格为0，无需要额外计算
       if (item.totalProductPrice == 0 || item.taxPercent == undefined) {
         item.taxPrice = 0
       } else {
-        item.taxPrice = erpPriceMultiply(item.totalProductPrice, item.taxPercent / 100.0)
+        item.taxPrice = erpPriceMultiply(Number(item.totalProductPrice), Number(item.taxPercent) / 100.0)
       }
 
       // 计算总价格，税金价格已确保不为空

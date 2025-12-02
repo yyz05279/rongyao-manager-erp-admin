@@ -199,6 +199,7 @@ export interface ShippingItemForm {
   isHazardous: boolean;
   storageRequirement?: string;
   remarks?: string;
+  _hasError?: boolean;               // 导入时的错误标记
 }
 
 // 子系统重量映射（用于处理多个明细项共享同一重量的场景）

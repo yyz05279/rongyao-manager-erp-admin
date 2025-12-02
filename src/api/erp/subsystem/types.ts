@@ -262,6 +262,7 @@ export interface SubsystemMaterialForm {
   quantity: number;
   unit?: string;
   unitWeight?: number;
+  totalWeight?: number;
   manufacturer?: string;
   model?: string;
   serialNumber?: string;

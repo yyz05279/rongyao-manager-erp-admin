@@ -103,7 +103,7 @@
       <!-- 分页 -->
       <Pagination
         v-model:limit="queryParams.pageSize"
-        v-model:page="queryParams.pageNo"
+        v-model:page="queryParams.pageNum"
         :total="total"
         @pagination="getList"
       />
