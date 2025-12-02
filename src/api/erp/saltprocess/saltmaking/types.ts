@@ -129,7 +129,7 @@ export interface RatioDataItem {
   deviation: number;
   targetAmount: number;
   actualAmount: number;
-  status: RatioStatus;
+  status: RatioStatus | string;
   unit: string;
 }
 

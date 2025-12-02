@@ -321,9 +321,9 @@ const queryParams = reactive<HeatingTaskQuery>({
   pageSize: 10,
   taskCode: '',
   projectId: '',
-  status: '',
+  status: undefined as any,
   tankId: '',
-  currentStage: ''
+  currentStage: undefined as any
 });
 
 // 对话框

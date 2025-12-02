@@ -45,7 +45,9 @@ export enum TaskStatus {
 
 export enum SaltType {
   BINARY = 'BINARY',               // 二元化盐
-  TERNARY = 'TERNARY'              // 三元化盐
+  TERNARY = 'TERNARY',             // 三元化盐
+  BINARY_SALT = 'BINARY_SALT',     // 二元化盐（兼容）
+  TERNARY_SALT = 'TERNARY_SALT'    // 三元化盐（兼容）
 }
 
 export enum ControlMode {
@@ -264,3 +266,6 @@ export interface CostStatistics {
   unitCost: number;
   period: string;
 }
+
+// 分析周期类型
+export type AnalysisPeriod = 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'QUARTERLY' | 'YEARLY' | string;

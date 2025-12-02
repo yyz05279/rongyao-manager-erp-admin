@@ -309,7 +309,7 @@ const queryParams = reactive<PreheatingTaskQuery>({
   pageSize: 10,
   taskCode: '',
   projectId: '',
-  status: '',
+  status: undefined as any,
   tankId: '',
   operatorId: ''
 });

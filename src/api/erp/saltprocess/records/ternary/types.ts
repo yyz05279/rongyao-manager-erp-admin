@@ -136,6 +136,7 @@ export interface TernaryRecordForm {
   // 工艺参数
   reactionTemperature: number;
   reactionTime: number;
+  reactionPressure?: number; // 反应压力
   stirringSpeed: number;
   heatingPower: number;
   phValue: number;
@@ -152,15 +153,18 @@ export interface TernaryRecordForm {
   // 产量信息
   targetOutput: number;
   actualOutput: number;
-  
+  yieldRate?: number; // 产出率(%)
+
   // 成本信息
   materialCost: number;
   energyCost: number;
   laborCost: number;
-  
+
   operatorId: number;
+  operatorName?: string;
   supervisorId?: number;
   remarks?: string;
+  remark?: string; // 兼容字段
 }
 
 // 三元化盐记录统计信息

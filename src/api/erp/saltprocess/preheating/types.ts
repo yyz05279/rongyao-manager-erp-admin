@@ -119,6 +119,8 @@ export interface RealtimeData {
   trend: 'UP' | 'DOWN' | 'STABLE';
   recordTime: string;
   alerts: PreheatingAlert[];
+  records?: PreheatingDataVO[]; // 历史记录
+  current?: PreheatingDataVO; // 当前数据
 }
 
 // 预热报警
@@ -187,6 +189,15 @@ export interface PressureAlertPoint {
   pressure: number;
   alertType: string;
   message: string;
+}
+
+// 预热巡检查询参数
+export interface PreheatingInspectionQuery extends PageQuery {
+  taskId?: string;
+  inspectionCode?: string;
+  inspectorId?: string;
+  startTime?: string;
+  endTime?: string;
 }
 
 // 预热巡检
