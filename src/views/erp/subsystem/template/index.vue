@@ -236,7 +236,7 @@ const resetQuery = () => {
 
 // 多选框选中数据
 const handleSelectionChange = (selection: SubsystemTemplateVO[]) => {
-  ids.value = selection.map(item => item.id);
+  ids.value = selection.map(item => Number(item.id));
   single.value = selection.length !== 1;
   multiple.value = !selection.length;
 };

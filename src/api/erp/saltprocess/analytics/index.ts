@@ -11,6 +11,7 @@ import {
   PersonnelAnalytics,
   DashboardData,
   AnalysisPeriod,
+  AnalysisQueryParams,
   ReportGenerationParams,
   AnalyticsReport
 } from './types';
@@ -31,12 +32,18 @@ export const getProductionStatistics = (period: AnalysisPeriod, startDate?: stri
 
 /**
  * 获取生产趋势分析
+ * @param params 查询参数（支持 period, startDate, endDate, type 等）
  */
-export const getProductionTrend = (period: AnalysisPeriod, startDate?: string, endDate?: string): AxiosPromise<any> => {
+export const getProductionTrend = (params: AnalysisQueryParams | AnalysisPeriod, startDate?: string, endDate?: string): AxiosPromise<any> => {
+  // 支持两种调用方式：对象参数或位置参数
+  const queryParams = typeof params === 'object' && !('toString' in params)
+    ? params
+    : { period: params, startDate, endDate };
+
   return request({
     url: '/erp/saltprocess/analytics/production/trend',
     method: 'get',
-    params: { period, startDate, endDate }
+    params: queryParams
   });
 };
 

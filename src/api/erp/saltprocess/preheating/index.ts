@@ -427,11 +427,22 @@ export const exportPreheatingInspectionList = (): AxiosPromise<Blob> => {
 
 /**
  * 获取预热图表数据
+ * @param taskId 任务ID
+ * @param type 图表类型（可选）
+ * @param timeRange 时间范围（可选）
+ * @param startDate 开始日期（可选）
+ * @param endDate 结束日期（可选）
  */
-export const getPreheatingChartData = (taskId: string, type?: string): AxiosPromise<any> => {
+export const getPreheatingChartData = (
+  taskId: string,
+  type?: string,
+  timeRange?: string,
+  startDate?: string,
+  endDate?: string
+): AxiosPromise<any> => {
   return request({
     url: `/erp/saltprocess/preheating/chart/${taskId}`,
     method: 'get',
-    params: { type }
+    params: { type, timeRange, startDate, endDate }
   });
 };

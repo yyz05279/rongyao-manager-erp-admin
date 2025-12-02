@@ -504,8 +504,8 @@ const loadChartData = async () => {
 
   try {
     const [tempPressureData, phDensityData] = await Promise.all([
-      getSaltmakingChartData(taskId, 'TEMP_PRESSURE', tempPressureTimeRange.value),
-      getSaltmakingChartData(taskId, 'PH_DENSITY', phDensityTimeRange.value)
+      getSaltmakingChartData(taskId, 'TEMP_PRESSURE', tempPressureTimeRange.value, undefined, undefined),
+      getSaltmakingChartData(taskId, 'PH_DENSITY', phDensityTimeRange.value, undefined, undefined)
     ]);
 
     updateTempPressureChart(tempPressureData.data);

@@ -228,7 +228,8 @@ watch(() => props.subsystemId, (newVal) => {
 const getProjectList = async () => {
   try {
     const response = await getProjectSimpleList();
-    projectList.value = response.data || [];
+    const list = (response.data || []).map((p: any) => ({ id: String(p.id), name: p.projectName }));
+    projectList.value = list;
     console.log('📋 获取项目列表成功:', projectList.value);
   } catch (error) {
     console.error('❌ 获取项目列表失败:', error);

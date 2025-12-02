@@ -12,6 +12,16 @@ export enum AnalysisPeriod {
   YEARLY = 'YEARLY'                // 年
 }
 
+// 分析查询参数
+export interface AnalysisQueryParams {
+  period?: AnalysisPeriod | string;
+  startDate?: string;
+  endDate?: string;
+  type?: string;
+  timeRange?: string;
+  [key: string]: any;
+}
+
 // 图表类型
 export enum ChartType {
   LINE = 'LINE',                   // 折线图

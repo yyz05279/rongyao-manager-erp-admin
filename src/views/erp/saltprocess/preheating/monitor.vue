@@ -352,8 +352,8 @@ const loadChartData = async () => {
 
   try {
     const [tempData, pressureData] = await Promise.all([
-      getPreheatingChartData(taskId, 'TEMPERATURE', temperatureTimeRange.value),
-      getPreheatingChartData(taskId, 'PRESSURE', pressureTimeRange.value)
+      getPreheatingChartData(taskId, 'TEMPERATURE', temperatureTimeRange.value, undefined, undefined),
+      getPreheatingChartData(taskId, 'PRESSURE', pressureTimeRange.value, undefined, undefined)
     ]);
 
     updateTemperatureChart(tempData.data);

@@ -406,11 +406,23 @@ export const getRealtimeData = (taskId: string): AxiosPromise<any> => {
 
 /**
  * 获取制盐图表数据
+ * @param taskId 任务ID
+ * @param type 图表类型（可选）
+ * @param timeRange 时间范围（可选）
+ * @param startDate 开始日期（可选）
+ * @param endDate 结束日期（可选）
  */
-export const getSaltmakingChartData = (taskId: string): AxiosPromise<any> => {
+export const getSaltmakingChartData = (
+  taskId: string,
+  type?: string,
+  timeRange?: string,
+  startDate?: string,
+  endDate?: string
+): AxiosPromise<any> => {
   return request({
     url: `/erp/saltprocess/saltmaking/chart/${taskId}`,
-    method: 'get'
+    method: 'get',
+    params: { type, timeRange, startDate, endDate }
   });
 };
 
