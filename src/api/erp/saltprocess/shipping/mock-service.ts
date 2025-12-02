@@ -408,8 +408,8 @@ export class MockShippingService {
 
       // 计算统计数据
       const totalItems = items.length;
-      const totalWeight = items.reduce((sum, item) => sum + (item.weight || 0) * item.quantity, 0);
-      const totalVolume = items.reduce((sum, item) => sum + (item.volume || 0) * item.quantity, 0);
+      const totalWeight = items.reduce((sum, item) => sum + (Number(item.weight) || 0) * item.quantity, 0);
+      const totalVolume = items.reduce((sum, item) => sum + (Number(item.volume) || 0) * item.quantity, 0);
 
       const newShippingList: ShippingListVO = {
         id: newId,

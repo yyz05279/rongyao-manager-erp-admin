@@ -527,7 +527,7 @@ const handleReview = (row: QualityTestVO) => {
 
 const handleApprove = async (row?: QualityTestVO) => {
   const testId = row?.id || ids.value[0];
-  const testCode = row?.testCode || qualityList.value.find(item => item.id === testId)?.testCode;
+  const testCode = row?.inspectionNo || qualityList.value.find(item => item.id === testId)?.inspectionNo;
   
   try {
     await ElMessageBox.confirm(
@@ -554,7 +554,7 @@ const handleApprove = async (row?: QualityTestVO) => {
 
 const handleReject = async (row?: QualityTestVO) => {
   const testId = row?.id || ids.value[0];
-  const testCode = row?.testCode || qualityList.value.find(item => item.id === testId)?.testCode;
+  const testCode = row?.inspectionNo || qualityList.value.find(item => item.id === testId)?.inspectionNo;
   
   try {
     const { value: reason } = await ElMessageBox.prompt(
@@ -586,8 +586,8 @@ const handleReport = () => {
 
 const handleDelete = async (row?: QualityTestVO) => {
   const testIds = row?.id ? [row.id] : ids.value;
-  const testCodes = row?.testCode ? [row.testCode] : 
-    qualityList.value.filter(item => testIds.includes(item.id)).map(item => item.testCode);
+  const testCodes = row?.inspectionNo ? [row.inspectionNo] :
+    qualityList.value.filter(item => testIds.includes(item.id)).map(item => item.inspectionNo);
   
   try {
     await ElMessageBox.confirm(

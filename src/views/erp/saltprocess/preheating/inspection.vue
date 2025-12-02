@@ -402,7 +402,7 @@ const handleDelete = async (row?: PreheatingInspectionVO) => {
 
 const exportInspections = async () => {
   try {
-    await exportPreheatingInspectionList(queryParams);
+    await exportPreheatingInspectionList();
     ElMessage.success('导出成功');
   } catch (error) {
     console.error('导出失败:', error);

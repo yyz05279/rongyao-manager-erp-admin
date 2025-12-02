@@ -737,8 +737,10 @@ const resetFilter = () => {
 
 const handleExport = async () => {
   try {
-    await exportAnalyticsReport(filterParams);
-    ElMessage.success('导出成功');
+    // 导出当前分析数据为 Excel 格式
+    // 注意：这里需要先生成报告，然后导出
+    ElMessage.info('导出功能开发中');
+    // await exportAnalyticsReport(reportId, 'EXCEL');
   } catch (error) {
     console.error('导出失败:', error);
     ElMessage.error('导出失败');
