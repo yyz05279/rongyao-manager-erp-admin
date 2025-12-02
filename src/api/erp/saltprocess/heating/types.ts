@@ -40,6 +40,8 @@ export interface HeatingTaskVO {
   projectName: string;
   heatingVesselId: string;
   heatingVesselName: string;
+  tankId?: string;
+  tankName?: string;
   status: HeatingTaskStatus;
   currentStage: number;
   totalStages: number;
@@ -51,7 +53,10 @@ export interface HeatingTaskVO {
   actualStartTime?: string;
   actualEndTime?: string;
   finalTargetTemperature: number;
+  finalTemperature?: number;
   currentTemperature?: number;
+  currentHeatingRate?: number;
+  heatingRate?: number;
   holdingTime: number; // 保温时间（分钟）
   stages: HeatingStageVO[];
   remarks?: string;
@@ -374,6 +379,18 @@ export interface HeatingReport {
   issues: string[];
   recommendations: string[];
   generateTime: string;
+}
+
+// 提温能源数据
+export interface HeatingEnergyData {
+  taskId: string;
+  totalEnergyConsumption: number; // kWh
+  averagePower: number; // kW
+  peakPower: number; // kW
+  energyEfficiency: number; // %
+  costPerKwh: number;
+  totalCost: number;
+  recordTime: string;
 }
 
 // 提温阶段结果

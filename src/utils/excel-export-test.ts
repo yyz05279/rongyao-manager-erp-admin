@@ -24,10 +24,10 @@ export interface ExportConfig {
 
 // Excel样式配置
 export interface ExcelStyle {
-  headerStyle: XLSX.CellStyle;
-  dataStyle: XLSX.CellStyle;
-  titleStyle: XLSX.CellStyle;
-  statisticsStyle: XLSX.CellStyle;
+  headerStyle: any;
+  dataStyle: any;
+  titleStyle: any;
+  statisticsStyle: any;
 }
 
 // 默认样式配置
@@ -544,7 +544,7 @@ export class ExcelExportTool {
   /**
    * 应用单元格样式
    */
-  private applyCellStyle(worksheet: XLSX.WorkSheet, row: number, col: number, style: XLSX.CellStyle): void {
+  private applyCellStyle(worksheet: XLSX.WorkSheet, row: number, col: number, style: any): void {
     const cellAddress = XLSX.utils.encode_cell({ r: row, c: col });
     if (!worksheet[cellAddress]) worksheet[cellAddress] = { v: '' };
     worksheet[cellAddress].s = style;
@@ -587,14 +587,14 @@ export class ExcelExportTool {
   /**
    * 获取发货方式文本
    */
-  private getShippingMethodText(method: ShippingMethod): string {
+  private getShippingMethodText(method: ShippingMethod | string): string {
     const methodMap = {
       [ShippingMethod.TRUCK]: '卡车运输',
       [ShippingMethod.RAIL]: '铁路运输',
       [ShippingMethod.SEA]: '海运',
       [ShippingMethod.AIR]: '空运'
     };
-    return methodMap[method] || method;
+    return (methodMap as any)[method] || method;
   }
 
   /**

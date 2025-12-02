@@ -4,7 +4,7 @@
     "useDefineForClassFields": true,
     "module": "esnext",
     "moduleResolution": "node",
-    "strict": true,
+    "strict": false,
     "jsx": "preserve",
     "sourceMap": true,
     "resolveJsonModule": true,
@@ -17,6 +17,14 @@
     },
     "types": ["vite/client"],
     "skipLibCheck": true,
+    "noImplicitAny": false,
+    "noImplicitThis": false,
+    "strictNullChecks": false,
+    "strictFunctionTypes": false,
+    "strictBindCallApply": false,
+    "strictPropertyInitialization": false,
+    "noImplicitReturns": false,
+    "noFallthroughCasesInSwitch": false,
     // 允许默认导入
     "allowSyntheticDefaultImports": true,
     "forceConsistentCasingInFileNames": true

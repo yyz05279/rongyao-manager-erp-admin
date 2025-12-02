@@ -48,9 +48,9 @@ electronService.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
     config.headers['Content-Language'] = getLanguage()
 
-    const isToken = (config.headers || {}).isToken === false
-    const isRepeatSubmit = (config.headers || {}).repeatSubmit === false
-    const isEncrypt = (config.headers || {}).isEncrypt === 'true'
+    const isToken = (config.headers as any || {}).isToken === false
+    const isRepeatSubmit = (config.headers as any || {}).repeatSubmit === false
+    const isEncrypt = (config.headers as any || {}).isEncrypt === 'true'
 
     if (getToken() && !isToken) {
       config.headers['Authorization'] = 'Bearer ' + getToken()

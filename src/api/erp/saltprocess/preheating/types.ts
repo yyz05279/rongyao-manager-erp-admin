@@ -57,9 +57,17 @@ export interface PreheatingTaskForm {
   targetTemperature: number;
   targetPressure: number;
   tolerance: number;
+  duration?: number;
+  heatingRate?: number;
   operatorId: string;
   plannedStartTime: string;
   plannedEndTime: string;
+  stirringSpeed?: number;
+  feedRate?: number;
+  circulationFlow?: number;
+  maxTemperatureLimit?: number;
+  maxPressureLimit?: number;
+  emergencyStopCondition?: string;
   remarks?: string;
 }
 

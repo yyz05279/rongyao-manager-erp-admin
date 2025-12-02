@@ -25,7 +25,9 @@ import type {
   ShippingItemForm,
   ShippingStatistics,
   ShippingTrackingRecord,
-  ShippingAttachment,
+  ShippingAttachment
+} from './types';
+import {
   ShippingStatus,
   EquipmentType
 } from './types';
@@ -122,7 +124,7 @@ export class MockShippingService {
         shippingMethod: data.shippingMethod,
         responsiblePersonId: data.responsiblePersonId,
         responsiblePerson: mockUsers.find(u => u.id === data.responsiblePersonId)?.name || '',
-        status: 'draft',
+        status: ShippingStatus.DRAFT,
         totalItems: 0,
         totalWeight: 0,
         totalVolume: 0,
@@ -139,10 +141,12 @@ export class MockShippingService {
       const trackingRecord: ShippingTrackingRecord = {
         id: `TR${Date.now()}`,
         shippingListId: newId,
-        status: 'draft',
-        operationTime: new Date().toISOString(),
+        status: ShippingStatus.DRAFT,
+        statusTime: new Date().toISOString(),
         operator: 'current_user',
-        remarks: '创建发货清单'
+        operatorId: 'current_user',
+        remarks: '创建发货清单',
+        createTime: new Date().toISOString()
       };
       this.trackingRecords.push(trackingRecord);
 
@@ -190,10 +194,12 @@ export class MockShippingService {
       const trackingRecord: ShippingTrackingRecord = {
         id: `TR${Date.now()}`,
         shippingListId: id,
-        status: existingList.status,
-        operationTime: new Date().toISOString(),
+        status: existingList.status as ShippingStatus,
+        statusTime: new Date().toISOString(),
         operator: 'current_user',
-        remarks: '更新发货清单信息'
+        operatorId: 'current_user',
+        remarks: '更新发货清单信息',
+        createTime: new Date().toISOString()
       };
       this.trackingRecords.push(trackingRecord);
 
@@ -261,9 +267,11 @@ export class MockShippingService {
         id: `TR${Date.now()}`,
         shippingListId: id,
         status,
-        operationTime: new Date().toISOString(),
+        statusTime: new Date().toISOString(),
         operator: 'current_user',
-        remarks: remarks || `状态更新为${status}`
+        operatorId: 'current_user',
+        remarks: remarks || `状态更新为${status}`,
+        createTime: new Date().toISOString()
       };
       this.trackingRecords.push(trackingRecord);
 
@@ -324,22 +332,25 @@ export class MockShippingService {
       const stats: ShippingStatistics = {
         totalLists: this.shippingLists.length,
         totalItems: this.shippingItems.length,
-        totalWeight: this.shippingLists.reduce((sum, list) => sum + list.totalWeight, 0),
-        totalVolume: this.shippingLists.reduce((sum, list) => sum + list.totalVolume, 0),
+        totalWeight: this.shippingLists.reduce((sum, list) => sum + (typeof list.totalWeight === 'number' ? list.totalWeight : parseFloat(list.totalWeight as string) || 0), 0),
+        totalVolume: this.shippingLists.reduce((sum, list) => sum + (typeof list.totalVolume === 'number' ? list.totalVolume : parseFloat(list.totalVolume as string) || 0), 0),
+        monthlyShippingTrend: [],
         statusCounts: {
-          draft: this.shippingLists.filter(list => list.status === 'draft').length,
-          pending: this.shippingLists.filter(list => list.status === 'pending').length,
-          shipped: this.shippingLists.filter(list => list.status === 'shipped').length,
-          delivered: this.shippingLists.filter(list => list.status === 'delivered').length,
-          completed: this.shippingLists.filter(list => list.status === 'completed').length
+          DRAFT: this.shippingLists.filter(list => list.status === ShippingStatus.DRAFT).length,
+          PENDING: this.shippingLists.filter(list => list.status === ShippingStatus.PENDING).length,
+          PARTIAL_SHIPPED: this.shippingLists.filter(list => list.status === ShippingStatus.PARTIAL_SHIPPED).length,
+          SHIPPED: this.shippingLists.filter(list => list.status === ShippingStatus.SHIPPED).length,
+          DELIVERED: this.shippingLists.filter(list => list.status === ShippingStatus.DELIVERED).length,
+          COMPLETED: this.shippingLists.filter(list => list.status === ShippingStatus.COMPLETED).length,
+          CANCELLED: this.shippingLists.filter(list => list.status === ShippingStatus.CANCELLED).length
         },
         equipmentTypeCounts: {
-          mechanical: this.shippingItems.filter(item => item.equipmentType === 'mechanical').length,
-          electrical: this.shippingItems.filter(item => item.equipmentType === 'electrical').length,
-          pipeline: this.shippingItems.filter(item => item.equipmentType === 'pipeline').length,
-          burner: this.shippingItems.filter(item => item.equipmentType === 'burner').length,
-          auxiliary: this.shippingItems.filter(item => item.equipmentType === 'auxiliary').length,
-          standard_parts: this.shippingItems.filter(item => item.equipmentType === 'standard_parts').length
+          MECHANICAL: this.shippingItems.filter(item => item.equipmentType === EquipmentType.MECHANICAL).length,
+          ELECTRICAL: this.shippingItems.filter(item => item.equipmentType === EquipmentType.ELECTRICAL).length,
+          PIPELINE: this.shippingItems.filter(item => item.equipmentType === EquipmentType.PIPELINE).length,
+          BURNER: this.shippingItems.filter(item => item.equipmentType === EquipmentType.BURNER).length,
+          AUXILIARY: this.shippingItems.filter(item => item.equipmentType === EquipmentType.AUXILIARY).length,
+          STANDARD_PARTS: this.shippingItems.filter(item => item.equipmentType === EquipmentType.STANDARD_PARTS).length
         }
       };
 
@@ -358,7 +369,7 @@ export class MockShippingService {
     try {
       const records = getTrackingRecordsByListId(shippingListId);
       return successResponse(records.sort((a, b) =>
-        new Date(b.operationTime).getTime() - new Date(a.operationTime).getTime()
+        new Date(b.statusTime).getTime() - new Date(a.statusTime).getTime()
       ));
     } catch (error) {
       return errorResponse('获取跟踪记录失败');
@@ -407,10 +418,10 @@ export class MockShippingService {
         projectName: project?.name || '',
         batchNumber,
         shippingDate: new Date().toISOString().split('T')[0],
-        shippingMethod: 'truck',
+        shippingMethod: 'TRUCK',
         responsiblePersonId,
         responsiblePerson: responsiblePerson?.name || '',
-        status: 'draft',
+        status: ShippingStatus.DRAFT,
         totalItems,
         totalWeight,
         totalVolume,
@@ -441,10 +452,12 @@ export class MockShippingService {
       const trackingRecord: ShippingTrackingRecord = {
         id: `TR${Date.now()}`,
         shippingListId: newId,
-        status: 'draft',
-        operationTime: new Date().toISOString(),
+        status: ShippingStatus.DRAFT,
+        statusTime: new Date().toISOString(),
         operator: 'current_user',
-        remarks: `通过Excel导入创建发货清单，导入${totalItems}项明细`
+        operatorId: 'system',
+        remarks: `通过Excel导入创建发货清单，导入${totalItems}项明细`,
+        createTime: new Date().toISOString()
       };
       this.trackingRecords.push(trackingRecord);
 

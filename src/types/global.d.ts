@@ -1,6 +1,13 @@
 import type { ComponentInternalInstance as ComponentInstance, PropType as VuePropType } from 'vue';
+import type { DefineComponent } from 'vue';
 
 declare global {
+  // JSX 类型定义
+  namespace JSX {
+    interface IntrinsicElements {
+      [elem: string]: any;
+    }
+  }
   /** vue Instance */
   declare type ComponentInternalInstance = ComponentInstance;
   /**vue */

@@ -129,20 +129,22 @@
   </el-dialog>
 </template>
 <script setup lang="ts">
-import { ref } from "vue";
-const { proxy } = getCurrentInstance() as ComponentInternalInstance;
-import {ProductVO} from "@/api/erp/product/product/types";
-import {SupplierVO} from "@/api/erp/purchase/supplier/types";
+import { ref, getCurrentInstance } from "vue";
+import type { ComponentInternalInstance } from "vue";
+import type {ProductVO} from "@/api/erp/product/product/types";
+import type {SupplierVO} from "@/api/erp/purchase/supplier/types";
 import {getProductSimpleList} from "@/api/erp/product/product";
 import {getSupplierSimpleList} from "@/api/erp/purchase/supplier";
 import PurchaseOrderItemForm from './components/PurchaseOrderItemForm.vue'
 import {erpPriceInputFormatter, erpPriceMultiply} from "@/utils";
 import {addPurchaseOrder, getPurchaseOrder, updatePurchaseOrder} from "@/api/erp/purchase/order";
-import {PurchaseOrderForm} from "@/api/erp/purchase/order/types";
-import {UserVO} from "@/api/system/user/types";
+import type {PurchaseOrderForm} from "@/api/erp/purchase/order/types";
+import type {UserVO} from "@/api/system/user/types";
 import {getSimpleUserList} from "@/api/system/user";
 import {getAccountSimpleList} from "@/api/erp/finance/account";
-import {AccountVO} from "@/api/erp/finance/account/types";
+import type {AccountVO} from "@/api/erp/finance/account/types";
+
+const { proxy } = getCurrentInstance() as ComponentInternalInstance;
 
 /** ERP 销售订单表单 */
 defineOptions({ name: 'PurchaseOrderForm' })

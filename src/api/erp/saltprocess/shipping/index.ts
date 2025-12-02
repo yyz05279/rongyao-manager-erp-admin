@@ -362,15 +362,7 @@ export const getShippingItems = listShippingItems;
 export const getTrackingRecords = getShippingTrackingRecords;
 export const getAttachments = getShippingAttachments;
 
-/**
- * 子系统分组数据（用于更清晰的数据结构）
- */
-export interface SubsystemGroup {
-  systemName: string;          // 子系统名称（如：平面输送系统）
-  weight: number | string;      // 子系统总重量（吨）
-  remark?: string;              // 备注信息
-  items: EnhancedShippingItemForm[];  // 该子系统下的明细项
-}
+// SubsystemGroup 已从 types.ts 导入，不在此处重复定义
 
 /**
  * 增强版发货清单导入接口
@@ -429,6 +421,22 @@ export interface EnhancedShippingImportResult {
   summary: string;
   errors?: string[];
 }
+
+/**
+ * 从Excel创建发货清单
+ */
+export const createShippingListFromExcel = (
+  projectId: string,
+  batchNumber: string,
+  responsiblePersonId: string,
+  items: ShippingItemVO[]
+): AxiosPromise<string> => {
+  return request({
+    url: '/erp/saltprocess/shipping/import/excel',
+    method: 'post',
+    data: { projectId, batchNumber, responsiblePersonId, items }
+  });
+};
 
 /**
  * 增强版发货清单导入接口

@@ -41,6 +41,7 @@ export interface SaltmakingTaskVO {
   projectName: string;
   reactorId: string;
   reactorName: string;
+  tankName?: string;
   saltType: SaltType;
   targetOutput: number; // kg
   currentOutput: number; // kg
@@ -58,6 +59,10 @@ export interface SaltmakingTaskVO {
   targetPressure: number;
   currentPressure?: number;
   stirringSpeed: number;
+  currentStirringSpeed?: number;
+  reactionTime?: number;
+  phRange?: string;
+  targetDensity?: number;
   ratioConfig: RatioConfigItem[];
   remarks?: string;
   createTime: string;
@@ -90,6 +95,9 @@ export interface RatioConfigItem {
   priority: number;
   unit: string;
 }
+
+// 化盐配比配置（别名，用于兼容）
+export type SaltmakingRatioConfig = RatioConfigItem;
 
 // 化盐数据记录
 export interface SaltmakingDataVO {
@@ -341,6 +349,22 @@ export interface SaltmakingEquipmentFault {
   resolveAction?: string;
   resolvedBy?: string;
   status: 'OPEN' | 'IN_PROGRESS' | 'RESOLVED';
+}
+
+// 化盐质量检测
+export interface SaltmakingQualityVO {
+  id: string;
+  taskId: string;
+  testTime: string;
+  testType: string;
+  testItem: string;
+  testValue: number;
+  standardValue: number;
+  unit: string;
+  result: 'PASS' | 'FAIL' | 'WARNING';
+  testerName: string;
+  remarks?: string;
+  createTime: string;
 }
 
 // 化盐报告

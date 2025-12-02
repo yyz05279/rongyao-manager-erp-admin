@@ -21,6 +21,16 @@ import {
   BatchSaveMaterialsResponse
 } from './types';
 
+// 子系统物料模板表单
+export interface SubsystemMaterialTemplateForm {
+  id?: number;
+  itemTemplateId?: number;
+  materialId: number;
+  defaultQuantity: number;
+  isRequired: boolean;
+  remarks?: string;
+}
+
 // ==================== 子项模板接口（独立管理） ====================
 
 /**

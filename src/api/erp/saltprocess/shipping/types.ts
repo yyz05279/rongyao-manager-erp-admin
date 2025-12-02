@@ -119,8 +119,10 @@ export interface ShippingItemVO {
   unit: string;                       // 单位
   unitWeight?: number;                // 单重(kg)
   totalWeight?: number;               // 总重(kg)
+  weight?: number | string;           // 重量（别名，兼容旧版）
   unitVolume?: number;                // 单体积(m³)
   totalVolume?: number;               // 总体积(m³)
+  volume?: number | string;           // 体积（别名，兼容旧版）
   manufacturer?: string;              // 制造商
   model?: string;                     // 型号
   serialNumber?: string;              // 序列号

@@ -393,8 +393,8 @@ import {
   listHeatingData,
   getHeatingAlerts,
   getHeatingEnergyData,
-  handleAlert,
-  closeAlert
+  handleAlert as handleAlertApi,
+  closeAlert as closeAlertApi
 } from '@/api/erp/saltprocess/heating';
 import type {
   HeatingTaskVO,
@@ -639,7 +639,7 @@ const handleAlert = async (alert: HeatingAlert) => {
       }
     );
     
-    await handleAlert(alert.id, action);
+    await handleAlertApi(alert.id, action);
     ElMessage.success('报警处理成功');
     loadAlertRecords(taskData.value.id);
   } catch (error) {
@@ -652,7 +652,7 @@ const handleAlert = async (alert: HeatingAlert) => {
 
 const closeAlert = async (alert: HeatingAlert) => {
   try {
-    await closeAlert(alert.id);
+    await closeAlertApi(alert.id);
     ElMessage.success('报警关闭成功');
     loadAlertRecords(taskData.value.id);
   } catch (error) {

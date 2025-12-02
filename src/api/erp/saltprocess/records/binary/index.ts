@@ -19,6 +19,7 @@ import {
 } from './types';
 import { listSaltProject } from '../../project';
 import { SaltProjectVO } from '../../project/types';
+import { PageResult } from '../../types';
 
 /**
  * 查询二元化盐记录列表
@@ -236,7 +237,7 @@ export const getBinaryRecordImportTemplate = (): AxiosPromise<void> => {
 /**
  * 根据批次号查询记录
  */
-export const getBinaryMakingRecordByBatch = (batchNumber: string): AxiosPromise<BinaryMakingRecordVO[]> => {
+export const getBinaryMakingRecordByBatch = (batchNumber: string): AxiosPromise<BinaryRecordVO[]> => {
   return request({
     url: '/erp/saltprocess/binary-making-record/batch/' + batchNumber,
     method: 'get'
@@ -246,7 +247,7 @@ export const getBinaryMakingRecordByBatch = (batchNumber: string): AxiosPromise<
 /**
  * 根据质量等级查询记录
  */
-export const getBinaryMakingRecordByQualityGrade = (qualityGrade: number): AxiosPromise<BinaryMakingRecordVO[]> => {
+export const getBinaryMakingRecordByQualityGrade = (qualityGrade: number): AxiosPromise<BinaryRecordVO[]> => {
   return request({
     url: '/erp/saltprocess/binary-making-record/quality-grade/' + qualityGrade,
     method: 'get'
@@ -472,6 +473,6 @@ export const downloadTemplate = (): AxiosPromise<Blob> => {
 /**
  * 获取项目列表（用于二元化盐记录筛选）
  */
-export const getProjectList = (): AxiosPromise<SaltProjectVO[]> => {
+export const getProjectList = (): AxiosPromise<PageResult<SaltProjectVO>> => {
   return listSaltProject();
 };

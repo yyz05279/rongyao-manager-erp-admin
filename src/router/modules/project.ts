@@ -5,9 +5,9 @@
  * - erp/project: 通用项目管理，适用于各种类型的企业项目
  */
 import Layout from '@/layout/index.vue';
-import { RouteRecordRaw } from 'vue-router';
+import { RouteOption } from 'vue-router';
 
-const projectRouter: RouteRecordRaw = {
+const projectRouter: RouteOption = {
   path: '/erp/project',
   component: Layout,
   redirect: '/erp/project/index',
@@ -120,6 +120,6 @@ const projectRouter: RouteRecordRaw = {
       }
     }
   ]
-};
+} as RouteOption;
 
 export default projectRouter;

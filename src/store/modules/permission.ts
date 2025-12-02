@@ -280,11 +280,12 @@ export const filterDynamicRoutes = (routes: RouteOption[]) => {
   const res: RouteOption[] = [];
   routes.forEach((route) => {
     // 化盐记录相关路由无需权限验证，直接添加
-    const isSaltRecordRoute = route.name && (
-      route.name.includes('SaltDataRecords') ||
-      route.name.includes('PreheatingRecords') ||
-      route.name.includes('BinaryRecords') ||
-      route.name.includes('TernaryRecords') ||
+    const routeName = typeof route.name === 'string' ? route.name : '';
+    const isSaltRecordRoute = routeName && (
+      routeName.includes('SaltDataRecords') ||
+      routeName.includes('PreheatingRecords') ||
+      routeName.includes('BinaryRecords') ||
+      routeName.includes('TernaryRecords') ||
       route.path?.includes('saltprocess')
     );
 

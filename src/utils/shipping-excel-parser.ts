@@ -238,10 +238,10 @@ export class ShippingExcelParser {
                 break;
               case 'isFragile':
               case 'isHazardous':
-                item[fieldName] = this.parseBoolean(value);
+                (item as any)[fieldName] = this.parseBoolean(value);
                 break;
               default:
-                item[fieldName] = String(value).trim();
+                (item as any)[fieldName] = String(value).trim();
             }
           } catch (error) {
             errors.push({
@@ -404,7 +404,7 @@ export class ShippingExcelParser {
       备注: '示例备注'
     };
 
-    const data = [headers, headers.map((h) => sampleData[h] || '')];
+    const data = [headers, headers.map((h) => (sampleData as any)[h] || '')];
 
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.aoa_to_sheet(data);

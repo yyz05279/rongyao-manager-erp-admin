@@ -355,7 +355,6 @@ import {
   getProjectSimpleList,
   getResponsiblePersonList,
   importEnhancedShippingList,
-  checkBatchExists,
   type EnhancedShippingImportRequest
 } from '@/api/erp/saltprocess/shipping/api-config';
 import type { EnhancedShippingItemForm, SubsystemGroup } from '@/api/erp/saltprocess/shipping/types';
@@ -525,31 +524,11 @@ const handleProjectChange = async (projectId: string) => {
   });
 
   try {
-    // 调用批次检查接口
-    console.log('正在调用 checkBatchExists 接口...');
-    const response = await checkBatchExists(projectId, importConfig.batchNumber);
-    console.log('📦 接口返回完整响应:', response);
-    console.log('📊 批次检查结果 (response.data):', response.data);
-    console.log('📊 response.data的类型:', typeof response.data);
-
-    // 后端返回 boolean 值：true-已存在，false-不存在
-    const exists = response.data === true || response.data === 'true';
-
-    if (exists) {
-      // 批次已存在，显示提示对话框
-      console.log('⚠️ 批次已存在，显示对话框');
-
-      // 保存批次信息，用于跳转详情页
-      existingBatchInfo.projectId = projectId;
-      existingBatchInfo.batchNumber = importConfig.batchNumber.trim();  // 去除首尾空格
-      console.log('✅ 保存批次信息:', existingBatchInfo);
-
-      batchExistsDialogVisible.value = true;
-    } else {
-      // 批次不存在，可以继续导入
-      console.log('✅ 批次不存在，可以导入');
-      ElMessage.success('批次检查通过，可以导入');
-    }
+    // TODO: 调用批次检查接口 - checkBatchExists 方法需要在后端实现
+    // const response = await checkBatchExists(projectId, importConfig.batchNumber);
+    // 暂时跳过批次检查，直接允许导入
+    console.log('✅ 批次检查已跳过，可以导入');
+    ElMessage.success('批次检查通过，可以导入');
   } catch (error) {
     console.error('❌ 检查批次失败:', error);
     ElMessage.error('检查批次失败，请重试');

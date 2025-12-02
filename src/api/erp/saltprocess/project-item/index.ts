@@ -5,7 +5,6 @@
 import request from '@/utils/request';
 import { AxiosPromise } from 'axios';
 import type { PageResult } from '../types';
-import { buildMaterialUpdatePayload, buildMaterialUpsertPayload } from '@/utils/material-payload';
 
 // ==================== 类型定义 ====================
 

@@ -72,14 +72,14 @@
 </template>
 
 <script setup name="SaltDataRecords">
+import { ref, onMounted, onBeforeMount, onBeforeUnmount } from 'vue';
+import { useRouter } from 'vue-router';
+
 // 极简版本 - 化盐数据记录页面
 console.log('🚀 [SaltDataRecords] 开始加载化盐数据记录页面...');
 console.log('🚀 [SaltDataRecords] 当前时间:', new Date().toLocaleString());
 console.log('🚀 [SaltDataRecords] 当前URL:', window.location.href);
 console.log('🚀 [SaltDataRecords] 组件名称:', 'SaltDataRecords');
-
-import { ref, onMounted, onBeforeMount, onBeforeUnmount } from 'vue';
-import { useRouter } from 'vue-router';
 
 // 路由实例
 const router = useRouter();

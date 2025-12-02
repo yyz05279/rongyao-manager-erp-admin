@@ -49,6 +49,6 @@ const subsystemRouter: RouteOption = {
       permissions: ['erp:subsystem:template:list']
     }
   ]
-};
+} as RouteOption;
 
 export default subsystemRouter;

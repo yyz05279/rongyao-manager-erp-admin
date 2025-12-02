@@ -392,8 +392,8 @@ import {
   listSaltmakingData,
   getSaltmakingAlerts,
   listSaltmakingQuality,
-  handleAlert,
-  closeAlert
+  handleAlert as handleAlertApi,
+  closeAlert as closeAlertApi
 } from '@/api/erp/saltprocess/saltmaking';
 import type {
   SaltmakingTaskVO,
@@ -444,7 +444,7 @@ const loadTaskData = async (taskId: string) => {
 
 const loadRatioConfig = async (taskId: string) => {
   try {
-    const { data } = await getSaltmakingRatioConfig(taskId);
+    const { data } = await getSaltmakingRatioConfig();
     ratioConfig.value = data;
   } catch (error) {
     console.error('加载配比配置失败:', error);
@@ -575,8 +575,8 @@ const handleAlert = async (alert: SaltmakingAlert) => {
         inputErrorMessage: '处理措施不能为空'
       }
     );
-    
-    await handleAlert(alert.id, action);
+
+    await handleAlertApi(alert.id, action);
     ElMessage.success('报警处理成功');
     loadAlertRecords(taskData.value.id);
   } catch (error) {
@@ -589,7 +589,7 @@ const handleAlert = async (alert: SaltmakingAlert) => {
 
 const closeAlert = async (alert: SaltmakingAlert) => {
   try {
-    await closeAlert(alert.id);
+    await closeAlertApi(alert.id);
     ElMessage.success('报警关闭成功');
     loadAlertRecords(taskData.value.id);
   } catch (error) {

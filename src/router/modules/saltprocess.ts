@@ -550,6 +550,6 @@ const saltprocessRouter: RouteOption = {
       }
     }
   ]
-};
+} as RouteOption;
 
 export default saltprocessRouter;

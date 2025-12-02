@@ -207,6 +207,8 @@ export const mockShippingLists: ShippingListVO[] = [
     expectedDeliveryDate: '2024-04-15',
     status: ShippingStatus.CANCELLED,
     shippingMethod: ShippingMethod.TRUCK,
+    totalItems: 0,
+    totalWeight: 0,
     remarks: '客户要求延期，清单已取消',
     createTime: '2024-04-12T10:15:00Z',
     updateTime: '2024-04-12T14:30:00Z',

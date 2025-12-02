@@ -204,13 +204,14 @@
 
 <script setup name="SaltmakingTaskForm" lang="ts">
 import { ref, reactive, onMounted, watch } from 'vue';
-import { ElMessage, ElFormRules } from 'element-plus';
+import { ElMessage, FormRules } from 'element-plus';
 import {
   getSaltmakingTask,
   createSaltmakingTask,
   updateSaltmakingTask
 } from '@/api/erp/saltprocess/saltmaking';
 import type { SaltmakingTaskForm } from '@/api/erp/saltprocess/saltmaking/types';
+import { SaltType } from '@/api/erp/saltprocess/types';
 
 // Props
 interface Props {
@@ -220,12 +221,10 @@ interface Props {
 const props = defineProps<Props>();
 
 // Emits
-interface Emits {
+const emit = defineEmits<{
   success: [];
   cancel: [];
-}
-
-const emit = defineEmits<Emits>();
+}>();
 
 // 响应式数据
 const loading = ref(false);
@@ -236,7 +235,7 @@ const formData = reactive<SaltmakingTaskForm>({
   id: '',
   projectId: '',
   reactorId: '',
-  saltType: 'BINARY_SALT',
+  saltType: SaltType.BINARY,
   targetOutput: 1000,
   operatorId: '',
   plannedStartTime: '',
@@ -249,13 +248,13 @@ const formData = reactive<SaltmakingTaskForm>({
 });
 
 // 选项数据
-const projectList = ref([]);
-const reactorList = ref([]);
-const operatorList = ref([]);
-const ratioConfigList = ref([]);
+const projectList = ref<any[]>([]);
+const reactorList = ref<any[]>([]);
+const operatorList = ref<any[]>([]);
+const ratioConfigList = ref<any[]>([]);
 
 // 表单验证规则
-const formRules: ElFormRules = {
+const formRules: FormRules = {
   projectId: [{ required: true, message: '请选择项目', trigger: 'change' }],
   reactorId: [{ required: true, message: '请选择反应罐', trigger: 'change' }],
   saltType: [{ required: true, message: '请选择化盐类型', trigger: 'change' }],

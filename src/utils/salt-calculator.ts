@@ -31,7 +31,7 @@ export class MoltenSaltCalculator {
    * 计算完整的熔盐入库统计记录
    */
   static calculateRecord(record: Partial<MoltenSaltInventoryRecord>): MoltenSaltInventoryRecord {
-    const calculated = { ...record } as MoltenSaltInventoryRecord;
+    let calculated = { ...record } as MoltenSaltInventoryRecord;
 
     // 基础重量计算
     calculated.sodiumWeight = this.calculateSodiumWeight(record.sodiumBags || 0);
@@ -126,7 +126,7 @@ export class SaltProcessCalculator {
    * 计算完整的化盐量记录
    */
   static calculateRecord(record: Partial<SaltProcessRecord>): SaltProcessRecord {
-    const calculated = { ...record } as SaltProcessRecord;
+    let calculated = { ...record } as SaltProcessRecord;
 
     // 基础计算
     calculated.totalNitrate = this.calculateTotalNitrate(record.sodiumNitrate || 0, record.potassiumNitrate || 0);

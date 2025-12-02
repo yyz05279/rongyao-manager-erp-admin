@@ -444,3 +444,7 @@ export const listSaltmakingQuality = (taskId?: string): AxiosPromise<any> => {
     params: { taskId }
   });
 };
+
+// 导出别名以支持不同的命名约定
+export const handleAlert = handleSaltmakingAlert;
+export const closeAlert = closeSaltmakingAlert;

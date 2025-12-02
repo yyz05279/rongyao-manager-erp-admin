@@ -340,8 +340,8 @@ import {
   listPreheatingData,
   getPreheatingAlerts,
   listPreheatingInspection,
-  handleAlert,
-  closeAlert
+  handleAlert as handleAlertApi,
+  closeAlert as closeAlertApi
 } from '@/api/erp/saltprocess/preheating';
 import type {
   PreheatingTaskVO,
@@ -499,8 +499,8 @@ const handleAlert = async (alert: PreheatingAlert) => {
         inputErrorMessage: '处理措施不能为空'
       }
     );
-    
-    await handleAlert(alert.id, action);
+
+    await handleAlertApi(alert.id, action);
     ElMessage.success('报警处理成功');
     loadAlertRecords(taskData.value.id);
   } catch (error) {
@@ -513,7 +513,7 @@ const handleAlert = async (alert: PreheatingAlert) => {
 
 const closeAlert = async (alert: PreheatingAlert) => {
   try {
-    await closeAlert(alert.id);
+    await closeAlertApi(alert.id);
     ElMessage.success('报警关闭成功');
     loadAlertRecords(taskData.value.id);
   } catch (error) {
