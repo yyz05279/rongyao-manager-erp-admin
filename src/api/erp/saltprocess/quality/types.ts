@@ -422,3 +422,42 @@ export interface QualityChartSeries {
   data: number[];
   type: string;
 }
+
+// 质量测试查询参数
+export interface QualityTestQuery extends PageQuery {
+  inspectionNo?: string;
+  batchNo?: string;
+  itemName?: string;
+  testCode?: string;
+  sampleName?: string;
+  testType?: string;
+  testStatus?: string;
+  testResult?: string;
+  testDateRange?: [string, string];
+  result?: InspectionResult;
+  startDate?: string;
+  endDate?: string;
+}
+
+// 质量测试结果VO
+export interface QualityTestVO {
+  id: string;
+  inspectionNo: string;
+  batchNo: string;
+  itemId: string;
+  itemName: string;
+  itemCode: string;
+  standardValue: string;
+  actualValue: string;
+  unit: string;
+  tolerance: string;
+  testMethod: string;
+  result: InspectionResult;
+  deviation?: number;
+  isRequired: boolean;
+  testTime: string;
+  testerId: string;
+  testerName: string;
+  remarks?: string;
+  createTime: string;
+}

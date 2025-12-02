@@ -143,6 +143,9 @@ export const importTernaryRecord = (file: File): AxiosPromise<void> => {
   });
 };
 
+// 兼容新的命名方式
+export const importTernaryRecords = importTernaryRecord;
+
 /**
  * 获取导入模板
  */

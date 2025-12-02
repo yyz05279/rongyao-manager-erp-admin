@@ -47,6 +47,16 @@ export interface PreheatingTaskVO {
   remarks?: string;
   createTime: string;
   updateTime: string;
+  processConfig?: {
+    stirringSpeed?: number;
+    feedRate?: number;
+    circulationFlow?: number;
+  };
+  safetyConfig?: {
+    maxTemperatureLimit?: number;
+    maxPressureLimit?: number;
+    emergencyStopCondition?: string;
+  };
 }
 
 // 预热任务表单

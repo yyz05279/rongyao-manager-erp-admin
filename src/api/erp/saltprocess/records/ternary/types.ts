@@ -107,6 +107,7 @@ export interface TernaryRecordForm {
   recordDate: string;
   startTime: string;
   endTime: string;
+  duration?: number; // 持续时间(分钟)
   shift: number;
   
   // NaNO3配比信息

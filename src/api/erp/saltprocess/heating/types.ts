@@ -27,9 +27,11 @@ export interface HeatingTaskQuery extends PageQuery {
   taskCode?: string;
   status?: HeatingTaskStatus;
   heatingVesselId?: string;
+  tankId?: string;
   operatorId?: string;
   startTime?: string;
   endTime?: string;
+  currentStage?: number;
 }
 
 // 提温任务信息
@@ -384,13 +386,17 @@ export interface HeatingReport {
 // 提温能源数据
 export interface HeatingEnergyData {
   taskId: string;
-  totalEnergyConsumption: number; // kWh
+  totalEnergyConsumption?: number; // kWh
+  totalConsumption?: number; // kWh (兼容字段)
   averagePower: number; // kW
   peakPower: number; // kW
-  energyEfficiency: number; // %
-  costPerKwh: number;
-  totalCost: number;
-  recordTime: string;
+  energyEfficiency?: number; // %
+  efficiency?: number; // % (兼容字段)
+  costPerKwh?: number;
+  totalCost?: number;
+  estimatedCost?: number; // 预计成本 (兼容字段)
+  suggestion?: string; // 节能建议
+  recordTime?: string;
 }
 
 // 提温阶段结果

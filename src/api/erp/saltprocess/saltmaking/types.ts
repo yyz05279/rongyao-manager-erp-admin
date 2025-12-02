@@ -367,6 +367,20 @@ export interface SaltmakingQualityVO {
   createTime: string;
 }
 
+// 化盐配比数据（用于配比监控）
+export interface SaltmakingRatioData {
+  timestamp: string;
+  component: string;
+  componentName: string;
+  targetRatio: number;
+  currentRatio: number;
+  deviation: number;
+  targetAmount: number;
+  actualAmount: number;
+  status: RatioStatus;
+  unit: string;
+}
+
 // 化盐报告
 export interface SaltmakingReport {
   taskId: string;
