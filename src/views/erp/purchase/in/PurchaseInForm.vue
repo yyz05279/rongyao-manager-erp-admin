@@ -208,6 +208,7 @@ const formData = ref({
   totalPrice: 0,
   otherPrice: 0,
   orderNo: '',
+  orderId: undefined,
   items: [],
   no: undefined // 入库单号，后端返回
 })
@@ -311,13 +312,15 @@ const handlePurchaseOrderChange = (order: PurchaseOrderVO) => {
   formData.value.remark = order.remark
   formData.value.fileUrl = order.fileUrl
   // 将订单项设置到入库单项
-  order.items.forEach((item) => {
-    item.totalCount = item.count
-    item.count = item.totalCount - item.inCount
-    item.orderItemId = item.id
-    item.id = undefined
-  })
-  formData.value.items = order.items.filter((item) => item.count > 0)
+  if (order.items && order.items.length > 0) {
+    order.items.forEach((item: any) => {
+      item.totalCount = item.count
+      item.count = item.totalCount - (item.inCount || 0)
+      item.orderItemId = item.id
+      item.id = undefined
+    })
+    formData.value.items = order.items.filter((item: any) => item.count > 0)
+  }
 }
 
 /** 提交表单 */

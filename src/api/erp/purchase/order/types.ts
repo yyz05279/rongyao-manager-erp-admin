@@ -189,6 +189,10 @@ export interface PurchaseOrderForm extends BaseEntity {
 }
 
 export interface PurchaseOrderItem{
+  /**
+   * 采购单项id
+   */
+  id?: string | number;
 
   /**
    * 产品id
@@ -211,6 +215,21 @@ export interface PurchaseOrderItem{
    * 数量
    */
   count?:string | number;
+
+  /**
+   * 原始数量
+   */
+  totalCount?: string | number;
+
+  /**
+   * 已入库数量
+   */
+  inCount?: string | number;
+
+  /**
+   * 订单项id
+   */
+  orderItemId?: string | number;
 
   /**
    * 产品单价

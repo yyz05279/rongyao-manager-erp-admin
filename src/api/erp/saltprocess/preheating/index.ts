@@ -15,6 +15,7 @@ import {
   PressureCurveData,
   PreheatingInspectionVO,
   PreheatingInspectionForm,
+  PreheatingInspectionQuery,
   PreheatingStatistics,
   PreheatingEquipmentStatus,
   PreheatingProcessParams,
@@ -226,11 +227,12 @@ export const closeAlert = (alertId: string): AxiosPromise<void> => {
 /**
  * 查询巡检记录
  */
-export const listPreheatingInspection = (taskId?: string): AxiosPromise<PreheatingInspectionVO[]> => {
+export const listPreheatingInspection = (query?: PreheatingInspectionQuery | string): AxiosPromise<PageResult<PreheatingInspectionVO>> => {
+  const params = typeof query === 'string' ? { taskId: query } : query;
   return request({
     url: '/erp/saltprocess/preheating/inspection/list',
     method: 'get',
-    params: { taskId }
+    params
   });
 };
 

@@ -198,6 +198,8 @@ export interface PreheatingInspectionQuery extends PageQuery {
   inspectorId?: string;
   startTime?: string;
   endTime?: string;
+  overallResult?: string;
+  inspectionTime?: string | string[];
 }
 
 // 预热巡检
