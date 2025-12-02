@@ -1,10 +1,12 @@
 name: CI Build
 
 on:
-  push:
-    branches: [ master ]
-  pull_request:
-    branches: [ master ]
+  # 注释掉自动触发，只允许手动触发
+  # push:
+  #   branches: [ master ]
+  # pull_request:
+  #   branches: [ master ]
+  # 手动触发流水线
   workflow_dispatch:
 
 jobs:
