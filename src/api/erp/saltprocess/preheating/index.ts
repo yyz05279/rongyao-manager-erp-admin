@@ -381,3 +381,13 @@ export const getTankList = (): AxiosPromise<any> => {
     method: 'get'
   });
 };
+
+/**
+ * 获取操作员列表
+ */
+export const getOperatorList = (): AxiosPromise<any> => {
+  return request({
+    url: '/erp/saltprocess/operator/list',
+    method: 'get'
+  });
+};
