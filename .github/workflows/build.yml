@@ -1,0 +1,51 @@
+name: CI Build
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build on Ubuntu (Vite + TypeScript)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js 18.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18.x'
+          cache: 'npm'
+
+      - name: Install dependencies (npm ci)
+        run: npm ci
+
+      - name: Verify critical paths exist
+        run: |
+          set -eux
+          test -f src/router/modules/saltprocess.ts
+          test -f src/views/erp/saltprocess/records/binary/index.vue
+          test -f src/views/erp/saltprocess/records/binary/detail.vue
+          echo "All critical paths exist."
+
+      - name: Build (Vite + TS)
+        env:
+          CI: true
+        run: |
+          npm run build:prod
+
+      - name: Upload dist artifact
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist
+          retention-days: 7
+
