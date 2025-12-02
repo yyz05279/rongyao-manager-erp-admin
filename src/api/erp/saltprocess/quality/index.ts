@@ -443,3 +443,67 @@ export const exportQualityReport = (reportType: string, params?: any): AxiosProm
     responseType: 'blob'
   });
 };
+
+/**
+ * 获取质量测试列表
+ */
+export const listQualityTest = (query?: any): AxiosPromise<any> => {
+  return request({
+    url: '/erp/saltprocess/quality/test/list',
+    method: 'get',
+    params: query
+  });
+};
+
+/**
+ * 删除质量测试
+ */
+export const deleteQualityTest = (ids: string[]): AxiosPromise<void> => {
+  return request({
+    url: `/erp/saltprocess/quality/test/${ids.join(',')}`,
+    method: 'delete'
+  });
+};
+
+/**
+ * 批准质量测试
+ */
+export const approveQualityTest = (id: string): AxiosPromise<void> => {
+  return request({
+    url: `/erp/saltprocess/quality/test/${id}/approve`,
+    method: 'post'
+  });
+};
+
+/**
+ * 拒绝质量测试
+ */
+export const rejectQualityTest = (id: string, reason: string): AxiosPromise<void> => {
+  return request({
+    url: `/erp/saltprocess/quality/test/${id}/reject`,
+    method: 'post',
+    data: { reason }
+  });
+};
+
+/**
+ * 获取质量概览
+ */
+export const getQualityOverview = (): AxiosPromise<any> => {
+  return request({
+    url: '/erp/saltprocess/quality/overview',
+    method: 'get'
+  });
+};
+
+/**
+ * 导出质量测试列表
+ */
+export const exportQualityTestList = (query?: any): AxiosPromise<Blob> => {
+  return request({
+    url: '/erp/saltprocess/quality/test/export',
+    method: 'get',
+    params: query,
+    responseType: 'blob'
+  });
+};

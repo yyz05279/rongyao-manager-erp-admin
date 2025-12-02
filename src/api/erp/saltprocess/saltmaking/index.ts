@@ -393,3 +393,54 @@ export const exportSaltmakingReport = (taskId: string): AxiosPromise<Blob> => {
     responseType: 'blob'
   });
 };
+
+/**
+ * 获取实时数据
+ */
+export const getRealtimeData = (taskId: string): AxiosPromise<any> => {
+  return request({
+    url: `/erp/saltprocess/saltmaking/realtime/${taskId}`,
+    method: 'get'
+  });
+};
+
+/**
+ * 获取制盐图表数据
+ */
+export const getSaltmakingChartData = (taskId: string): AxiosPromise<any> => {
+  return request({
+    url: `/erp/saltprocess/saltmaking/chart/${taskId}`,
+    method: 'get'
+  });
+};
+
+/**
+ * 获取制盐比例数据
+ */
+export const getSaltmakingRatioData = (taskId: string): AxiosPromise<any> => {
+  return request({
+    url: `/erp/saltprocess/saltmaking/ratio/${taskId}`,
+    method: 'get'
+  });
+};
+
+/**
+ * 获取制盐比例配置
+ */
+export const getSaltmakingRatioConfig = (): AxiosPromise<any> => {
+  return request({
+    url: '/erp/saltprocess/saltmaking/ratio/config',
+    method: 'get'
+  });
+};
+
+/**
+ * 获取制盐质量列表
+ */
+export const listSaltmakingQuality = (taskId?: string): AxiosPromise<any> => {
+  return request({
+    url: '/erp/saltprocess/saltmaking/quality/list',
+    method: 'get',
+    params: { taskId }
+  });
+};

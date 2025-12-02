@@ -422,3 +422,14 @@ export const exportPreheatingInspectionList = (): AxiosPromise<Blob> => {
     responseType: 'blob'
   });
 };
+
+/**
+ * 获取预热图表数据
+ */
+export const getPreheatingChartData = (taskId: string, type?: string): AxiosPromise<any> => {
+  return request({
+    url: `/erp/saltprocess/preheating/chart/${taskId}`,
+    method: 'get',
+    params: { type }
+  });
+};
