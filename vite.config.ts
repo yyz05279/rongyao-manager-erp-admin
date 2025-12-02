@@ -20,6 +20,11 @@ export default defineConfig(({ mode, command }: ConfigEnv): UserConfig => {
     },
     // https://cn.vitejs.dev/config/#resolve-extensions
     plugins: createPlugins(env, command === 'build'),
+    // SSR 配置：处理 ESM/CommonJS 兼容性问题
+    // 解决 unplugin-icons 和其他依赖的 ESM 加载问题
+    ssr: {
+      noExternal: ['@iconify/json', '@iconify/utils']
+    },
     server: {
       host: '0.0.0.0',
       port: Number(env.VITE_APP_PORT),
