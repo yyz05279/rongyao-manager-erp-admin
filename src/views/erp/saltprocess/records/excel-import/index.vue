@@ -25,11 +25,11 @@
           <el-icon><download /></el-icon>
           下载模板
         </el-button>
-        <el-button size="large" @click="clearData" :disabled="importedData.length === 0">
+        <el-button size="large" @click="clearData" :disabled="importedData.moltenSaltInventory.length === 0 && importedData.saltProcess.length === 0">
           <el-icon><delete /></el-icon>
           清空数据
         </el-button>
-        <el-button size="large" @click="exportCurrentData" :disabled="importedData.length === 0">
+        <el-button size="large" @click="exportCurrentData" :disabled="importedData.moltenSaltInventory.length === 0 && importedData.saltProcess.length === 0">
           <el-icon><document /></el-icon>
           导出当前数据
         </el-button>
@@ -37,7 +37,7 @@
     </el-card>
 
     <!-- 数据类型切换 -->
-    <el-card class="type-switch-card" shadow="never" v-if="importedData.length > 0">
+    <el-card class="type-switch-card" shadow="never" v-if="importedData.moltenSaltInventory.length > 0 || importedData.saltProcess.length > 0">
       <el-radio-group v-model="currentDataType" @change="handleDataTypeChange">
         <el-radio-button value="molten_salt_inventory">熔盐入库统计</el-radio-button>
         <el-radio-button value="salt_process">化盐量记录</el-radio-button>
@@ -54,7 +54,7 @@
     </el-card>
 
     <!-- 数据展示区域 -->
-    <div v-if="importedData.length > 0" class="data-display-section">
+    <div v-if="importedData.moltenSaltInventory.length > 0 || importedData.saltProcess.length > 0" class="data-display-section">
       <DataDisplayTable
         :data="getCurrentTypeData()"
         :data-type="currentDataType"
