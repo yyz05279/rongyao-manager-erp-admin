@@ -9,8 +9,8 @@
     <el-popover shadow="none" :visible="visible" placement="bottom-end" trigger="click" :width="450">
       <template #reference>
         <div @click="visible = !visible" class="cursor-pointer text-[#999] absolute right-[10px] top-0 height-[32px] leading-[32px]">
-          <i-ep-caret-top v-show="visible"></i-ep-caret-top>
-          <i-ep-caret-bottom v-show="!visible"></i-ep-caret-bottom>
+          <el-icon v-show="visible"><CaretTop /></el-icon>
+          <el-icon v-show="!visible"><CaretBottom /></el-icon>
         </div>
       </template>
 
@@ -32,6 +32,7 @@
 <script setup lang="ts">
 import icons from '@/components/IconSelect/requireIcons';
 import { propTypes } from '@/utils/propTypes';
+import { CaretTop, CaretBottom } from '@element-plus/icons-vue';
 
 const props = defineProps({
   modelValue: propTypes.string.isRequired,

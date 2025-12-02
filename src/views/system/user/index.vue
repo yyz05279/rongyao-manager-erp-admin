@@ -275,7 +275,7 @@
         drag
       >
         <el-icon class="el-icon--upload">
-          <i-ep-upload-filled />
+          <Upload />
         </el-icon>
         <div class="el-upload__text">将文件拖到此处，或<em>点击上传</em></div>
         <template #tip>
@@ -305,6 +305,7 @@ import { RoleVO } from "@/api/system/role/types";
 import { PostVO } from "@/api/system/post/types";
 import { to } from "await-to-js";
 import { globalHeaders } from "@/utils/request";
+import { Upload } from '@element-plus/icons-vue';
 
 const router = useRouter();
 const { proxy } = getCurrentInstance() as ComponentInternalInstance
