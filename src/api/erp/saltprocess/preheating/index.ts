@@ -361,3 +361,23 @@ export const exportPreheatingReport = (taskId: string): AxiosPromise<Blob> => {
     responseType: 'blob'
   });
 };
+
+/**
+ * 获取项目列表
+ */
+export const getProjectList = (): AxiosPromise<any> => {
+  return request({
+    url: '/erp/saltprocess/project/list',
+    method: 'get'
+  });
+};
+
+/**
+ * 获取罐列表
+ */
+export const getTankList = (): AxiosPromise<any> => {
+  return request({
+    url: '/erp/saltprocess/tank/list',
+    method: 'get'
+  });
+};
