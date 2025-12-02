@@ -415,3 +415,27 @@ export const exportHeatingReport = (taskId: string): AxiosPromise<Blob> => {
     responseType: 'blob'
   });
 };
+
+/**
+ * 获取提温能耗数据
+ */
+export const getHeatingEnergyData = (taskId: string): AxiosPromise<any> => {
+  return request({
+    url: `/erp/saltprocess/heating/energy/${taskId}`,
+    method: 'get'
+  });
+};
+
+/**
+ * 处理报警（别名）
+ */
+export const handleAlert = (alertId: string, action: string): AxiosPromise<void> => {
+  return handleHeatingAlert(alertId, action);
+};
+
+/**
+ * 关闭报警（别名）
+ */
+export const closeAlert = (alertId: string): AxiosPromise<void> => {
+  return closeHeatingAlert(alertId);
+};
