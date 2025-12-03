@@ -62,7 +62,8 @@ jobs:
             exit 1
           fi
 
-          dmgFiles=$(ls dist/Haitang*.dmg 2>/dev/null | wc -l)
+          # 查找所有 .dmg 文件（支持中文和英文文件名）
+          dmgFiles=$(find dist -maxdepth 1 -name "*.dmg" -type f 2>/dev/null | wc -l)
           if [ "$dmgFiles" -eq 0 ]; then
             echo "❌ Error: No DMG files found in dist directory"
             echo "Available files:"
@@ -72,16 +73,29 @@ jobs:
 
           echo "✓ Build output verified"
           echo "Found $dmgFiles DMG file(s)"
-          ls -lh dist/Haitang*.dmg
+          find dist -maxdepth 1 -name "*.dmg" -type f -exec ls -lh {} \;
 
       - name: Create checksums
         run: |
           cd dist
-          if ! shasum -a 256 Haitang*.dmg > checksums-intel.txt 2>&1; then
-            echo "❌ Error: Failed to create checksums"
-            cat checksums-intel.txt
+
+          # 查找所有 .dmg 文件并计算校验和
+          dmgFiles=$(find . -maxdepth 1 -name "*.dmg" -type f)
+          if [ -z "$dmgFiles" ]; then
+            echo "❌ Error: No DMG files found for checksum calculation"
             exit 1
           fi
+
+          # 为所有 DMG 文件生成校验和
+          echo "$dmgFiles" | while read dmgFile; do
+            shasum -a 256 "$dmgFile"
+          done > checksums-intel.txt
+
+          if [ ! -s checksums-intel.txt ]; then
+            echo "❌ Error: Failed to create checksums"
+            exit 1
+          fi
+
           echo "✓ Checksums created successfully"
           cat checksums-intel.txt
 
@@ -90,8 +104,8 @@ jobs:
         with:
           name: macos-intel
           path: |
-            dist/Haitang*.dmg
-            dist/Haitang*.zip
+            dist/*.dmg
+            dist/*.zip
             dist/checksums-intel.txt
           retention-days: 30
           if-no-files-found: warn
