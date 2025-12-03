@@ -114,8 +114,10 @@ jobs:
             exit 1
           }
           Write-Host "=== Electron Build Output ==="
-          $files = Get-ChildItem -Path dist -Include *.exe,*.msi -File -Recurse:$false
-          if (!$files) {
+          $exeFiles = @(Get-ChildItem -Path dist -Filter *.exe -File -ErrorAction SilentlyContinue)
+          $msiFiles = @(Get-ChildItem -Path dist -Filter *.msi -File -ErrorAction SilentlyContinue)
+          $files = @($exeFiles + $msiFiles)
+          if (!$files -or $files.Count -eq 0) {
             Write-Error "No executable installers found (*.exe/*.msi) in dist"
             exit 1
           }
