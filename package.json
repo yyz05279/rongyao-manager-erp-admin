@@ -12,7 +12,7 @@
     "build": "npm run build:prod",
     "build:prod": "vite build --mode production && vue-tsc --noEmit",
     "build:electron": "cross-env NODE_OPTIONS=--max-old-space-size=4096 electron-vite build --mode electron",
-    "preelectron:build": "npm run build:electron",
+    "preelectron:build": "npm run build:prod && npm run build:electron",
     "electron:build": "cross-env VITE_APP_ENV=electron electron-builder",
     "preview": "vite preview",
     "preview:electron": "electron-vite preview --mode electron",
