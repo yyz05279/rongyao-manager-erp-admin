@@ -16,7 +16,7 @@
     "serve:dist": "http-server dist -p 8080 -c-1 -o",
     "pack": "electron-builder --dir",
     "dist": "electron-builder",
-    "dist:win": "cross-env VITE_APP_ENV=electron electron-builder --win",
+    "dist:win": "cross-env VITE_APP_ENV=electron electron-builder --win --publish=never",
     "dist:mac": "VITE_APP_ENV=electron electron-builder --mac --config electron-builder.yml",
     "dist:mac:safe": "source .env.build && VITE_APP_ENV=electron npx electron-builder --mac --config electron-builder.yml -c.artifactBuildStarted=null",
     "dist:linux": "VITE_APP_ENV=electron electron-builder --linux",
