@@ -55,10 +55,34 @@ jobs:
           ls -lh dist/
           file dist/*.dmg || true
       
+      - name: Verify build output
+        run: |
+          if [ ! -d "dist" ]; then
+            echo "❌ Error: dist directory not found"
+            exit 1
+          fi
+
+          dmgFiles=$(ls dist/Haitang*.dmg 2>/dev/null | wc -l)
+          if [ "$dmgFiles" -eq 0 ]; then
+            echo "❌ Error: No DMG files found in dist directory"
+            echo "Available files:"
+            ls -lh dist/ || true
+            exit 1
+          fi
+
+          echo "✓ Build output verified"
+          echo "Found $dmgFiles DMG file(s)"
+          ls -lh dist/Haitang*.dmg
+
       - name: Create checksums
         run: |
           cd dist
-          shasum -a 256 Haitang*.dmg > checksums-intel.txt
+          if ! shasum -a 256 Haitang*.dmg > checksums-intel.txt 2>&1; then
+            echo "❌ Error: Failed to create checksums"
+            cat checksums-intel.txt
+            exit 1
+          fi
+          echo "✓ Checksums created successfully"
           cat checksums-intel.txt
 
       - name: Upload macOS Intel artifacts
