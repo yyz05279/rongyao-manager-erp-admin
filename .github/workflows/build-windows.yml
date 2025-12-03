@@ -96,6 +96,12 @@ jobs:
             Write-Warning "Found markdown file in dist: $($_.FullName)"
           }
 
+      - name: Build Electron main process
+        run: npm run build:electron
+        env:
+          VITE_APP_ENV: electron
+          NODE_OPTIONS: --max-old-space-size=4096
+
       - name: Build Electron app (Windows x64)
         run: npm run dist:win
         env:
