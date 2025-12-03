@@ -9,6 +9,7 @@
   "scripts": {
     "dev": "vite serve --mode development",
     "dev:electron": "electron-vite dev --mode electron",
+    "build": "npm run build:prod",
     "build:prod": "vite build --mode production && vue-tsc --noEmit",
     "build:electron": "cross-env NODE_OPTIONS=--max-old-space-size=4096 electron-vite build --mode electron",
     "preview": "vite preview",
